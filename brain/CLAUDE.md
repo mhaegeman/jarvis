@@ -264,6 +264,18 @@ Steps:
 
 6. **Tags must include** `github`, `open-source`, and the repo's primary language or domain (infer from content). Apply all standard tagging rules (Section 12).
 
+7. **GitHub repo source pages MUST include the following two extra sections** (insert between Summary and Key Points):
+
+   ```markdown
+   ## Tech Stack
+   Bulleted list of languages, frameworks, databases, runtimes, and tools used. Be specific — include version hints where visible (e.g., Python 3.13, Bun, DuckDB). Cover: runtime language, key libraries, databases, deployment, and any AI/ML frameworks.
+
+   ## Purpose
+   One paragraph: what problem does this repo solve, who is it for, and what is the primary user action?
+   ```
+
+   These two sections are required for all GitHub repo ingests because tech stack and purpose are the most-searched fields when deciding whether to adopt or reference a repo.
+
 ---
 
 ### Query

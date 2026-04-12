@@ -1,5 +1,5 @@
 # Wiki Index
-_Last updated: 2026-04-12 — 33 pages total_
+_Last updated: 2026-04-12 — 55 pages total_
 
 ## Sources
 | Page | Summary | Ingested |
@@ -10,6 +10,15 @@ _Last updated: 2026-04-12 — 33 pages total_
 | [Maxime Haegeman — Professional Profile](sources/maxime-haegeman-profile.md) | Resume, portfolio, GitHub profile, and project list for the wiki owner; Senior Data / ML Engineer at Massive Entertainment | 2026-04-12 |
 | [Boris Cherny — Claude Code Workflow](sources/boris-cherny-claude-code-workflow.md) | YouTube transcript: 6 workflow principles from the creator of Claude Code — plan mode, minimal CLAUDE.md, verification loops, parallel sessions, slash commands, Bitter Lesson | 2026-04-12 |
 | [Harsh Kakroo — Portfolio & Profile](sources/harsh-kakroo-portfolio.md) | UX Researcher & Product Designer at Massive Entertainment; 4+ years across gaming, fintech, automotive, VR/XR; worked on Avatar: Frontiers of Pandora and Star Wars Outlaws | 2026-04-12 |
+| [Owl-Listener / Designer Skills](sources/owl-listener-designer-skills.md) | 50+ Claude Code skills for designers across 8 domains: design-ops, research, systems, toolkit, interaction, prototyping, ui, ux-strategy | 2026-04-12 |
+| [getnao / Nao](sources/getnao-nao.md) | AI-powered natural language data analysis platform; Fastify+tRPC+Bun backend, React/Vite frontend, DuckDB analytics, FastAPI Python sidecar | 2026-04-12 |
+| [IAmTomShaw / Document Chatbot Offline](sources/iamtomshaw-document-chatbot-offline.md) | Offline PDF Q&A chatbot using Windows AI Foundry Local (phi-3.5-mini), Streamlit, PyPDF2; zero cloud dependency | 2026-04-12 |
+| [Astronomer / Ask Astro](sources/astronomer-ask-astro.md) | Open-source RAG Q&A bot for Apache Airflow/Astronomer docs; a16z reference architecture; Airflow DAGs + Weaviate + LangChain + OpenAI | 2026-04-12 |
+| [mlabonne / LLM Course](sources/mlabonne-llm-course.md) | Free comprehensive LLM curriculum: Fundamentals → LLM Scientist (fine-tuning) → LLM Engineer (RAG/deployment); Colab notebooks for Llama, Mistral | 2026-04-12 |
+| [facebookresearch / Nougat](sources/facebookresearch-nougat.md) | Meta AI neural OCR for academic PDFs; ViT encoder + Donut decoder; outputs Mathpix Markdown with accurate LaTeX math and tables | 2026-04-12 |
+| [facebookresearch / Segment Anything (SAM)](sources/facebookresearch-segment-anything.md) | Meta AI foundation model for zero-shot image segmentation; trained on 11M images / 1.1B masks; ViT backbone; ONNX browser demo | 2026-04-12 |
+| [EduardPetraeus / Claude Code Quickstart](sources/eduardpetraeus-claude-code-quickstart.md) | Battle-tested Claude Code starter kit: 8 rules, 10 hooks, 9 agents, 8 prompts, adversarial review pattern, workshop curriculum | 2026-04-12 |
+| [Leavitskiy / Claude Agentic Flow](sources/leavitskiy-claude-agentic-flow.md) | Collection of Claude Code agent prompt definitions for backend (Python/FastAPI), frontend (React Native), and code review workflows | 2026-04-12 |
 
 ## People
 | Page | Summary |
@@ -18,7 +27,8 @@ _Last updated: 2026-04-12 — 33 pages total_
 | [Daniel Kokotajlo](people/daniel-kokotajlo.md) | Lead author of AI 2027; former OpenAI researcher; strong prior forecasting track record |
 | [Maxime Haegeman](people/maxime-haegeman.md) | Owner of this wiki; Senior Data / ML Engineer at Massive Entertainment (Ubisoft); 5 years in data pipelines, ML, and analytics |
 | [Boris Cherny](people/boris-cherny.md) | Creator of Claude Code at Anthropic; advocates minimal CLAUDE.md, plan-first workflow, and "never bet against the model" |
-| [Harsh Kakroo](people/harsh-kakroo.md) | UX Researcher & Product Designer at Massive Entertainment (colleague of Maxime); worked on Avatar: FoP and Star Wars Outlaws; full-cycle from research to prototype |
+| [Harsh Kakroo](people/harsh-kakroo.md) | UX Researcher & Product Designer at Massive Entertainment (colleague of Maxime); worked on Avatar: FoP and Star Wars Outlaws |
+| [Maxime Labonne](people/maxime-labonne.md) | ML researcher and educator; author of the free LLM Course; covers fine-tuning, quantisation, MergeKit, DPO/ORPO |
 
 ## Entities
 | Page | Type | Summary |
@@ -31,6 +41,12 @@ _Last updated: 2026-04-12 — 33 pages total_
 | [LightRAG](entities/lightrag.md) | product | Graph-based RAG framework from HKUDS; foundation for RAG-Anything; hybrid vector + graph retrieval |
 | [Massive Entertainment](entities/massive-entertainment.md) | org | Ubisoft Studio in Malmö, Sweden; current employer of Maxime Haegeman; known for The Division and Star Wars Outlaws |
 | [Claude Code](entities/claude-code.md) | product | Anthropic's agentic coding CLI; created by Boris Cherny; features Plan Mode, CLAUDE.md, slash commands, parallel sessions |
+| [Meta AI Research (FAIR)](entities/meta-ai-research.md) | org | Meta's fundamental AI research lab; created SAM (image segmentation) and Nougat (document OCR) |
+| [Astronomer](entities/astronomer.md) | org | Company behind managed Apache Airflow (Astro); created Ask Astro open-source RAG reference implementation |
+| [Apache Airflow](entities/apache-airflow.md) | product | Dominant open-source workflow orchestration platform; DAG-based; used in Ask Astro's ingestion pipeline |
+| [Weaviate](entities/weaviate.md) | product | Open-source vector database; hybrid search; used as the retrieval layer in Ask Astro |
+| [Windows AI Foundry Local](entities/windows-ai-foundry.md) | product | Microsoft's on-device LLM runtime for Windows; OpenAI-compatible API; used for offline PDF chatbot |
+| [DuckDB](entities/duckdb.md) | product | In-process OLAP SQL database; zero-setup; used by Nao as its analytical query engine |
 
 ## Concepts
 | Page | Summary |
@@ -46,6 +62,12 @@ _Last updated: 2026-04-12 — 33 pages total_
 | [AI Arms Race](concepts/ai-arms-race.md) | US vs China competition to develop AGI first; Cold War analogy; constrains all safety decisions |
 | [Superintelligence Milestones](concepts/superintelligence-milestones.md) | SC → SAR → SIAR → ASI progression defined in AI 2027; grounded in METR time-horizon data |
 | [Multimodal RAG](concepts/multimodal-rag.md) | RAG extended to handle images, tables, equations, charts; knowledge graph + VLM analysis; most capable end of RAG design space |
+| [Agentic Workflow Patterns](concepts/agentic-workflow-patterns.md) | Patterns for multi-agent Claude Code workflows: triage→specialise→validate, parallel agents, hooks as guardrails, layered config |
+| [Promptable Visual Segmentation](concepts/promptable-visual-segmentation.md) | Zero-shot image segmentation via point/box prompts; SAM's core contribution; foundation model for vision |
+| [Neural Document OCR](concepts/neural-document-ocr.md) | Vision models that parse document images into structured text; Nougat handles LaTeX math and tables accurately |
+| [LLM Fine-Tuning](concepts/llm-fine-tuning.md) | Adapting pre-trained LLMs via SFT, QLoRA, DPO, ORPO; enables custom behaviour without full retraining |
+| [LLM Quantization](concepts/llm-quantization.md) | Reducing model weight precision (GGUF, GPTQ, EXL2, AWQ, HQQ) to enable local inference on consumer hardware |
+| [Offline LLM Inference](concepts/offline-llm-inference.md) | Running LLM inference entirely on local hardware; no cloud, no API; enabled by quantisation and runtimes like llama.cpp |
 
 ## Analyses
 | Page | Date | Purpose |

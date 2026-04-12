@@ -1,6 +1,6 @@
 # Overview
 
-_Evolving synthesis of everything in the wiki. Updated by the LLM as sources are ingested. Last updated: 2026-04-12._
+_Evolving synthesis of everything in the wiki. Updated by the LLM as sources are ingested. Last updated: 2026-04-12 (batch update: 9 GitHub repos)._
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This wiki is [Maxime Haegeman](people/maxime-haegeman.md)'s personal second brai
 
 ## Current State
 
-6 sources ingested. 31 pages. The wiki covers foundational methodology, AI scenario forecasting, multimodal RAG tooling, Claude Code workflow, and Maxime's professional profile.
+15 sources ingested. 55 pages. The wiki now covers: foundational methodology (LLM Wiki Pattern), AI scenario forecasting (AI 2027), multimodal RAG tooling (RAG-Anything), Claude Code workflow and tooling ecosystem (4 repos), LLM education (mlabonne course), document AI (Nougat), computer vision foundation models (SAM), production RAG reference architecture (Ask Astro), offline LLM inference (document chatbot), and Maxime's professional profile.
 
 ## Key Themes
 
@@ -30,6 +30,15 @@ Two breakthroughs drive the 2027 capability jump: [Neuralese Recurrence](concept
 ### 6. The "Information Mode" Principle
 [Boris Cherny](people/boris-cherny.md)'s workflow philosophy — drawn from Rich Sutton's [Bitter Lesson](sources/boris-cherny-claude-code-workflow.md) — directly validates this wiki's architecture: invest in persistent, structured context (information mode) rather than prompt optimisation. Every scaffold you build to patch model behaviour will be obsolete in 6 months; a well-maintained knowledge base compounds. This wiki is the applied form of that principle.
 
+### 7. Claude Code as an Ecosystem
+Four ingested repos ([EduardPetraeus/claude-code-quickstart](sources/eduardpetraeus-claude-code-quickstart.md), [Leavitskiy/claude-agentic-flow](sources/leavitskiy-claude-agentic-flow.md), [Owl-Listener/designer-skills](sources/owl-listener-designer-skills.md), [getnao/nao](sources/getnao-nao.md)) reveal Claude Code as a growing **skill library ecosystem** — analogous to npm packages but for AI agent behaviour. The emerging pattern: [CLAUDE.md → rules → hooks → agents](concepts/agentic-workflow-patterns.md), with domain-specific skill libraries that can be composed. The multi-agent code-review pattern (Haiku triage → Sonnet summary → parallel Opus bug detection → validation gate) appears independently in both getnao/nao and Leavitskiy — suggesting it is converging as a standard pattern for high-signal automated review.
+
+### 8. The LLM Stack: Education, Fine-Tuning, Quantisation, Deployment
+[Maxime Labonne's LLM Course](sources/mlabonne-llm-course.md) maps the practical LLM engineering stack: from mathematical foundations through [fine-tuning](concepts/llm-fine-tuning.md) (SFT/DPO/ORPO via Unsloth, Axolotl) and [quantisation](concepts/llm-quantization.md) (GGUF, GPTQ, EXL2) to deployment and RAG. The [document chatbot](sources/iamtomshaw-document-chatbot-offline.md) and [Ask Astro](sources/astronomer-ask-astro.md) represent the deployment end of this stack — one fully offline via [Windows AI Foundry](entities/windows-ai-foundry.md), one cloud-deployed on GCP with Airflow orchestration and Weaviate.
+
+### 9. Meta AI Research: Foundational Vision Models
+Meta's FAIR lab has contributed two open, foundational vision models: [SAM](sources/facebookresearch-segment-anything.md) (zero-shot image segmentation, 11M images / 1.1B masks) and [Nougat](sources/facebookresearch-nougat.md) (academic PDF → LaTeX Markdown). Both follow the same pattern: ViT-based architecture, MIT-licensed code (or Apache 2.0), CC-BY-NC model weights, and strong zero-shot generalisation. Together they represent the "foundation model" approach applied to vision domains beyond language.
+
 ## Open Questions
 
 - How credible is the 2027 timeline given the authors' July 2025 update pushing medians back ~1.5 years?
@@ -44,3 +53,6 @@ Two breakthroughs drive the 2027 capability jump: [Neuralese Recurrence](concept
 - [AI 2027](sources/ai-2027.md) — primary domain source
 - [Intelligence Explosion](concepts/intelligence-explosion.md) — the macro-phenomenon
 - [AI Alignment and Scheming](concepts/ai-alignment-scheming.md) — the central safety concern
+- [Agentic Workflow Patterns](concepts/agentic-workflow-patterns.md) — cross-cutting concept from 4 Claude Code repos
+- [mlabonne / LLM Course](sources/mlabonne-llm-course.md) — reference for LLM engineering skills
+- [Segment Anything (SAM)](sources/facebookresearch-segment-anything.md) — foundational computer vision model
