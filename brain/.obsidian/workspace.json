@@ -1,0 +1,231 @@
+{
+  "main": {
+    "id": "5a825e2428bc2f68",
+    "type": "split",
+    "children": [
+      {
+        "id": "50f11abfbc09e6d0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "71a3eae7f1c16284",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "975ff0f15a2ed9bd",
+    "type": "split",
+    "children": [
+      {
+        "id": "b50a8f898883b7b7",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b333cd4c5b1a4405",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "36b4f22a05e395e9",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "f58b75c3989fdeeb",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200,
+    "collapsed": true
+  },
+  "right": {
+    "id": "1365938415bf49fd",
+    "type": "split",
+    "children": [
+      {
+        "id": "00a6419e4dafb300",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "73d08f433efe70af",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Welcome.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Welcome"
+            }
+          },
+          {
+            "id": "1dac0a4bdf564a90",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Welcome.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Welcome"
+            }
+          },
+          {
+            "id": "84eaaea7493b8448",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "903a65a8f6d92671",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "e96969c7baf3f611",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Welcome.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Welcome"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "71a3eae7f1c16284",
+  "lastOpenFiles": [
+    "raw/assets/harsh-kakroo/venue/15.jpg",
+    "raw/assets/harsh-kakroo/venue/14.jpg",
+    "raw/assets/harsh-kakroo/venue/13.jpg",
+    "raw/assets/harsh-kakroo/venue/12.jpg",
+    "raw/assets/harsh-kakroo/venue/11.jpg",
+    "raw/assets/harsh-kakroo/venue/10.jpg",
+    "raw/assets/harsh-kakroo/venue/09.jpg",
+    "raw/assets/harsh-kakroo/venue/08.jpg",
+    "raw/assets/harsh-kakroo/venue/03.jpg",
+    "raw/assets/harsh-kakroo/venue/07.jpg",
+    "raw/assets/harsh-kakroo/venue/04.jpg",
+    "raw/assets/harsh-kakroo/swedbank",
+    "raw/assets/harsh-kakroo/venue",
+    "raw/assets/harsh-kakroo/polestar",
+    "raw/assets/harsh-kakroo/competitor",
+    "raw/assets/harsh-kakroo/avatar",
+    "raw/assets/harsh-kakroo",
+    "wiki/people/harsh-kakroo.md",
+    "raw/boris-cherny.md",
+    "wiki/sources/harsh-kakroo-portfolio.md",
+    "raw/Harsh Kakroo - Polestar.md",
+    "raw/Harsh Kakroo - Avatar Frontiers of Pandora.md",
+    "raw/Harsh Kakroo - VENUE.md",
+    "raw/Harsh Kakroo - Competitor Review (AAA Games).md",
+    "raw/Harsh Kakroo - Swedbank - VR Product Design.md",
+    "raw/Harsh Kakroo 1.md",
+    "raw/Harsh Kakroo.md",
+    "raw/Maxime  Resume.md",
+    "wiki/entities/claude-code.md",
+    "wiki/people/boris-cherny.md",
+    "wiki/sources/boris-cherny-claude-code-workflow.md",
+    "wiki/entities/massive-entertainment.md",
+    "wiki/people/maxime-haegeman.md",
+    "wiki/sources/maxime-haegeman-profile.md",
+    "wiki/concepts/multimodal-rag.md",
+    "wiki/entities/lightrag.md",
+    "wiki/entities/rag-anything.md",
+    "wiki/sources/hkuds-rag-anything.md",
+    "raw/hkuds-rag-anything.md",
+    "raw/Maxime  Projects.md",
+    "raw/Maxime Haegeman  Data Engineer.md",
+    "raw/mhaegeman - Overview.md",
+    "CLAUDE.md.tmp.22444.1776020418660",
+    "wiki/people",
+    "Clippings"
+  ]
+}

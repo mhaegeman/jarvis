@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sL https://cdn.myportfolio.com/d3edf12b6f8dafc2fc157ec39738aa9c/1a39bd1e-ed2a-4ba7-bcf6-08957da6c9cd_rw_1920.jpg -o /c/Users/maxim/Desktop/Projects/jarvis/brain/raw/assets/harsh-kakroo/avatar/01.jpg)"
+    ]
+  }
+}
