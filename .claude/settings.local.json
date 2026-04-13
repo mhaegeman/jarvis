@@ -1,16 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(repomix --remote https://github.com/HKUDS/RAG-Anything --output \"c:/Users/maxim/Desktop/Projects/jarvis/brain/raw/hkuds-rag-anything.md\" --style markdown --include \"**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*\")",
+      "Bash(repomix*)",
       "Bash(npm list:*)",
       "Bash(npx repomix:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:api.github.com)",
-      "WebFetch(domain:harshkakroo.com)",
       "Bash(echo \"exit: $?\")",
       "Bash(dir \"C:\\\\Users\\\\maxim\\\\Desktop\\\\Projects\\\\jarvis\\\\brain\\\\raw\\\\assets\\\\harsh-kakroo\\\\venue\")",
       "Bash(curl --version)",
-      "Bash(curl -v \"https://cdn.myportfolio.com/d3edf12b6f8dafc2fc157ec39738aa9c/1a39bd1e-ed2a-4ba7-bcf6-08957da6c9cd_rw_1920.jpg\" -o /tmp/test.jpg)"
+      "Bash(curl -v \"https://cdn.myportfolio.com/d3edf12b6f8dafc2fc157ec39738aa9c/1a39bd1e-ed2a-4ba7-bcf6-08957da6c9cd_rw_1920.jpg\" -o /tmp/test.jpg)",
+      "Bash(repomix --remote https://github.com/Owl-Listener/designer-skills --output brain/raw/owl-listener-designer-skills.md --style markdown --include \"**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*\")",
+      "Bash(repomix --remote https://github.com/getnao/nao --output brain/raw/getnao-nao.md --style markdown --include \"**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*\")",
+      "Bash(repomix --remote https://github.com/IAmTomShaw/document-chatbot-offline --output brain/raw/iamtomshaw-document-chatbot-offline.md --style markdown --include \"**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*\")",
+      "Bash(repomix --remote https://github.com/astronomer/ask-astro --output brain/raw/astronomer-ask-astro.md --style markdown --include \"**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*\")",
+      "Bash(repomix --remote https://github.com/mlabonne/llm-course --output brain/raw/mlabonne-llm-course.md --style markdown --include \"**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*\")",
+      "Bash(/c/Users/maxim/AppData/Roaming/npm/repomix --remote https://github.com/Owl-Listener/designer-skills --output brain/raw/owl-listener-designer-skills.md --style markdown --include \"**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*\")",
+      "Bash(\"/c/Program Files/nodejs/node.exe\" --version)",
+      "Bash(\"/c/Program Files/nodejs/npx.cmd\" repomix --version)",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")"
     ]
   }
 }
