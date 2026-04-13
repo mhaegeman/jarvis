@@ -22,6 +22,8 @@ Agentic workflows allow Claude Code to tackle tasks that would overwhelm a singl
 
 ## Evidence & Examples
 
+- [Jumbo](../entities/jumbo.md) — the most structured lifecycle: 5-phase goal workflow (define → refine → implement → review → codify) with dynamically assembled [context packets](agent-context-orchestration.md) from an entity graph. Focuses on knowledge persistence and QA gates rather than swarm coordination.
+- [RuFlo](../entities/ruflo.md) — the most comprehensive implementation: 100+ agents, 4 swarm topologies, 5 consensus protocols, self-learning memory, 3-tier intelligent routing, SPARC methodology, claims-based authorization. Implements and extends every pattern listed above.
 - [getnao / Nao](../sources/getnao-nao.md) — ships a multi-agent code review skill (Haiku triage → Sonnet summary → parallel Opus bug detection → validation → GitHub comments).
 - [Leavitskiy / Claude Agentic Flow](../sources/leavitskiy-claude-agentic-flow.md) — library of domain-specific agent prompt definitions (backend, frontend, code review, refactoring).
 - [EduardPetraeus / Claude Code Quickstart](../sources/eduardpetraeus-claude-code-quickstart.md) — full starter kit with 9 agents, 10 hooks, 8 rules, parallel-execution guide.
@@ -32,9 +34,19 @@ Agentic workflows allow Claude Code to tackle tasks that would overwhelm a singl
 - More agents = more latency and cost. The validation-gate pattern adds round-trips.
 - Agent skill libraries can become stale if not maintained — a prompt that worked with Claude 3 Sonnet may behave differently with Claude 4.
 - Parallel sub-agents with shared output targets (e.g., a single wiki index file) can cause write conflicts — sequencing or locking is needed.
+- Agent drift in long-running tasks requires structural mitigations (see [Swarm Coordination Topologies](swarm-coordination-topologies.md) and [Multi-Agent Consensus Protocols](multi-agent-consensus-protocols.md)).
 
 ## Related
 
 - [Claude Code](../entities/claude-code.md)
+- [RuFlo](../entities/ruflo.md) — full orchestration framework implementing all patterns
+- [Swarm Coordination Topologies](swarm-coordination-topologies.md) — structural patterns for agent communication
+- [Multi-Agent Consensus Protocols](multi-agent-consensus-protocols.md) — fault-tolerance for agent decisions
+- [Self-Learning Agent Architecture](self-learning-agent-architecture.md) — how agents improve over time
+- [Intelligent Task Routing](intelligent-task-routing.md) — cost-optimal model selection
+- [SPARC Methodology](sparc-methodology.md) — spec-driven development to prevent drift
+- [Claims-Based Agent Authorization](claims-based-agent-authorization.md) — agent permission model
+- [Agent Context Orchestration](agent-context-orchestration.md) — dynamic context assembly (Jumbo's core concept)
+- [Jumbo](../entities/jumbo.md) — goal lifecycle + persistent memory orchestration
 - [LLM Wiki Pattern](../concepts/llm-wiki-pattern.md)
 - [RAG vs Wiki Architecture](../concepts/rag-vs-wiki-architecture.md)

@@ -27,6 +27,8 @@ Most LLM-document workflows are RAG: retrieve-then-generate at query time, with 
 ## Related
 
 - [RAG vs Wiki Architecture](rag-vs-wiki-architecture.md) — the key structural contrast
+- [Agent Context Orchestration](agent-context-orchestration.md) — complementary approach: wiki compiles prose for synthesis, context orchestration assembles entity graphs for task execution
+- [Jumbo](../entities/jumbo.md) — entity-graph persistence as an alternative/complement to wiki compilation
 - [Persistent Compounding Knowledge](persistent-compounding-knowledge.md) — the property that makes this valuable
 - [Vannevar Bush / Memex](../entities/vannevar-bush.md) — 1945 historical precedent
 - [Obsidian](../entities/obsidian.md) — recommended UI pairing for browsing the wiki

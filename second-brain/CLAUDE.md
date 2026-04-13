@@ -12,6 +12,7 @@ brain/
 ├── raw/               ← immutable source documents (never modify)
 │   └── assets/        ← downloaded images, attachments
 └── wiki/              ← LLM-owned markdown pages (you write/update these)
+    ├── hot.md         ← ≤500-word briefing on latest ingested content (update on every ingest)
     ├── index.md       ← content catalog (update on every ingest)
     ├── log.md         ← append-only chronological record
     ├── overview.md    ← evolving high-level synthesis
@@ -228,9 +229,10 @@ Steps:
    - If the page exists: update it with new information from this source.
    - If it doesn't exist: create it.
 5. Update `wiki/overview.md` if the source materially changes the big picture.
-6. Update `wiki/index.md` (add rows for new pages, update count).
-7. Append entry to `wiki/log.md`.
-8. Report what was done: pages created, pages updated, anything notable.
+6. Update `wiki/hot.md` — rewrite to reflect the latest ingested content. Keep ≤500 words. **Use ultra-compact keyword style** — no full sentences, no prose, just key terms, names, numbers, and arrows. Maximize information density. Prioritize the most recent 2–3 ingestions, then briefly note still-warm older topics.
+7. Update `wiki/index.md` (add rows for new pages, update count).
+8. Append entry to `wiki/log.md`.
+9. Report what was done: pages created, pages updated, anything notable.
 
 ### Ingest GitHub Repo
 Triggered when the user provides a GitHub URL (`https://github.com/owner/repo`) and asks to ingest it.
@@ -347,9 +349,10 @@ Update it when a new source significantly changes the big picture. It's not a pa
 
 At the start of every session:
 1. Read this file (`CLAUDE.md`).
-2. Read `wiki/log.md` (last 5 entries) to understand recent context.
-3. Read `wiki/index.md` to understand the current state of the wiki.
-4. Greet the user with a brief status: how many pages, when the last ingest was, and what the wiki is currently about.
+2. Read `wiki/hot.md` — the ≤500-word briefing on the latest ingested content. This is your short-term memory primer: it tells you what topics are freshest and most likely to be relevant to the current session.
+3. Read `wiki/log.md` (last 5 entries) to understand recent context.
+4. Read `wiki/index.md` to understand the current state of the wiki.
+5. Greet the user with a brief status: how many pages, when the last ingest was, and what the wiki is currently about.
 
 ---
 

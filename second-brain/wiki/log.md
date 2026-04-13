@@ -4,6 +4,46 @@ _Parse tip: `grep "^## \[" log.md | head -10` for recent entries._
 
 ---
 
+## [2026-04-13] ingest | jumbocontext/jumbo.cli — Memory & Context Orchestration for Coding Agents
+
+**Operation:** ingest
+**Summary:** Ingested GitHub repo jumbocontext/jumbo.cli via repomix (docs-only, 55K tokens, 49 files). Jumbo is a CLI tool for memory and context orchestration for coding agents — it solves agent amnesia via a local event-sourced entity graph (.jumbo/) and delivers dynamically assembled context packets at workflow transitions. Core innovation is the 5-phase goal lifecycle (define → refine → implement → review → codify) where refinement links relevant entities to goals and implementation receives precisely scoped context. Agent-agnostic: supports Claude Code, Copilot, Gemini, Cursor, Codex, Vibe. Ships 12 Claude Code skills. Created 1 source page, 1 entity page (Jumbo), and 1 concept page (Agent Context Orchestration). Updated Agentic Workflow Patterns to reference Jumbo as the most structured lifecycle variant. Updated Claude Code entity and LLM Wiki Pattern concept with cross-references. Added Theme 11 to overview. Index updated to 72 pages.
+**Pages touched:** [sources/jumbocontext-jumbo-cli.md](sources/jumbocontext-jumbo-cli.md), [entities/jumbo.md](entities/jumbo.md), [concepts/agent-context-orchestration.md](concepts/agent-context-orchestration.md), [concepts/agentic-workflow-patterns.md](concepts/agentic-workflow-patterns.md), [entities/claude-code.md](entities/claude-code.md), [concepts/llm-wiki-pattern.md](concepts/llm-wiki-pattern.md), [index.md](index.md), [overview.md](overview.md)
+
+---
+
+## [2026-04-13] ingest | nexos.ai — Competitor Analysis (4 website pages)
+
+**Operation:** ingest
+**Summary:** Ingested 4 pages from nexos.ai's website (homepage, AI Guardrails, AI Governance, AI for Lawyers) as competitive intelligence for the GuardRail project. Critical finding: nexos.ai is NOT a compliance competitor — it's an all-in-one AI workspace/gateway platform ($350M valuation, NordVPN founders). Their "guardrails" = input/output PII filtering, their "governance" = token spend tracking and model access control. No AI Act risk classification, conformity assessment, or documentation generation. Different problem (safe AI usage vs. regulatory compliance), different buyer (CTO vs. compliance officer), minimal direct overlap. Adjacency risk noted: they have EU presence, enterprise customers, and could add compliance features. Created 1 source page (consolidated from 4 raw files) and 1 entity page. Updated hot.md. Index at 69 pages.
+**Pages touched:** [sources/nexos-ai-website.md](sources/nexos-ai-website.md), [entities/nexos-ai.md](entities/nexos-ai.md), [hot.md](hot.md), [index.md](index.md)
+
+---
+
+## [2026-04-13] ingest | ruvnet/ruflo — Enterprise Multi-Agent AI Orchestration
+
+**Operation:** ingest
+**Summary:** Ingested GitHub repo ruvnet/ruflo (formerly Claude Flow) via repomix (docs-only, 24MB output, 6.67M tokens, 2,439 files). RuFlo is the most comprehensive Claude Code agent orchestration framework available — 100+ agents, 137+ skills, 313+ MCP tools, 4 swarm topologies, 5 consensus protocols, self-learning via SONA/EWC++/ReasoningBank, 3-tier intelligent routing with WASM Agent Booster, SPARC methodology, claims-based authorization, and multi-provider LLM support. Created 1 source page, 1 entity page (RuFlo), and 6 concept pages covering the major architectural patterns: Swarm Coordination Topologies, Multi-Agent Consensus Protocols, Self-Learning Agent Architecture, Intelligent Task Routing, SPARC Methodology, Claims-Based Agent Authorization. Updated Agentic Workflow Patterns concept to reference RuFlo and link to all new concept pages. The priority was extracting all actionable concepts so the wiki owner can reference them when building agent workflows. Index updated to 67 pages.
+**Pages touched:** [sources/ruvnet-ruflo.md](sources/ruvnet-ruflo.md), [entities/ruflo.md](entities/ruflo.md), [concepts/swarm-coordination-topologies.md](concepts/swarm-coordination-topologies.md), [concepts/multi-agent-consensus-protocols.md](concepts/multi-agent-consensus-protocols.md), [concepts/self-learning-agent-architecture.md](concepts/self-learning-agent-architecture.md), [concepts/intelligent-task-routing.md](concepts/intelligent-task-routing.md), [concepts/sparc-methodology.md](concepts/sparc-methodology.md), [concepts/claims-based-agent-authorization.md](concepts/claims-based-agent-authorization.md), [concepts/agentic-workflow-patterns.md](concepts/agentic-workflow-patterns.md), [index.md](index.md)
+
+---
+
+## [2026-04-13] ingest | Fabio Cassisa — Professional Profile
+
+**Operation:** ingest
+**Summary:** Ingested LinkedIn profile for Fabio Cassisa — an AI engineer/architect building complex agents at Adnami (ad tech), with a "unicorn full-stack + design" profile. He evolved from industrial design through front-end and blockchain development into AI agent architecture. His AI Ethics coursework at Malmö University (15 credits, grade B) is directly relevant to the EU AI Act space. Fabio is a friend of Maxime and a potential collaborator on GuardRail. Created 1 source page and 1 person page. Updated ideas.md to add Fabio as the fourth team member (Creative Technology & AI Agent Lead) on the GuardRail project. Updated generate_pitch.mjs to include Fabio on the title slide, team slide (now 4 columns), "Why This Combination Wins" slide, competitive landscape table, MVP plan (added Fabio's tasks per phase), risks slide, and closing slide. Index updated to 59 pages.
+**Pages touched:** [sources/fabio-cassisa-profile.md](sources/fabio-cassisa-profile.md), [people/fabio-cassisa.md](people/fabio-cassisa.md), [index.md](index.md), ideas.md, generate_pitch.mjs
+
+---
+
+## [2026-04-13] ingest | Karoline Geiker — Professional Profile
+
+**Operation:** ingest
+**Summary:** Ingested LinkedIn profile for Karoline Geiker — a Law and Technology specialist based in Copenhagen. She holds an LLM in Law and Technology from Tilburg University (2023-2025) and is pursuing a cand.jur. at the University of Copenhagen (2024-2027). Her experience includes EU legislative analysis at ECSDA (examining MEP amendments on the DLT pilot regime) and legal research at the Institute for European Studies, VUB Brussels. Created 1 source page and 1 person page. Updated index to 57 pages. She has been added to the GuardRail project ideation in ideas.md as the team's legal/regulatory specialist.
+**Pages touched:** [sources/karoline-geiker-profile.md](sources/karoline-geiker-profile.md), [people/karoline-geiker.md](people/karoline-geiker.md), [index.md](index.md)
+
+---
+
 ## [2026-04-12] ingest | 9 GitHub Repos — AI/ML Tools, Agents, Vision Models, LLM Course
 
 **Operation:** ingest

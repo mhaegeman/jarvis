@@ -1,2 +1,8 @@
 raw/
 .obsidian/
+node_modules/
+package*
+credentials.json
+token.json
+generate_pitch.mjs
+GuardRail_Pitch.pptx

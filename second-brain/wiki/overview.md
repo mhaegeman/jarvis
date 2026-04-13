@@ -1,6 +1,6 @@
 # Overview
 
-_Evolving synthesis of everything in the wiki. Updated by the LLM as sources are ingested. Last updated: 2026-04-12 (batch update: 9 GitHub repos)._
+_Evolving synthesis of everything in the wiki. Updated by the LLM as sources are ingested. Last updated: 2026-04-13 (RuFlo agent orchestration ingest)._
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This wiki is [Maxime Haegeman](people/maxime-haegeman.md)'s personal second brai
 
 ## Current State
 
-15 sources ingested. 55 pages. The wiki now covers: foundational methodology (LLM Wiki Pattern), AI scenario forecasting (AI 2027), multimodal RAG tooling (RAG-Anything), Claude Code workflow and tooling ecosystem (4 repos), LLM education (mlabonne course), document AI (Nougat), computer vision foundation models (SAM), production RAG reference architecture (Ask Astro), offline LLM inference (document chatbot), and Maxime's professional profile.
+20 sources ingested. 72 pages. The wiki now covers: foundational methodology (LLM Wiki Pattern), AI scenario forecasting (AI 2027), multimodal RAG tooling (RAG-Anything), Claude Code workflow and tooling ecosystem (4 repos + RuFlo orchestration platform), LLM education (mlabonne course), document AI (Nougat), computer vision foundation models (SAM), production RAG reference architecture (Ask Astro), offline LLM inference (document chatbot), Maxime's professional profile, and team profiles (Harsh Kakroo, Karoline Geiker, Fabio Cassisa) for the GuardRail project.
 
 ## Key Themes
 
@@ -39,15 +39,23 @@ Four ingested repos ([EduardPetraeus/claude-code-quickstart](sources/eduardpetra
 ### 9. Meta AI Research: Foundational Vision Models
 Meta's FAIR lab has contributed two open, foundational vision models: [SAM](sources/facebookresearch-segment-anything.md) (zero-shot image segmentation, 11M images / 1.1B masks) and [Nougat](sources/facebookresearch-nougat.md) (academic PDF → LaTeX Markdown). Both follow the same pattern: ViT-based architecture, MIT-licensed code (or Apache 2.0), CC-BY-NC model weights, and strong zero-shot generalisation. Together they represent the "foundation model" approach applied to vision domains beyond language.
 
+### 10. Multi-Agent Orchestration: From Patterns to Platform
+[RuFlo](sources/ruvnet-ruflo.md) represents the most complete realization of [Agentic Workflow Patterns](concepts/agentic-workflow-patterns.md) — extending the triage→specialise→validate pattern observed in earlier repos into a full orchestration platform with [4 swarm topologies](concepts/swarm-coordination-topologies.md) (hierarchical, mesh, ring, star), [5 consensus protocols](concepts/multi-agent-consensus-protocols.md) (Raft, BFT, Gossip, CRDT, Quorum), and a [self-learning intelligence layer](concepts/self-learning-agent-architecture.md) (SONA, EWC++, ReasoningBank). The practical reference for building agent workflows: when to use swarms vs. single agents, how to prevent drift, how to [route tasks to cost-optimal models](concepts/intelligent-task-routing.md) (WASM for $0 → Haiku → Opus), and how to [enforce spec compliance](concepts/sparc-methodology.md) across multi-agent teams. The [claims-based authorization](concepts/claims-based-agent-authorization.md) pattern completes the picture by ensuring agents operate within their granted permissions.
+
+### 11. Agent Context Orchestration: From Static Files to Dynamic Assembly
+[Jumbo](sources/jumbocontext-jumbo-cli.md) introduces a fundamentally different approach to agent knowledge persistence: instead of compiling prose into wiki pages or dumping instructions into CLAUDE.md, it maintains a structured entity graph (components, decisions, invariants, guidelines, relations) and dynamically assembles task-specific [context packets](concepts/agent-context-orchestration.md) at workflow transitions. The 5-phase goal lifecycle (define → refine → implement → review → codify) is the most structured agent workflow in the wiki — each phase has explicit knowledge curation and QA gates. This complements rather than competes with the [LLM Wiki Pattern](concepts/llm-wiki-pattern.md): wiki for synthesis and understanding, Jumbo for operational context during implementation. The question is whether both can be combined: wiki as the research/synthesis layer, Jumbo as the execution/quality layer.
+
 ## Open Questions
 
 - How credible is the 2027 timeline given the authors' July 2025 update pushing medians back ~1.5 years?
 - Is adversarial misalignment (Agent-4-style scheming) the most likely failure mode?
 - Can arms control treaties work for AI? What does verification look like when compute is hard to hide but algorithms are not?
 - Is the "slowdown" ending actually better — DeepCent has stolen weights and would continue racing with AI tools regardless?
+- Can the LLM Wiki Pattern and Jumbo's entity-graph approach be combined? Wiki for synthesis, Jumbo for operational context — is this the optimal architecture for agent-assisted development?
 
 ## Key Pages
 
+- [Hot Topics](hot.md) — ≤500-word briefing on the latest ingested content (read every session)
 - [Index](index.md) — full page catalog
 - [Log](log.md) — operation history
 - [AI 2027](sources/ai-2027.md) — primary domain source
@@ -56,3 +64,8 @@ Meta's FAIR lab has contributed two open, foundational vision models: [SAM](sour
 - [Agentic Workflow Patterns](concepts/agentic-workflow-patterns.md) — cross-cutting concept from 4 Claude Code repos
 - [mlabonne / LLM Course](sources/mlabonne-llm-course.md) — reference for LLM engineering skills
 - [Segment Anything (SAM)](sources/facebookresearch-segment-anything.md) — foundational computer vision model
+- [RuFlo](sources/ruvnet-ruflo.md) — multi-agent orchestration reference
+- [Swarm Coordination Topologies](concepts/swarm-coordination-topologies.md) — when to use which topology
+- [Intelligent Task Routing](concepts/intelligent-task-routing.md) — cost optimization for agent workflows
+- [Jumbo](sources/jumbocontext-jumbo-cli.md) — memory & context orchestration CLI
+- [Agent Context Orchestration](concepts/agent-context-orchestration.md) — dynamic context assembly for agents

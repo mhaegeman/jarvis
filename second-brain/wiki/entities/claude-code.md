@@ -26,6 +26,7 @@ Claude Code is Anthropic's agentic coding CLI — a terminal-based tool that giv
 - [Leavitskiy / Claude Agentic Flow](../sources/leavitskiy-claude-agentic-flow.md) — library of domain-specific agent prompt definitions
 - [Owl-Listener / Designer Skills](../sources/owl-listener-designer-skills.md) — 50+ designer-specific Claude Code skills
 - [getnao / Nao](../sources/getnao-nao.md) — ships a multi-agent code-review skill
+- [jumbocontext / jumbo.cli](../sources/jumbocontext-jumbo-cli.md) — memory & context orchestration CLI; 12 Claude Code skills, hooks, CLAUDE.md generation
 
 ## Connections
 
@@ -33,3 +34,5 @@ Claude Code is Anthropic's agentic coding CLI — a terminal-based tool that giv
 - [LLM Wiki Pattern](../concepts/llm-wiki-pattern.md) — this wiki runs inside Claude Code; CLAUDE.md is the schema file governing the wiki agent's behaviour
 - [Persistent Compounding Knowledge](../concepts/persistent-compounding-knowledge.md) — the wiki is an instance of "information mode" thinking Boris advocates as the right investment vs. prompt optimisation
 - [Agentic Workflow Patterns](../concepts/agentic-workflow-patterns.md) — multiple repos demonstrate advanced Claude Code agent/hook/rule patterns
+- [Jumbo](jumbo.md) — memory & context orchestration CLI with 12 Claude Code skills and the most structured goal lifecycle
+- [Agent Context Orchestration](../concepts/agent-context-orchestration.md) — Jumbo's approach to dynamic context assembly for agent workflows

@@ -1,5 +1,5 @@
 # Wiki Index
-_Last updated: 2026-04-12 — 55 pages total_
+_Last updated: 2026-04-13 — 72 pages total_
 
 ## Sources
 | Page | Summary | Ingested |
@@ -19,6 +19,11 @@ _Last updated: 2026-04-12 — 55 pages total_
 | [facebookresearch / Segment Anything (SAM)](sources/facebookresearch-segment-anything.md) | Meta AI foundation model for zero-shot image segmentation; trained on 11M images / 1.1B masks; ViT backbone; ONNX browser demo | 2026-04-12 |
 | [EduardPetraeus / Claude Code Quickstart](sources/eduardpetraeus-claude-code-quickstart.md) | Battle-tested Claude Code starter kit: 8 rules, 10 hooks, 9 agents, 8 prompts, adversarial review pattern, workshop curriculum | 2026-04-12 |
 | [Leavitskiy / Claude Agentic Flow](sources/leavitskiy-claude-agentic-flow.md) | Collection of Claude Code agent prompt definitions for backend (Python/FastAPI), frontend (React Native), and code review workflows | 2026-04-12 |
+| [Karoline Geiker — Professional Profile](sources/karoline-geiker-profile.md) | Law and Technology specialist; LLM Tilburg, cand.jur. Copenhagen; EU legislative analysis experience at ECSDA and VUB Brussels | 2026-04-13 |
+| [Fabio Cassisa — Professional Profile](sources/fabio-cassisa-profile.md) | AI engineer/architect building complex agents; full-stack creative dev; AI Ethics coursework; potential GuardRail collaborator | 2026-04-13 |
+| [ruvnet / RuFlo](sources/ruvnet-ruflo.md) | Enterprise multi-agent AI orchestration for Claude Code; 100+ agents, swarm coordination, self-learning, 3-tier routing, SPARC methodology | 2026-04-13 |
+| [nexos.ai — Company Website](sources/nexos-ai-website.md) | Competitor analysis: all-in-one AI platform ($350M), guardrails = PII filtering, governance = usage monitoring — NOT AI Act compliance | 2026-04-13 |
+| [jumbocontext / jumbo.cli](sources/jumbocontext-jumbo-cli.md) | Memory & context orchestration CLI for coding agents; 5-phase goal lifecycle, event-sourced entity graph, 12 Claude Code skills, agent-agnostic | 2026-04-13 |
 
 ## People
 | Page | Summary |
@@ -29,6 +34,8 @@ _Last updated: 2026-04-12 — 55 pages total_
 | [Boris Cherny](people/boris-cherny.md) | Creator of Claude Code at Anthropic; advocates minimal CLAUDE.md, plan-first workflow, and "never bet against the model" |
 | [Harsh Kakroo](people/harsh-kakroo.md) | UX Researcher & Product Designer at Massive Entertainment (colleague of Maxime); worked on Avatar: FoP and Star Wars Outlaws |
 | [Maxime Labonne](people/maxime-labonne.md) | ML researcher and educator; author of the free LLM Course; covers fine-tuning, quantisation, MergeKit, DPO/ORPO |
+| [Karoline Geiker](people/karoline-geiker.md) | Law and Technology specialist; LLM Tilburg, cand.jur. Copenhagen; EU legislative analysis at ECSDA and VUB Brussels |
+| [Fabio Cassisa](people/fabio-cassisa.md) | AI engineer/architect at Adnami; full-stack creative dev; AI Ethics (Malmö Univ.); potential GuardRail collaborator |
 
 ## Entities
 | Page | Type | Summary |
@@ -47,6 +54,9 @@ _Last updated: 2026-04-12 — 55 pages total_
 | [Weaviate](entities/weaviate.md) | product | Open-source vector database; hybrid search; used as the retrieval layer in Ask Astro |
 | [Windows AI Foundry Local](entities/windows-ai-foundry.md) | product | Microsoft's on-device LLM runtime for Windows; OpenAI-compatible API; used for offline PDF chatbot |
 | [DuckDB](entities/duckdb.md) | product | In-process OLAP SQL database; zero-setup; used by Nao as its analytical query engine |
+| [RuFlo](entities/ruflo.md) | product | Multi-agent AI orchestration platform for Claude Code; 100+ agents, swarms, self-learning, MCP integration |
+| [nexos.ai](entities/nexos-ai.md) | org | All-in-one enterprise AI platform ($350M); guardrails + governance + workspace — GuardRail competitor (low overlap) |
+| [Jumbo](entities/jumbo.md) | product | Memory & context orchestration CLI for coding agents; event-sourced entity graph, 5-phase goal lifecycle, 12 Claude Code skills |
 
 ## Concepts
 | Page | Summary |
@@ -68,6 +78,20 @@ _Last updated: 2026-04-12 — 55 pages total_
 | [LLM Fine-Tuning](concepts/llm-fine-tuning.md) | Adapting pre-trained LLMs via SFT, QLoRA, DPO, ORPO; enables custom behaviour without full retraining |
 | [LLM Quantization](concepts/llm-quantization.md) | Reducing model weight precision (GGUF, GPTQ, EXL2, AWQ, HQQ) to enable local inference on consumer hardware |
 | [Offline LLM Inference](concepts/offline-llm-inference.md) | Running LLM inference entirely on local hardware; no cloud, no API; enabled by quantisation and runtimes like llama.cpp |
+| [Swarm Coordination Topologies](concepts/swarm-coordination-topologies.md) | 4 structural patterns for multi-agent communication: hierarchical, mesh, ring, star + adaptive |
+| [Multi-Agent Consensus Protocols](concepts/multi-agent-consensus-protocols.md) | Fault-tolerant agreement algorithms for agent swarms: Raft, BFT, Gossip, CRDT, Quorum |
+| [Self-Learning Agent Architecture](concepts/self-learning-agent-architecture.md) | Systems where agents improve routing and decisions over time via SONA, EWC++, ReasoningBank, knowledge graphs |
+| [Intelligent Task Routing](concepts/intelligent-task-routing.md) | 3-tier cost optimization: WASM ($0) → Haiku/Sonnet → Opus; Q-learning router; 75% cost reduction |
+| [SPARC Methodology](concepts/sparc-methodology.md) | 5-phase spec-driven dev: Specification → Pseudocode → Architecture → Refinement → Completion |
+| [Claims-Based Agent Authorization](concepts/claims-based-agent-authorization.md) | Granular permission system for multi-agent workflows; 7 claim types, 4 security levels, glob-scoped |
+| [Agent Context Orchestration](concepts/agent-context-orchestration.md) | Dynamic assembly of curated context packets from entity graphs for coding agent workflows; Jumbo's core innovation |
+
+## Meta
+| Page | Purpose |
+|------|---------|
+| [Hot Topics](hot.md) | ≤500-word briefing on the latest ingested content; read every session as short-term memory primer |
+| [Overview](overview.md) | Evolving synthesis of all wiki themes and connections |
+| [Log](log.md) | Append-only operation history |
 
 ## Analyses
 | Page | Date | Purpose |
