@@ -18,7 +18,11 @@
       "Bash(/c/Users/maxim/AppData/Roaming/npm/repomix --remote https://github.com/Owl-Listener/designer-skills --output brain/raw/owl-listener-designer-skills.md --style markdown --include \"**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*\")",
       "Bash(\"/c/Program Files/nodejs/node.exe\" --version)",
       "Bash(\"/c/Program Files/nodejs/npx.cmd\" repomix --version)",
-      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")"
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(grep -E \"\\\\.md$\")",
+      "WebSearch",
+      "Bash(curl -s \"https://api.search.brave.com/res/v1/web/search?q=UX+research+trends+2026&count=10\")",
+      "Bash(curl -s \"https://api.search.brave.com/res/v1/web/search?q=EU+AI+Act+compliance+tools+2026+business+opportunities&count=10\")"
     ]
   }
 }
