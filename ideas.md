@@ -1,163 +1,4 @@
-# 5 Project Ideas for Maxime Haegeman & Harsh Kakroo (2026)
-
-## Why this duo works
-
-| | Maxime | Harsh |
-|---|---|---|
-| **Core** | Data/ML Engineering | UX Research & Product Design |
-| **Stack** | Python, PySpark, Databricks, TensorFlow, Azure | Figma, Prototyping, Full-cycle UX, VR/XR |
-| **Superpower** | Turns messy data into reliable predictions at scale | Ships from user interview to working prototype, no handoffs |
-| **Industries** | Gaming, marketing, SaaS | Gaming, fintech, automotive, VR |
-| **Shared context** | Both at Massive Entertainment (Ubisoft), Malmo |
-
-The gap between most ML projects and real users is **the product layer**. Maxime builds the engine, Harsh builds the cockpit. That's a rare, complete team.
-
----
-
-## Project 1: PlayPulse — Real-time Player Sentiment Dashboard for Game Studios
-
-### The Problem
-Game studios spend millions on live-service titles but rely on lagging indicators (reviews, support tickets, churn rates) to understand player sentiment. By the time a problem surfaces in metrics, the community is already on fire.
-
-### The Product
-A SaaS tool that ingests player feedback from multiple channels (Reddit, Discord, Steam reviews, in-game surveys, support tickets) and produces a **real-time sentiment map** — not just positive/negative, but clustered by game feature, severity, and trending velocity.
-
-### Who does what
-- **Maxime:** NLP pipeline (sentiment analysis, topic clustering, trend detection), data ingestion from APIs, scalable backend on Azure/Databricks. He's already built NLP sentiment analysis at Follo and Transformer models at Anteriad.
-- **Harsh:** Dashboard UX, alert design, studio-facing interface, user research with game teams at Massive to validate what signals actually matter. He's done exactly this kind of data visualization + research work on Avatar.
-
-### Market
-- **Target:** Mid-to-large game studios running live-service games (Ubisoft, EA, Square Enix, indie studios on Steam)
-- **Size:** ~$2B community management tools market, growing with live-service model dominance
-- **Monetization:** SaaS subscription, tiered by volume of channels monitored
-- **Competitive edge:** Built by people who actually work inside a AAA studio — they know what metrics matter vs. what's noise
-
-### Why now (2026)
-LLM costs have cratered, making real-time NLP on massive text volumes economically viable. Every major publisher is shifting to live-service. Community backlash (Concord, Skull & Bones) has made sentiment monitoring a boardroom topic.
-
----
-
-## Project 2: UXLens — AI-Powered Usability Testing for Digital Products
-
-### The Problem
-Usability testing is expensive, slow, and gatekept by specialized researchers. Most startups and mid-size companies ship features without any user testing. Tools like Hotjar show *what* users do, but not *why* they struggle.
-
-### The Product
-An AI agent that conducts automated usability evaluations. Users share a URL or Figma prototype. The system runs simulated task flows, identifies friction points using heuristic + ML models, and generates a prioritized report with video-annotated suggestions — essentially a "junior UX researcher in a box."
-
-### Who does what
-- **Maxime:** ML models for UI element detection, interaction pattern analysis, friction scoring algorithms, API infrastructure. His experience with classification models and scoring systems (bank fraud, customer scoring) transfers directly.
-- **Harsh:** Ground-truth dataset from his 4+ years of real UX research, heuristic framework design, report template UX, validation that AI findings match what a human researcher would catch. His "designer who researches, researcher who builds" positioning is literally this product's thesis.
-
-### Market
-- **Target:** Product teams at startups and scale-ups (Series A-C), freelance designers, design agencies
-- **Size:** UX research tools market ~$1.5B, growing 15%+ YoY
-- **Monetization:** Freemium (3 audits/month free), Pro tier ($49/mo), Team tier ($199/mo)
-- **Competitive edge:** Harsh's research methodology embedded as product DNA, not just pattern-matching
-
-### Why now (2026)
-Vision-language models (GPT-4o, Claude's multimodal) can now reliably parse UI screenshots. The "shift left on research" movement means teams want research earlier and cheaper. No incumbent has cracked automated qualitative analysis yet.
-
----
-
-## Project 3: BridgeBoard — AI Career Translator for Cross-Border Job Seekers in Europe
-
-### The Problem
-Europe has labor mobility (EU freedom of movement) but massive friction: job titles don't translate across countries, CV formats differ, qualification equivalency is opaque, and salary expectations are misaligned. A "Senior Data Scientist" in France, Netherlands, and Sweden means three different things at three different pay bands.
-
-### The Product
-A platform that takes a user's CV/LinkedIn and target country, then:
-1. **Translates** their experience into locally-recognized equivalents (job titles, certifications, skill framing)
-2. **Benchmarks** salary expectations adjusted for local market, taxes, and cost of living
-3. **Generates** a country-optimized CV and cover letter
-4. **Matches** with companies that have historically hired cross-border talent
-
-### Who does what
-- **Maxime:** NLP models for CV parsing and job-title mapping, salary prediction models (regression, his specialty), data pipeline ingesting job boards across EU markets. He's literally lived this — France -> Spain -> Netherlands -> Denmark/Sweden.
-- **Harsh:** User journey design, onboarding UX, cross-cultural research (he's also an international professional), service design for the matching experience. His Polestar and Swedbank service design work shows he can design for trust-critical flows.
-
-### Market
-- **Target:** Skilled professionals relocating within Europe (3.8M intra-EU movers/year, growing post-COVID)
-- **Size:** European recruitment tech market ~EUR5B
-- **Monetization:** Freemium CV translation, premium matching ($15/mo), B2B to companies wanting diverse international hires
-- **Competitive edge:** Both founders are cross-border movers themselves — they've felt every pain point
-
-### Why now (2026)
-Remote/hybrid work has normalized cross-border hiring. EU Digital Skills framework is standardizing competency language. LLMs make multilingual CV transformation viable at scale.
-
----
-
-## Project 4: QuestForge — Data-Driven Game Quest & Mission Design Tool
-
-### The Problem
-Quest design in AAA games is largely artisanal — narrative designers craft missions based on intuition and playtesting. There's no systematic way to predict whether a quest will engage players, how long it'll take, or where players will drop off — until after it ships.
-
-### The Product
-A tool that sits inside the game design pipeline and uses historical player behavior data to:
-1. **Predict** quest completion rates, time-to-complete, and drop-off points before the quest is built
-2. **Suggest** pacing adjustments (difficulty curves, reward placement, narrative beats)
-3. **A/B test** quest variants using synthetic player simulations
-4. **Visualize** quest flow as an interactive graph with predicted engagement heat maps
-
-### Who does what
-- **Maxime:** Predictive models trained on player telemetry (he builds this exact data infrastructure at Massive), simulation engine for synthetic playtesting, analytics pipeline. His Databricks/Spark expertise handles the massive telemetry datasets AAA games produce.
-- **Harsh:** Quest flow visualization UX, designer-facing interface, user research with actual game designers at Massive, ensuring the tool fits into existing design workflows (not disrupts them). His Avatar and Star Wars Outlaws experience means he knows the users personally.
-
-### Market
-- **Target:** AAA and AA game studios with live-service or content-heavy titles
-- **Size:** Game development tools market ~$3B, quest/content design is underserved
-- **Monetization:** Enterprise SaaS ($500-$2K/seat/month), potentially Ubisoft-internal first then external
-- **Competitive edge:** No one else has both the data engineering chops AND the UX research embedded in a AAA studio. This can only be built by insiders.
-
-### Why now (2026)
-Games are shipping more content faster (live-service pressure). Player expectations are higher. Studios are bleeding money on content that doesn't land. ML on telemetry data is mature enough to predict, not just report.
-
----
-
-## Project 5: SecondBrain.studio — Collaborative AI Knowledge Base for Small Teams
-
-### The Problem
-Small teams (2-10 people) drown in scattered knowledge: Slack threads, Google Docs, Notion pages, personal notes. Existing tools (Notion AI, Confluence) bolt AI onto document stores. No one builds the knowledge graph first and lets the AI maintain it — which is exactly what Maxime's jarvis/wiki project does.
-
-### The Product
-A hosted version of the **LLM Wiki Pattern** (the architecture behind this very brain wiki) — but multi-user, collaborative, and designed for teams. Users feed in raw sources (meeting notes, articles, Slack exports, docs). The system maintains a living, interlinked knowledge base that compounds over time, not a dead document archive.
-
-### Who does what
-- **Maxime:** The entire ingestion + LLM wiki engine (he's already built v1 in jarvis), knowledge graph maintenance, API layer, multi-tenant infrastructure. This is his existing project, productized.
-- **Harsh:** Multi-user collaboration UX, onboarding flow for non-technical teams, information architecture of the wiki interface, research into how small teams actually retrieve knowledge. His IA and visual design work on VENUE directly applies.
-
-### Market
-- **Target:** Small agencies, consulting firms, research teams, startup founding teams
-- **Size:** Knowledge management market ~$1.1T by 2028, but the "small team" segment is underserved by enterprise tools
-- **Monetization:** SaaS, $12/user/month (team of 5 = $60/mo), free tier for personal use
-- **Competitive edge:** The LLM Wiki Pattern is architecturally distinct from RAG — it compounds knowledge rather than just retrieving chunks. Maxime has a working prototype. Harsh can make it usable by non-engineers.
-
-### Why now (2026)
-RAG fatigue is real — teams are discovering that vector search over documents doesn't equal understanding. The "second brain" movement (Obsidian, Logseq) proved demand but stayed single-player. LLM costs now allow continuous knowledge maintenance at SaaS-viable margins.
-
----
-
-## Comparison Matrix
-
-| | PlayPulse | UXLens | BridgeBoard | QuestForge | SecondBrain.studio |
-|---|---|---|---|---|---|
-| **Time to MVP** | 6-8 weeks | 8-10 weeks | 6-8 weeks | 10-12 weeks | 4-6 weeks |
-| **Existing assets** | Maxime's NLP + Harsh's game UX research | Harsh's UX methodology | Both founders' migration experience | Both founders' Massive/gaming context | Maxime's jarvis wiki (working v1) |
-| **Revenue potential** | High (B2B SaaS) | High (PLG SaaS) | Medium (consumer + B2B) | Very high (enterprise) | Medium (PLG SaaS) |
-| **Defensibility** | Domain expertise | Research methodology as product | Network effects | Insider data + domain | Architecture (wiki pattern) |
-| **Risk** | Competing with Brandwatch | LLMs commoditize the analysis | Regulatory complexity | Ubisoft IP constraints | Notion/Obsidian add AI features |
-| **Top pick** | | | | | **This one** |
-
-## Recommendation: Start with SecondBrain.studio
-
-**Why:** Maxime already has a working prototype (this wiki). The fastest path to revenue is productizing what exists, not building from scratch. Harsh turns a developer tool into a product real teams can adopt. It has the shortest MVP timeline, a clear wedge (small teams underserved by enterprise KM), and an architectural moat (LLM Wiki Pattern != RAG). Ship it, learn from users, compound from there.
-
-**Second pick:** QuestForge — highest ceiling, but longer timeline and potential IP friction with Ubisoft.
-
----
----
-
-# 5 Research-Backed Project Ideas (April 2026)
+# 5 Research-Backed Project Ideas for Maxime Haegeman & Harsh Kakroo (April 2026)
 
 *The following ideas are grounded in real market data, funding trends, regulatory timelines, and verified gaps from extensive web research conducted in April 2026.*
 
@@ -178,7 +19,7 @@ RAG fatigue is real — teams are discovering that vector search over documents 
 
 ---
 
-## Project 6: TestPlay — AI-Powered Playtesting Platform for Game Studios
+## Project 1: TestPlay — AI-Powered Playtesting Platform for Game Studios
 
 ### The Problem
 Game studios spend 15-25% of development time on playtesting, yet the process is still manual: recruit testers, run sessions, watch recordings, take notes, hope someone spots the pattern. Existing tools are fragmented — Antidote does remote streaming, Lysto does feedback analysis, Playcocola targets indies — but **no platform combines automated gameplay analysis, behavioral analytics, sentiment extraction, and UX heuristic evaluation in one workflow.**
@@ -215,7 +56,7 @@ A platform where studios upload gameplay sessions (video + telemetry) and get ba
 
 ---
 
-## Project 7: AgentMeter — Cost Attribution & Optimization for AI Agent Workflows
+## Project 2: AgentMeter — Cost Attribution & Optimization for AI Agent Workflows
 
 ### The Problem
 71% of developers say operating AI agents costs more than building them. 72% have already exceeded their expected budgets. Yet there is no tool that tells you *why* your agent costs what it costs — which steps in a multi-agent workflow are expensive, which tool calls are redundant, where token waste accumulates, and what the cost per business outcome actually is.
@@ -252,7 +93,7 @@ A lightweight SDK + dashboard that instruments AI agent workflows and provides:
 
 ---
 
-## Project 8: GuardRail — EU AI Act Compliance Platform for Mid-Market Companies
+## Project 3: GuardRail — EU AI Act Compliance Platform for Mid-Market Companies
 
 ### The Problem
 The EU AI Act's remaining provisions — especially for high-risk AI systems — become enforceable on **2 August 2026**. Each high-risk system requires conformity assessment costing EUR 5,000-50,000, with average initial compliance exceeding EUR 50,000 per system. Yet there is no dominant "Stripe for AI compliance" — no single platform handles risk classification, documentation, conformity assessment, and ongoing monitoring.
@@ -289,7 +130,7 @@ A self-serve platform that guides companies through AI Act compliance:
 
 ---
 
-## Project 9: AIProof — AI Experience Testing Tool for Product Teams
+## Project 4: AIProof — AI Experience Testing Tool for Product Teams
 
 ### The Problem
 Nielsen Norman Group declared 2026 "the year of AI fatigue." Users are tired of poorly implemented AI features. Yet there are **no purpose-built tools for testing AI-powered user experiences** — not the model accuracy (that's eval tools), but the *user experience* of AI: trust, explainability, failure recovery, expectation management, and perceived intelligence.
@@ -326,7 +167,7 @@ A testing platform specifically designed for AI-powered product experiences:
 
 ---
 
-## Project 10: RecoBox — Plug-and-Play Recommendation Engine for Mid-Market Products
+## Project 5: RecoBox — Plug-and-Play Recommendation Engine for Mid-Market Products
 
 ### The Problem
 TikTok, Spotify, Netflix, and Amazon have recommendation systems built by 50-person ML teams with proprietary data flywheels. Everyone else — e-commerce stores, content platforms, SaaS products, marketplaces with 10K-1M users — either uses basic rule-based sorting ("most popular," "newest") or tries to build a recommendation system from scratch and fails.
@@ -363,28 +204,23 @@ A drop-in recommendation API that works with small datasets and zero ML expertis
 
 ---
 
-## Updated Comparison Matrix (All 10 Projects)
+## Comparison Matrix
 
 | | Time to MVP | Revenue Potential | Defensibility | Existing Assets | Urgency |
 |---|---|---|---|---|---|
-| 1. PlayPulse | 6-8 wks | High (B2B) | Domain expertise | Maxime's NLP | Medium |
-| 2. UXLens | 8-10 wks | High (PLG) | Methodology | Harsh's UX frameworks | Medium |
-| 3. BridgeBoard | 6-8 wks | Medium | Network effects | Migration experience | Low |
-| 4. QuestForge | 10-12 wks | Very high | Insider access | Gaming context | Medium |
-| 5. SecondBrain | 4-6 wks | Medium (PLG) | Architecture | Jarvis v1 prototype | Medium |
-| **6. TestPlay** | **8-10 wks** | **High (B2B)** | **Domain + data** | **Massive insider access** | **High** |
-| **7. AgentMeter** | **6-8 wks** | **Very high (B2B)** | **Biz-outcome model** | **Maxime's data eng** | **Very high** |
-| **8. GuardRail** | **6-8 wks** | **Very high (B2B)** | **Regulatory moat** | **EU-based founders** | **Critical (Aug 2026)** |
-| **9. AIProof** | **6-8 wks** | **High (PLG)** | **Methodology IP** | **Harsh's UX research** | **High** |
-| **10. RecoBox** | **8-10 wks** | **Very high (API)** | **UX simplicity** | **Maxime's scoring models** | **Medium** |
+| 1. TestPlay | 8-10 wks | High (B2B) | Domain + data | Massive insider access | High |
+| 2. AgentMeter | 6-8 wks | Very high (B2B) | Biz-outcome model | Maxime's data eng | Very high |
+| 3. GuardRail | 6-8 wks | Very high (B2B) | Regulatory moat | EU-based founders | Critical (Aug 2026) |
+| 4. AIProof | 6-8 wks | High (PLG) | Methodology IP | Harsh's UX research | High |
+| 5. RecoBox | 8-10 wks | Very high (API) | UX simplicity | Maxime's scoring models | Medium |
 
-## Top 3 Recommendations (Research-Backed)
+## Top 3 Recommendations
 
-### #1: GuardRail (Project 8)
+### #1: GuardRail (Project 3)
 **Why it wins:** The August 2026 deadline is a forcing function no other project has. 50,000+ mid-market European companies need compliance, no one serves them, and Maxime + Harsh are EU-based. The $5.78B market at 45.3% CAGR is the fastest-growing category in all the research. Time pressure means customers will pay now, not "eventually."
 
-### #2: AgentMeter (Project 7)
+### #2: AgentMeter (Project 2)
 **Why it's strong:** 72% over budget is a screaming pain point with a measurable dollar value. The cost-per-outcome framing is genuinely novel — no existing tool does this. The buyer is an engineering manager or VP, not a developer, which means higher ACV and stickier contracts.
 
-### #3: AIProof (Project 9)
+### #3: AIProof (Project 4)
 **Why it matters:** AI fatigue is real and named. Harsh's UX research methodology becomes defensible product IP — something no pure-engineering team can replicate. First-mover in a category that will exist whether or not they build it.
