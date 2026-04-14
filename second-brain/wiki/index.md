@@ -1,5 +1,5 @@
 # Wiki Index
-_Last updated: 2026-04-14 — 80 pages total_
+_Last updated: 2026-04-14 — 88 pages total_
 
 ## Sources
 | Page | Summary | Ingested |
@@ -25,6 +25,7 @@ _Last updated: 2026-04-14 — 80 pages total_
 | [nexos.ai — Company Website](sources/nexos-ai-website.md) | Competitor analysis: all-in-one AI platform ($350M), guardrails = PII filtering, governance = usage monitoring — NOT AI Act compliance | 2026-04-13 |
 | [jumbocontext / jumbo.cli](sources/jumbocontext-jumbo-cli.md) | Memory & context orchestration CLI for coding agents; 5-phase goal lifecycle, event-sourced entity graph, 12 Claude Code skills, agent-agnostic | 2026-04-13 |
 | [airbnb / Chronon](sources/airbnb-chronon.md) | Open-source feature platform for ML (Airbnb + Stripe); point-in-time backfills, streaming updates, online serving, consistency measurement from one Python definition; Sawtooth Windows + Tiled Architecture | 2026-04-14 |
+| [obra / Superpowers](sources/obra-superpowers.md) | Complete skills-based workflow plugin for AI coding agents; 13 mandatory skills enforcing brainstorm→spec→plan→SDD→review→finish lifecycle; Claude Code official marketplace; Jesse Vincent / Prime Radiant | 2026-04-14 |
 
 ## People
 | Page | Summary |
@@ -37,6 +38,7 @@ _Last updated: 2026-04-14 — 80 pages total_
 | [Maxime Labonne](people/maxime-labonne.md) | ML researcher and educator; author of the free LLM Course; covers fine-tuning, quantisation, MergeKit, DPO/ORPO |
 | [Karoline Geiker](people/karoline-geiker.md) | Law and Technology specialist; LLM Tilburg, cand.jur. Copenhagen; EU legislative analysis at ECSDA and VUB Brussels |
 | [Fabio Cassisa](people/fabio-cassisa.md) | AI engineer/architect at Adnami; full-stack creative dev; AI Ethics (Malmö Univ.); potential GuardRail collaborator |
+| [Jesse Vincent](people/jesse-vincent.md) | Creator of Superpowers and founder of Prime Radiant; maintainer of obra/superpowers; strong quality standards (94% PR rejection rate) |
 
 ## Entities
 | Page | Type | Summary |
@@ -61,6 +63,8 @@ _Last updated: 2026-04-14 — 80 pages total_
 | [Chronon](entities/chronon.md) | product | Open-source ML feature platform (Airbnb + Stripe); Python API → Spark/Flink → online Fetcher; PITC backfills + consistency measurement |
 | [Airbnb](entities/airbnb.md) | org | Creator and co-maintainer of Chronon (8 of 13 PMC seats); powers all major Airbnb ML applications |
 | [Stripe](entities/stripe.md) | org | Co-maintainer of Chronon (5 PMC seats); open-sourced the Tiled Architecture and CHIP-1 IR caching |
+| [Superpowers](entities/superpowers.md) | product | Skills-based workflow plugin for AI coding agents; 13 mandatory skills, zero-dependency, official Claude Code marketplace; MIT; v5.0.7 |
+| [Prime Radiant](entities/prime-radiant.md) | org | Company behind Superpowers; run by Jesse Vincent |
 
 ## Concepts
 | Page | Summary |
@@ -93,6 +97,8 @@ _Last updated: 2026-04-14 — 80 pages total_
 | [Point-in-Time Correctness](concepts/point-in-time-correctness.md) | Backfill guarantee that feature values at historical timestamp `t` use only data available at `t` — no future leakage; enabled by Sawtooth Windows |
 | [Online/Offline Consistency](concepts/online-offline-consistency.md) | Training-serving skew measurement: log fetches, re-run offline, quantify per-feature discrepancy via equality/numeric/sequence/map metrics + ReqSketch |
 | [Tiled Feature Aggregation](concepts/tiled-feature-aggregation.md) | Pre-aggregated IRs as tiles in the KV store; O(tiles) reads vs O(events); 33% latency cut at Stripe; Flink-only |
+| [Skills-Based Agent Extension](concepts/skills-based-agent-extension.md) | Pattern for extending AI agents with mandatory composable skill files; YAML frontmatter + DOT diagrams + rationalization prevention; agentskills.io spec |
+| [Subagent-Driven Development](concepts/subagent-driven-development-concept.md) | Fresh subagent per plan task + two-stage review (spec compliance then code quality); enables hours-long autonomous sessions without drift |
 
 ## Meta
 | Page | Purpose |

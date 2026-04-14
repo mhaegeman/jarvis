@@ -22,7 +22,9 @@
       "Bash(grep -E \"\\\\.md$\")",
       "WebSearch",
       "Bash(curl -s \"https://api.search.brave.com/res/v1/web/search?q=UX+research+trends+2026&count=10\")",
-      "Bash(curl -s \"https://api.search.brave.com/res/v1/web/search?q=EU+AI+Act+compliance+tools+2026+business+opportunities&count=10\")"
+      "Bash(curl -s \"https://api.search.brave.com/res/v1/web/search?q=EU+AI+Act+compliance+tools+2026+business+opportunities&count=10\")",
+      "WebFetch(domain:github.com)",
+      "Bash(npm install *)"
     ]
   }
 }

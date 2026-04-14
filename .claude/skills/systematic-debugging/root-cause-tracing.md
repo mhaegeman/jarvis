@@ -1,0 +1,111 @@
+# Root Cause Tracing
+
+## Overview
+
+Trace bugs backward through the call stack to find the original trigger.
+
+**Core principle:** Never fix where you see the problem — trace to where it starts.
+
+## The Backward Tracing Technique
+
+When you see an error deep in the call stack:
+
+### Step 1: Start at the Error
+
+Note exactly what failed:
+- What value was unexpected?
+- What function threw?
+- What line?
+
+### Step 2: Trace Backwards
+
+For each level of the call stack, ask:
+- Who called this function?
+- What value did they pass?
+- Where did they get that value?
+
+Keep tracing up until you find where the bad value ORIGINATES.
+
+```
+Error: Cannot read property 'x' of undefined
+  at processResult (processor.ts:45)
+  at handleResponse (handler.ts:23)
+  at fetchData (api.ts:67)
+
+→ processResult received undefined result
+→ handleResponse returned undefined result
+→ fetchData returned undefined
+→ fetchData's HTTP call failed silently
+→ ROOT CAUSE: Missing error handling in fetchData (api.ts:67)
+```
+
+### Step 3: Fix at Source
+
+Fix the root cause, not the symptom.
+
+```
+❌ Symptom fix: Add null check in processResult
+✅ Root cause fix: Handle HTTP errors properly in fetchData
+```
+
+## Adding Diagnostic Instrumentation
+
+When root cause isn't obvious, add logging at each layer:
+
+```typescript
+// Layer 1: Entry point
+console.log('[fetchData] called with:', url);
+
+// Layer 2: After HTTP call
+console.log('[fetchData] response status:', response.status);
+console.log('[fetchData] response body:', await response.text());
+
+// Layer 3: In handler
+console.log('[handleResponse] received result:', result);
+
+// Layer 4: In processor
+console.log('[processResult] input:', result);
+```
+
+Run once with instrumentation → see exactly where bad value enters.
+
+## Common Patterns
+
+### Undefined/null propagation
+```
+Function A returns undefined when it should return a value
+→ Function B receives undefined, doesn't check
+→ Function C fails on undefined
+ROOT CAUSE: Fix Function A's return value
+```
+
+### Silent failure
+```
+Operation fails but doesn't throw
+→ Returns empty/default value
+→ Downstream code behaves unexpectedly
+ROOT CAUSE: Missing error propagation
+```
+
+### Wrong data shape
+```
+API returns { data: [...] }
+Code expects [...]
+ROOT CAUSE: Unhandled API response wrapper
+```
+
+## When to Use This Technique
+
+- Stack traces with multiple levels
+- "undefined is not a function" errors
+- Data mysteriously becoming wrong
+- Values that "shouldn't be" a certain way
+
+## Quick Reference
+
+1. Note exact error + location
+2. Ask: who called this?
+3. Ask: what value was passed?
+4. Ask: where did that value come from?
+5. Repeat until you reach the origin
+6. Fix at origin, not at symptom

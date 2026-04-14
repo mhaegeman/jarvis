@@ -1,5 +1,7 @@
 raw/
 .obsidian/
+.worktrees/
+worktrees/
 node_modules/
 package*
 credentials.json

@@ -5,40 +5,49 @@ _Short-term memory primer. Keywords only. ≤500 words. Updated: 2026-04-14._
 
 ## 2026-04-14
 
-**airbnb/chronon** — open-source **Feature Platform** for ML. Airbnb + Stripe co-maintained. Apache 2.0. Powers all major ML at Airbnb, major use cases at Stripe. Python API (`GroupBy` / `Join` / `StagingQuery`) → Thrift → Spark (batch) + Flink (streaming) + online `Fetcher` (Scala/Java) + Vert.x REST service. KV store pluggable (MongoDB in quickstart). Airflow control plane, one DAG per team per Join.
+**obra/superpowers** — complete software dev workflow plugin for AI coding agents. Jesse Vincent / Prime Radiant. MIT. Claude Code official marketplace: `/plugin install superpowers@claude-plugins-official`. Also: Cursor, Codex, OpenCode, Gemini CLI, GitHub Copilot CLI. v5.0.7. Zero-dependency.
 
-Core guarantees:
-- **Point-in-Time Correctness** — Sawtooth Windows algorithm (sliding head + hopping tail), naive JOIN is quadratic
-- **Online/Offline Consistency** — measurement framework: log fetches → re-backfill → compare via equality/numeric (SMAPE)/sequence (Levenshtein)/map. ReqSketch >2× faster than t-digest
-- **Accuracy modes**: SNAPSHOT (midnight) vs TEMPORAL (realtime)
-- **Sources**: EventSource (log+Kafka) vs EntitySource (snapshots+mutations CDC)
+Core mechanic: **session-start shell hook** injects `using-superpowers` skill → agent obligated to invoke relevant skill before ANY action. "1% chance it applies = MUST invoke." Skill format: YAML frontmatter (`name`, `description`) + DOT flow diagrams + Red Flags rationalization tables.
 
-Architecture shifts:
-- **Tiled Architecture** (Stripe-contributed, PRs #523/#531) — Flink stateful window op writes pre-aggregated IRs as tiles to KV store. O(tiles) reads vs O(events). 33% latency cut. Opt-in `enable_tiling=true`
-- **CHIP-1** — Caffeine IR + GetRequest caching. 22–35% batch latency cut. `isComplete` tiles cacheable, monoid-aware merge
-- **CHIP-2** — Bazel migration (hermetic, Scala 2.12/2.13 matrix), replace SBT, monorepo reorg
-- **Old name**: Zipline. Metrics still `ai.zipline.*`
+**13 skills** (mandatory lifecycle):
+1. `brainstorming` → HARD-GATE: no code before approved spec. Spec saved `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+2. `using-git-worktrees` → isolated branch per feature
+3. `writing-plans` → checkbox steps 2–5 min each, exact file paths, complete code. Plan saved `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`
+4. `subagent-driven-development` → **fresh subagent per task**, two-stage review: spec compliance then code quality. Implementer statuses: DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED
+5. `test-driven-development` → RED-GREEN-REFACTOR enforced
+6. `requesting-code-review` / `receiving-code-review`
+7. `systematic-debugging` → 4-phase root cause
+8. `verification-before-completion` → Iron Law: no completion claims without fresh evidence. 24 failure memories.
+9. `finishing-a-development-branch`, `dispatching-parallel-agents`, `writing-skills`, `using-superpowers`
 
-Hot-path Scala rules: no `for`/`foreach`/ranges/`Option`/`Tuple`/immutable collections; naked Arrays; branches in control path.
+**v5.0.6 key change:** inline self-review replaces subagent review loops for specs/plans — same quality, 25 min faster.
 
-Governance: 13-seat PMC (8 Airbnb + 5 Stripe), CHIP process, Apache-style lazy consensus. dev@chronon.ai.
+Priority: user CLAUDE.md > Superpowers skills > system prompt. `<SUBAGENT-STOP>` block prevents recursive skill activation in dispatched subagents.
 
-**Ships `.claude/`** — CLAUDE.md + 10 slash commands (4 user: groupby/join/staging-query/debug; 6 dev: architecture/integrate + 4 specialists aggregator/join-backfill/feature-serving/streaming). Major OSS treating Claude Code as first-class.
+**Visual brainstorming companion:** opt-in Node.js WS server + browser window for mockups during brainstorming. Zero-dep (built-in http/crypto/fs). 30-min idle auto-exit + owner-PID tracking.
 
-New concepts: feature-platform, point-in-time-correctness, online-offline-consistency, tiled-feature-aggregation.
+New concepts: [skills-based-agent-extension](concepts/skills-based-agent-extension.md), [subagent-driven-development](concepts/subagent-driven-development-concept.md). 94% PR rejection rate — strict human-review requirement.
+
+---
+
+## 2026-04-14 (earlier)
+
+**airbnb/chronon** — open-source **Feature Platform** for ML. Airbnb + Stripe co-maintained. Apache 2.0. Python API (`GroupBy` / `Join` / `StagingQuery`) → Thrift → Spark (batch) + Flink (streaming) + online `Fetcher` (Scala/Java) + Vert.x REST service. KV store pluggable (MongoDB in quickstart). Airflow control plane.
+
+Core guarantees: **Point-in-Time Correctness** (Sawtooth Windows), **Online/Offline Consistency** (log fetches → re-backfill → compare). **Tiled Architecture** (Stripe-contributed) — 33% latency cut. CHIP-1 (22–35% batch latency cut). Ships `.claude/` + CLAUDE.md + 10 slash commands.
 
 ## 2026-04-13
 
-**Jumbo** — memory + context orchestration CLI for coding agents. Event-sourced entity graph (.jumbo/). 5-phase lifecycle: define→refine→implement→review→codify. **Context packet** assembly. Agent-agnostic (Claude Code, Copilot, Gemini, Cursor, Codex, Vibe). 12 Claude Code skills. Concept: **Agent Context Orchestration** vs static CLAUDE.md.
+**Jumbo** — memory + context orchestration CLI for coding agents. 5-phase lifecycle. **Context packet** assembly. Agent-agnostic. 12 Claude Code skills.
 
-**nexos.ai competitor intel** — NOT compliance competitor. "Guardrails" = PII filtering. "Governance" = token spend. $350M, NordVPN founders.
+**nexos.ai** — NOT compliance competitor. "Guardrails" = PII filtering. $350M, NordVPN founders.
 
-**RuFlo** — multi-agent orchestration for Claude Code. 100+ agents, 137 skills, 313 MCP tools. Topologies hierarchical/mesh/ring/star. Consensus Raft/BFT/Gossip/CRDT/Quorum. SONA/EWC++/ReasoningBank self-learning. WASM→Haiku→Opus routing, 75% cost cut. SPARC. Claims auth 7 types / 4 levels.
+**RuFlo** — multi-agent orchestration. 100+ agents, 137 skills, 313 MCP tools. Topologies hierarchical/mesh/ring/star.
 
 **GuardRail team** — Maxime (ML), Harsh (UX), Karoline (legal/EU AI Act), Fabio (AI agents)
 
 ## Wiki state
-80 pages | 21 sources | 8 people | 20 entities | 28 concepts | 0 analyses
+88 pages | 22 sources | 9 people | 22 entities | 30 concepts | 0 analyses
 
 ---
 _Deep dive: [overview](overview.md) | Full catalog: [index](index.md) | History: [log](log.md)_

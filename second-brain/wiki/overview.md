@@ -1,6 +1,6 @@
 # Overview
 
-_Evolving synthesis of everything in the wiki. Updated by the LLM as sources are ingested. Last updated: 2026-04-14 (airbnb/chronon ingest)._
+_Evolving synthesis of everything in the wiki. Updated by the LLM as sources are ingested. Last updated: 2026-04-14 (obra/superpowers ingest)._
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This wiki is [Maxime Haegeman](people/maxime-haegeman.md)'s personal second brai
 
 ## Current State
 
-21 sources ingested. 80 pages. The wiki now covers: foundational methodology (LLM Wiki Pattern), AI scenario forecasting (AI 2027), multimodal RAG tooling (RAG-Anything), Claude Code workflow and tooling ecosystem (4 repos + RuFlo orchestration platform + Jumbo context orchestration), LLM education (mlabonne course), document AI (Nougat), computer vision foundation models (SAM), production RAG reference architecture (Ask Astro), offline LLM inference (document chatbot), **ML feature platform infrastructure (Chronon)**, Maxime's professional profile, and team profiles (Harsh Kakroo, Karoline Geiker, Fabio Cassisa) for the GuardRail project.
+22 sources ingested. 88 pages. The wiki now covers: foundational methodology (LLM Wiki Pattern), AI scenario forecasting (AI 2027), multimodal RAG tooling (RAG-Anything), Claude Code workflow and tooling ecosystem (4 repos + RuFlo orchestration platform + Jumbo context orchestration + **Superpowers skills plugin**), LLM education (mlabonne course), document AI (Nougat), computer vision foundation models (SAM), production RAG reference architecture (Ask Astro), offline LLM inference (document chatbot), ML feature platform infrastructure (Chronon), Maxime's professional profile, and team profiles (Harsh Kakroo, Karoline Geiker, Fabio Cassisa) for the GuardRail project.
 
 ## Key Themes
 
@@ -32,6 +32,8 @@ Two breakthroughs drive the 2027 capability jump: [Neuralese Recurrence](concept
 
 ### 7. Claude Code as an Ecosystem
 Four ingested repos ([EduardPetraeus/claude-code-quickstart](sources/eduardpetraeus-claude-code-quickstart.md), [Leavitskiy/claude-agentic-flow](sources/leavitskiy-claude-agentic-flow.md), [Owl-Listener/designer-skills](sources/owl-listener-designer-skills.md), [getnao/nao](sources/getnao-nao.md)) reveal Claude Code as a growing **skill library ecosystem** — analogous to npm packages but for AI agent behaviour. The emerging pattern: [CLAUDE.md → rules → hooks → agents](concepts/agentic-workflow-patterns.md), with domain-specific skill libraries that can be composed. The multi-agent code-review pattern (Haiku triage → Sonnet summary → parallel Opus bug detection → validation gate) appears independently in both getnao/nao and Leavitskiy — suggesting it is converging as a standard pattern for high-signal automated review.
+
+[Superpowers](sources/obra-superpowers.md) represents the most mature and opinionated entry in this ecosystem: a complete workflow plugin that imposes a mandatory development lifecycle (brainstorm → spec → plan → subagent-driven implementation → review → finish) via 13 composable skills. It is the only one available on the official Claude Code plugin marketplace. The key insight: skills as **mandatory process enforcement** rather than optional tools. The [Subagent-Driven Development](concepts/subagent-driven-development-concept.md) pattern — fresh subagent per task, two-stage review (spec compliance then code quality), isolated context per subagent — is Superpowers' most innovative contribution. It enables hours-long autonomous sessions without plan drift. The [Skills-Based Agent Extension](concepts/skills-based-agent-extension.md) concept is now the clearest articulation in the wiki of how to build reliable, process-disciplined coding agents.
 
 ### 8. The LLM Stack: Education, Fine-Tuning, Quantisation, Deployment
 [Maxime Labonne's LLM Course](sources/mlabonne-llm-course.md) maps the practical LLM engineering stack: from mathematical foundations through [fine-tuning](concepts/llm-fine-tuning.md) (SFT/DPO/ORPO via Unsloth, Axolotl) and [quantisation](concepts/llm-quantization.md) (GGUF, GPTQ, EXL2) to deployment and RAG. The [document chatbot](sources/iamtomshaw-document-chatbot-offline.md) and [Ask Astro](sources/astronomer-ask-astro.md) represent the deployment end of this stack — one fully offline via [Windows AI Foundry](entities/windows-ai-foundry.md), one cloud-deployed on GCP with Airflow orchestration and Weaviate.
@@ -57,6 +59,9 @@ Meta's FAIR lab has contributed two open, foundational vision models: [SAM](sour
 - Can the LLM Wiki Pattern and Jumbo's entity-graph approach be combined? Wiki for synthesis, Jumbo for operational context — is this the optimal architecture for agent-assisted development?
 - How does Chronon compare concretely to Feast, Tecton, and Hopsworks on point-in-time correctness, streaming primitives, and consistency measurement? The repo claims uniqueness but doesn't benchmark against competitors.
 - Is the `.claude/` directory pattern shipped with Chronon an emerging standard for OSS projects — companion developer tooling for Claude Code users — or a bespoke Airbnb/Stripe experiment?
+- Can Superpowers' brainstorm-first hard-gate be made practical for small/incremental work without weakening the discipline for larger projects?
+- What is the actual ROI of the Subagent-Driven Development two-stage review in practice — is the overhead justified for all task sizes, or should it be tiered?
+- How does the `agentskills.io` specification relate to Claude Code's own skill system — are they converging on a standard?
 
 ## Key Pages
 
@@ -79,3 +84,6 @@ Meta's FAIR lab has contributed two open, foundational vision models: [SAM](sour
 - [Point-in-Time Correctness](concepts/point-in-time-correctness.md) — the PITC guarantee and Sawtooth algorithm
 - [Online/Offline Consistency](concepts/online-offline-consistency.md) — training-serving skew measurement
 - [Tiled Feature Aggregation](concepts/tiled-feature-aggregation.md) — the latency optimization Stripe open-sourced
+- [obra/superpowers](sources/obra-superpowers.md) — complete skills-based Claude Code workflow plugin
+- [Skills-Based Agent Extension](concepts/skills-based-agent-extension.md) — the concept; mandatory process enforcement via skill files
+- [Subagent-Driven Development](concepts/subagent-driven-development-concept.md) — the SDD workflow pattern

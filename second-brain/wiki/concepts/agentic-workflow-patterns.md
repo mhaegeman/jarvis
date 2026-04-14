@@ -22,6 +22,7 @@ Agentic workflows allow Claude Code to tackle tasks that would overwhelm a singl
 
 ## Evidence & Examples
 
+- [Superpowers](../entities/superpowers.md) — the most disciplined process-enforcement approach: 13 mandatory skills, rigid brainstorm→spec→plan→subagent-driven-development→review→finish pipeline. Enforces TDD, verification-before-completion, and rationalization prevention. Skills use DOT graphs and Red Flags tables as structural guardrails. See [Skills-Based Agent Extension](skills-based-agent-extension.md) and [Subagent-Driven Development](subagent-driven-development-concept.md).
 - [Jumbo](../entities/jumbo.md) — the most structured lifecycle: 5-phase goal workflow (define → refine → implement → review → codify) with dynamically assembled [context packets](agent-context-orchestration.md) from an entity graph. Focuses on knowledge persistence and QA gates rather than swarm coordination.
 - [RuFlo](../entities/ruflo.md) — the most comprehensive implementation: 100+ agents, 4 swarm topologies, 5 consensus protocols, self-learning memory, 3-tier intelligent routing, SPARC methodology, claims-based authorization. Implements and extends every pattern listed above.
 - [getnao / Nao](../sources/getnao-nao.md) — ships a multi-agent code review skill (Haiku triage → Sonnet summary → parallel Opus bug detection → validation → GitHub comments).
@@ -48,5 +49,7 @@ Agentic workflows allow Claude Code to tackle tasks that would overwhelm a singl
 - [Claims-Based Agent Authorization](claims-based-agent-authorization.md) — agent permission model
 - [Agent Context Orchestration](agent-context-orchestration.md) — dynamic context assembly (Jumbo's core concept)
 - [Jumbo](../entities/jumbo.md) — goal lifecycle + persistent memory orchestration
+- [Skills-Based Agent Extension](skills-based-agent-extension.md) — mandatory workflow enforcement via skill files
+- [Subagent-Driven Development](subagent-driven-development-concept.md) — fresh subagent per task + 2-stage review pattern
 - [LLM Wiki Pattern](../concepts/llm-wiki-pattern.md)
 - [RAG vs Wiki Architecture](../concepts/rag-vs-wiki-architecture.md)

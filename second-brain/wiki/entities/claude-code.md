@@ -28,6 +28,7 @@ Claude Code is Anthropic's agentic coding CLI — a terminal-based tool that giv
 - [getnao / Nao](../sources/getnao-nao.md) — ships a multi-agent code-review skill
 - [jumbocontext / jumbo.cli](../sources/jumbocontext-jumbo-cli.md) — memory & context orchestration CLI; 12 Claude Code skills, hooks, CLAUDE.md generation
 - [airbnb / Chronon](../sources/airbnb-chronon.md) — ships a `.claude/` directory with CLAUDE.md and 10 slash commands (4 user: `groupby`/`join`/`staging-query`/`debug`; 6 dev: `architecture`/`integrate` + 4 specialists for aggregator/join-backfill/feature-serving/streaming). Example of a major OSS project treating Claude Code as first-class developer tooling.
+- [obra/superpowers](../sources/obra-superpowers.md) — complete skills-based workflow plugin; available in the official Claude Code plugin marketplace (`/plugin install superpowers@claude-plugins-official`); 13 skills enforcing brainstorm→plan→SDD→review lifecycle
 
 ## Connections
 
@@ -37,3 +38,5 @@ Claude Code is Anthropic's agentic coding CLI — a terminal-based tool that giv
 - [Agentic Workflow Patterns](../concepts/agentic-workflow-patterns.md) — multiple repos demonstrate advanced Claude Code agent/hook/rule patterns
 - [Jumbo](jumbo.md) — memory & context orchestration CLI with 12 Claude Code skills and the most structured goal lifecycle
 - [Agent Context Orchestration](../concepts/agent-context-orchestration.md) — Jumbo's approach to dynamic context assembly for agent workflows
+- [Superpowers](superpowers.md) — skills-based workflow plugin; first-class Claude Code citizen with official marketplace listing
+- [Skills-Based Agent Extension](../concepts/skills-based-agent-extension.md) — the concept of skills as mandatory workflow enforcement
