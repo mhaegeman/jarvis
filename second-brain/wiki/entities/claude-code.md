@@ -27,6 +27,7 @@ Claude Code is Anthropic's agentic coding CLI — a terminal-based tool that giv
 - [Owl-Listener / Designer Skills](../sources/owl-listener-designer-skills.md) — 50+ designer-specific Claude Code skills
 - [getnao / Nao](../sources/getnao-nao.md) — ships a multi-agent code-review skill
 - [jumbocontext / jumbo.cli](../sources/jumbocontext-jumbo-cli.md) — memory & context orchestration CLI; 12 Claude Code skills, hooks, CLAUDE.md generation
+- [airbnb / Chronon](../sources/airbnb-chronon.md) — ships a `.claude/` directory with CLAUDE.md and 10 slash commands (4 user: `groupby`/`join`/`staging-query`/`debug`; 6 dev: `architecture`/`integrate` + 4 specialists for aggregator/join-backfill/feature-serving/streaming). Example of a major OSS project treating Claude Code as first-class developer tooling.
 
 ## Connections
 

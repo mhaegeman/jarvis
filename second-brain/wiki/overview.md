@@ -1,6 +1,6 @@
 # Overview
 
-_Evolving synthesis of everything in the wiki. Updated by the LLM as sources are ingested. Last updated: 2026-04-13 (RuFlo agent orchestration ingest)._
+_Evolving synthesis of everything in the wiki. Updated by the LLM as sources are ingested. Last updated: 2026-04-14 (airbnb/chronon ingest)._
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This wiki is [Maxime Haegeman](people/maxime-haegeman.md)'s personal second brai
 
 ## Current State
 
-20 sources ingested. 72 pages. The wiki now covers: foundational methodology (LLM Wiki Pattern), AI scenario forecasting (AI 2027), multimodal RAG tooling (RAG-Anything), Claude Code workflow and tooling ecosystem (4 repos + RuFlo orchestration platform), LLM education (mlabonne course), document AI (Nougat), computer vision foundation models (SAM), production RAG reference architecture (Ask Astro), offline LLM inference (document chatbot), Maxime's professional profile, and team profiles (Harsh Kakroo, Karoline Geiker, Fabio Cassisa) for the GuardRail project.
+21 sources ingested. 80 pages. The wiki now covers: foundational methodology (LLM Wiki Pattern), AI scenario forecasting (AI 2027), multimodal RAG tooling (RAG-Anything), Claude Code workflow and tooling ecosystem (4 repos + RuFlo orchestration platform + Jumbo context orchestration), LLM education (mlabonne course), document AI (Nougat), computer vision foundation models (SAM), production RAG reference architecture (Ask Astro), offline LLM inference (document chatbot), **ML feature platform infrastructure (Chronon)**, Maxime's professional profile, and team profiles (Harsh Kakroo, Karoline Geiker, Fabio Cassisa) for the GuardRail project.
 
 ## Key Themes
 
@@ -45,6 +45,9 @@ Meta's FAIR lab has contributed two open, foundational vision models: [SAM](sour
 ### 11. Agent Context Orchestration: From Static Files to Dynamic Assembly
 [Jumbo](sources/jumbocontext-jumbo-cli.md) introduces a fundamentally different approach to agent knowledge persistence: instead of compiling prose into wiki pages or dumping instructions into CLAUDE.md, it maintains a structured entity graph (components, decisions, invariants, guidelines, relations) and dynamically assembles task-specific [context packets](concepts/agent-context-orchestration.md) at workflow transitions. The 5-phase goal lifecycle (define → refine → implement → review → codify) is the most structured agent workflow in the wiki — each phase has explicit knowledge curation and QA gates. This complements rather than competes with the [LLM Wiki Pattern](concepts/llm-wiki-pattern.md): wiki for synthesis and understanding, Jumbo for operational context during implementation. The question is whether both can be combined: wiki as the research/synthesis layer, Jumbo as the execution/quality layer.
 
+### 12. ML Feature Platforms: Collapsing the Training-Serving Gap
+[Chronon](sources/airbnb-chronon.md) (Airbnb + Stripe) is the canonical open-source [feature platform](concepts/feature-platform.md) — the class of ML infrastructure that takes a single Python feature definition and produces point-in-time-correct backfills, streaming updates, online serving, and automated consistency measurement from one source of truth. Three concepts from the ingest anchor this theme: [point-in-time correctness](concepts/point-in-time-correctness.md) (the Sawtooth Windows algorithm turns a quadratic SQL join into a near-linear computation; reversible aggregations enable efficient mutations), [online/offline consistency](concepts/online-offline-consistency.md) (not just guaranteed but measured — fetch logs are fed back into backfills, with SMAPE/Levenshtein/ReqSketch-based metrics), and [tiled feature aggregation](concepts/tiled-feature-aggregation.md) (Stripe's open-sourced architectural contribution: pre-aggregated IRs in the KV store, shifting work from read path to write path, 33% latency cut, Flink-only). Two meta-observations: (a) the repo ships a full `.claude/` directory with specialist slash commands — another datapoint for [Claude Code](entities/claude-code.md) as first-class OSS developer tooling, alongside Jumbo and the earlier Claude Code repo ecosystem; (b) Chronon's governance is formalized (13-seat PMC, CHIP process, Apache-style) — a contrast to the more ad-hoc indie tools elsewhere in this wiki and a template for OSS projects that cross company boundaries.
+
 ## Open Questions
 
 - How credible is the 2027 timeline given the authors' July 2025 update pushing medians back ~1.5 years?
@@ -52,6 +55,8 @@ Meta's FAIR lab has contributed two open, foundational vision models: [SAM](sour
 - Can arms control treaties work for AI? What does verification look like when compute is hard to hide but algorithms are not?
 - Is the "slowdown" ending actually better — DeepCent has stolen weights and would continue racing with AI tools regardless?
 - Can the LLM Wiki Pattern and Jumbo's entity-graph approach be combined? Wiki for synthesis, Jumbo for operational context — is this the optimal architecture for agent-assisted development?
+- How does Chronon compare concretely to Feast, Tecton, and Hopsworks on point-in-time correctness, streaming primitives, and consistency measurement? The repo claims uniqueness but doesn't benchmark against competitors.
+- Is the `.claude/` directory pattern shipped with Chronon an emerging standard for OSS projects — companion developer tooling for Claude Code users — or a bespoke Airbnb/Stripe experiment?
 
 ## Key Pages
 
@@ -69,3 +74,8 @@ Meta's FAIR lab has contributed two open, foundational vision models: [SAM](sour
 - [Intelligent Task Routing](concepts/intelligent-task-routing.md) — cost optimization for agent workflows
 - [Jumbo](sources/jumbocontext-jumbo-cli.md) — memory & context orchestration CLI
 - [Agent Context Orchestration](concepts/agent-context-orchestration.md) — dynamic context assembly for agents
+- [Chronon](sources/airbnb-chronon.md) — open-source ML feature platform (Airbnb + Stripe)
+- [Feature Platform](concepts/feature-platform.md) — the product category and design tradeoffs
+- [Point-in-Time Correctness](concepts/point-in-time-correctness.md) — the PITC guarantee and Sawtooth algorithm
+- [Online/Offline Consistency](concepts/online-offline-consistency.md) — training-serving skew measurement
+- [Tiled Feature Aggregation](concepts/tiled-feature-aggregation.md) — the latency optimization Stripe open-sourced
