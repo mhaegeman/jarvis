@@ -4,6 +4,14 @@ _Parse tip: `grep "^## \[" log.md | head -10` for recent entries._
 
 ---
 
+## [2026-04-14] ingest | airbnb/chronon — Open-Source ML Feature Platform
+
+**Operation:** ingest
+**Summary:** Ingested GitHub repo airbnb/chronon via repomix (docs-only, excluded SVG/binaries/lockfiles; 464KB, 109K tokens, 66 files). Chronon is the canonical open-source feature platform for ML, co-maintained by Airbnb (8 PMC seats) and Stripe (5 PMC seats), Apache 2.0. One Python definition (`GroupBy`/`Join`/`StagingQuery`) drives four outputs: point-in-time-correct historical backfills on Spark, realtime streaming updates on Flink, low-latency online serving via a Scala/Java `Fetcher` against a pluggable KV store, and automated online/offline consistency measurement. Core algorithms: Sawtooth Windows (sliding head + hopping tail) for PITC, and the Tiled Architecture (Stripe-contributed) for O(tiles) online reads vs O(events) — 33% latency cut. Also: CHIP-1 (Caffeine IR + GetRequest caching, 22–35% batch latency cut), CHIP-2 (Bazel migration, monorepo reorg), and a full `.claude/` directory with CLAUDE.md + 10 specialist slash commands. Created 1 source page, 3 entity pages (Chronon, Airbnb, Stripe), and 4 concept pages (Feature Platform, Point-in-Time Correctness, Online/Offline Consistency, Tiled Feature Aggregation). Updated Apache Airflow entity (Chronon uses Airflow as default orchestrator), Claude Code entity (Chronon as major OSS adopter), overview.md (Theme 12 on feature platforms + 2 new open questions), hot.md (rewritten), and index.md (80 pages).
+**Pages touched:** [sources/airbnb-chronon.md](sources/airbnb-chronon.md), [entities/chronon.md](entities/chronon.md), [entities/airbnb.md](entities/airbnb.md), [entities/stripe.md](entities/stripe.md), [concepts/feature-platform.md](concepts/feature-platform.md), [concepts/point-in-time-correctness.md](concepts/point-in-time-correctness.md), [concepts/online-offline-consistency.md](concepts/online-offline-consistency.md), [concepts/tiled-feature-aggregation.md](concepts/tiled-feature-aggregation.md), [entities/apache-airflow.md](entities/apache-airflow.md), [entities/claude-code.md](entities/claude-code.md), [hot.md](hot.md), [overview.md](overview.md), [index.md](index.md)
+
+---
+
 ## [2026-04-13] ingest | jumbocontext/jumbo.cli — Memory & Context Orchestration for Coding Agents
 
 **Operation:** ingest

@@ -1,5 +1,5 @@
 # Wiki Index
-_Last updated: 2026-04-13 — 72 pages total_
+_Last updated: 2026-04-14 — 80 pages total_
 
 ## Sources
 | Page | Summary | Ingested |
@@ -24,6 +24,7 @@ _Last updated: 2026-04-13 — 72 pages total_
 | [ruvnet / RuFlo](sources/ruvnet-ruflo.md) | Enterprise multi-agent AI orchestration for Claude Code; 100+ agents, swarm coordination, self-learning, 3-tier routing, SPARC methodology | 2026-04-13 |
 | [nexos.ai — Company Website](sources/nexos-ai-website.md) | Competitor analysis: all-in-one AI platform ($350M), guardrails = PII filtering, governance = usage monitoring — NOT AI Act compliance | 2026-04-13 |
 | [jumbocontext / jumbo.cli](sources/jumbocontext-jumbo-cli.md) | Memory & context orchestration CLI for coding agents; 5-phase goal lifecycle, event-sourced entity graph, 12 Claude Code skills, agent-agnostic | 2026-04-13 |
+| [airbnb / Chronon](sources/airbnb-chronon.md) | Open-source feature platform for ML (Airbnb + Stripe); point-in-time backfills, streaming updates, online serving, consistency measurement from one Python definition; Sawtooth Windows + Tiled Architecture | 2026-04-14 |
 
 ## People
 | Page | Summary |
@@ -57,6 +58,9 @@ _Last updated: 2026-04-13 — 72 pages total_
 | [RuFlo](entities/ruflo.md) | product | Multi-agent AI orchestration platform for Claude Code; 100+ agents, swarms, self-learning, MCP integration |
 | [nexos.ai](entities/nexos-ai.md) | org | All-in-one enterprise AI platform ($350M); guardrails + governance + workspace — GuardRail competitor (low overlap) |
 | [Jumbo](entities/jumbo.md) | product | Memory & context orchestration CLI for coding agents; event-sourced entity graph, 5-phase goal lifecycle, 12 Claude Code skills |
+| [Chronon](entities/chronon.md) | product | Open-source ML feature platform (Airbnb + Stripe); Python API → Spark/Flink → online Fetcher; PITC backfills + consistency measurement |
+| [Airbnb](entities/airbnb.md) | org | Creator and co-maintainer of Chronon (8 of 13 PMC seats); powers all major Airbnb ML applications |
+| [Stripe](entities/stripe.md) | org | Co-maintainer of Chronon (5 PMC seats); open-sourced the Tiled Architecture and CHIP-1 IR caching |
 
 ## Concepts
 | Page | Summary |
@@ -85,6 +89,10 @@ _Last updated: 2026-04-13 — 72 pages total_
 | [SPARC Methodology](concepts/sparc-methodology.md) | 5-phase spec-driven dev: Specification → Pseudocode → Architecture → Refinement → Completion |
 | [Claims-Based Agent Authorization](concepts/claims-based-agent-authorization.md) | Granular permission system for multi-agent workflows; 7 claim types, 4 security levels, glob-scoped |
 | [Agent Context Orchestration](concepts/agent-context-orchestration.md) | Dynamic assembly of curated context packets from entity graphs for coding agent workflows; Jumbo's core innovation |
+| [Feature Platform](concepts/feature-platform.md) | ML infrastructure that collapses batch-training and online-serving feature pipelines into a single authoritative definition |
+| [Point-in-Time Correctness](concepts/point-in-time-correctness.md) | Backfill guarantee that feature values at historical timestamp `t` use only data available at `t` — no future leakage; enabled by Sawtooth Windows |
+| [Online/Offline Consistency](concepts/online-offline-consistency.md) | Training-serving skew measurement: log fetches, re-run offline, quantify per-feature discrepancy via equality/numeric/sequence/map metrics + ReqSketch |
+| [Tiled Feature Aggregation](concepts/tiled-feature-aggregation.md) | Pre-aggregated IRs as tiles in the KV store; O(tiles) reads vs O(events); 33% latency cut at Stripe; Flink-only |
 
 ## Meta
 | Page | Purpose |
