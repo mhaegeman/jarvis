@@ -278,6 +278,87 @@ Steps:
 
    These two sections are required for all GitHub repo ingests because tech stack and purpose are the most-searched fields when deciding whether to adopt or reference a repo.
 
+### Ingest YouTube
+Triggered when the user provides a YouTube URL (`https://www.youtube.com/watch?v=<id>`, `https://youtu.be/<id>`, or `https://www.youtube.com/live/<id>`) and asks to ingest it.
+
+Steps:
+
+1. **Check required tools.** Verify both `yt-dlp` and `whisper` are installed:
+   ```bash
+   which yt-dlp && which whisper
+   ```
+   If either is missing, report it and stop:
+   - `yt-dlp` missing → "yt-dlp is required. Install with `pip install yt-dlp`."
+   - `whisper` missing → "whisper is required. Install with `pip install openai-whisper`."
+
+2. **Fetch metadata.** Run:
+   ```bash
+   yt-dlp --dump-json "<url>"
+   ```
+   Extract: `title`, `channel`, `upload_date`, `duration_string`, `description`, `chapters` (if present).
+   Derive the output slug from the title in lowercase kebab-case (e.g., "The Bitter Lesson" → `the-bitter-lesson`). Fall back to the video ID if the title is longer than 60 characters or contains non-ASCII characters.
+
+3. **Download audio.** Run:
+   ```bash
+   yt-dlp -x --audio-format mp3 -o "brain/raw/<slug>.mp3" "<url>"
+   ```
+   If yt-dlp exits with an error (private video, unavailable, etc.), report the error and stop.
+
+4. **Transcribe.** Run:
+   ```bash
+   whisper "brain/raw/<slug>.mp3" --output_dir /tmp/ --output_format txt
+   ```
+   This produces `/tmp/<slug>.txt`. If the output file is empty, warn the user and offer to proceed with metadata only or abort.
+
+5. **Write raw file.** Create `brain/raw/<slug>.md` with the following structure:
+   ```markdown
+   ---
+   title: <title>
+   channel: <channel>
+   upload_date: <YYYY-MM-DD>
+   duration: <HH:MM or MM:SS>
+   source_url: <url>
+   ---
+
+   ## Description
+   <video description>
+
+   ## Chapters
+   <bulleted list if present, otherwise "none">
+
+   ## Transcript
+   <full whisper transcript>
+   ```
+
+6. **Clean up intermediates.** Delete `brain/raw/<slug>.mp3` and `/tmp/<slug>.txt`.
+
+7. **Size check.** If `brain/raw/<slug>.md` is larger than 200 KB, warn the user and show the file size. Ask whether to proceed before continuing.
+
+8. **Continue with standard Ingest** (steps 1–8 of the Ingest operation above). Read `brain/raw/<slug>.md` as the source.
+
+9. **Frontmatter for the source page:**
+   ```yaml
+   source_file: raw/<slug>.md
+   source_url: <youtube-url>
+   ```
+   Always set both fields for YouTube ingests.
+
+10. **Tags must include** `youtube`, the channel name in lowercase kebab-case (e.g., `lex-fridman`), and a content-type tag inferred from the video: one of `talk`, `lecture`, `interview`, `tutorial`. Apply all standard tagging rules (Section 12).
+
+11. **YouTube source pages MUST include the following two extra sections** (insert between Summary and Key Points):
+
+    ```markdown
+    ## Speaker / Channel
+    Who is speaking and what channel published it. Include role/affiliation if known.
+
+    ## Video Details
+    - **Duration:** HH:MM
+    - **Published:** YYYY-MM-DD
+    - **Chapters:** bulleted list if present, otherwise "none"
+    ```
+
+    These two sections are required for all YouTube ingests because speaker identity and video context are the most-searched fields when looking up a video source.
+
 ---
 
 ### Query
