@@ -8,3 +8,4 @@ credentials.json
 token.json
 generate_pitch.mjs
 GuardRail_Pitch.pptx
+.worktrees/
