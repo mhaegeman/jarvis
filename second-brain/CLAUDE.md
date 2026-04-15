@@ -278,6 +278,8 @@ Steps:
 
    These two sections are required for all GitHub repo ingests because tech stack and purpose are the most-searched fields when deciding whether to adopt or reference a repo.
 
+---
+
 ### Ingest YouTube
 Triggered when the user provides a YouTube URL (`https://www.youtube.com/watch?v=<id>`, `https://youtu.be/<id>`, or `https://www.youtube.com/live/<id>`) and asks to ingest it.
 
@@ -295,7 +297,7 @@ Steps:
    ```bash
    yt-dlp --dump-json "<url>"
    ```
-   Extract: `title`, `channel`, `upload_date`, `duration_string`, `description`, `chapters` (if present).
+   Extract: `title`, `channel`, `upload_date`, `duration_string`, `description`, `chapters` (if present). Note: `upload_date` is returned by yt-dlp as `YYYYMMDD` (e.g. `20240315`) — reformat it to `YYYY-MM-DD` (e.g. `2024-03-15`) before using it anywhere.
    Derive the output slug from the title in lowercase kebab-case (e.g., "The Bitter Lesson" → `the-bitter-lesson`). Fall back to the video ID if the title is longer than 60 characters or contains non-ASCII characters.
 
 3. **Download audio.** Run:
@@ -304,19 +306,19 @@ Steps:
    ```
    If yt-dlp exits with an error (private video, unavailable, etc.), report the error and stop.
 
-4. **Transcribe.** Run:
+4. **Transcribe.** Run this command from the repository root (the directory containing `brain/`):
    ```bash
    whisper "brain/raw/<slug>.mp3" --output_dir /tmp/ --output_format txt
    ```
    This produces `/tmp/<slug>.txt`. If the output file is empty, warn the user and offer to proceed with metadata only or abort.
 
-5. **Write raw file.** Create `brain/raw/<slug>.md` with the following structure:
+5. **Write raw file.** Read `/tmp/<slug>.txt` and use its contents as the transcript. Then create `brain/raw/<slug>.md` with the following structure:
    ```markdown
    ---
    title: <title>
    channel: <channel>
    upload_date: <YYYY-MM-DD>
-   duration: <HH:MM or MM:SS>
+   duration: <duration_string verbatim from yt-dlp>
    source_url: <url>
    ---
 
@@ -327,7 +329,7 @@ Steps:
    <bulleted list if present, otherwise "none">
 
    ## Transcript
-   <full whisper transcript>
+   <full contents of /tmp/<slug>.txt>
    ```
 
 6. **Clean up intermediates.** Delete `brain/raw/<slug>.mp3` and `/tmp/<slug>.txt`.
@@ -352,7 +354,7 @@ Steps:
     Who is speaking and what channel published it. Include role/affiliation if known.
 
     ## Video Details
-    - **Duration:** HH:MM
+    - **Duration:** use `duration_string` verbatim from yt-dlp
     - **Published:** YYYY-MM-DD
     - **Chapters:** bulleted list if present, otherwise "none"
     ```
