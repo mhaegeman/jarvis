@@ -94,3 +94,9 @@
   cursor: pointer;
 }
 .mic-banner button:hover { background: rgba(92, 240, 255, 0.18); border-color: var(--accent); }
+
+.waveform-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
