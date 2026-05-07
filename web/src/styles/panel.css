@@ -122,3 +122,40 @@
   animation: tcaret 1s steps(1) infinite;
 }
 @keyframes tcaret { 50% { opacity: 0; } }
+
+.centerpiece {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.centerpiece .waveform-host {
+  position: absolute;
+  inset: 0;
+}
+.centerpiece-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 32px;
+  max-width: 760px;
+}
+.centerpiece-title {
+  font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif;
+  font-weight: 200;
+  font-size: clamp(28px, 4.5vw, 56px);
+  margin: 0 0 14px;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+.centerpiece .scan {
+  position: absolute;
+  left: 0; right: 0;
+  height: 60px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(92,240,255,0.08), transparent);
+  animation: scan 6s linear infinite;
+  z-index: 1;
+}
+@keyframes scan { 0% { top: -60px; } 100% { top: 100%; } }

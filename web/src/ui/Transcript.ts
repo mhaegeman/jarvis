@@ -6,7 +6,6 @@ interface TranscriptState {
 
 export class Transcript extends Component<TranscriptState> {
   private body: HTMLElement | undefined;
-  private caret: HTMLElement | undefined;
   private streamTimer: ReturnType<typeof setTimeout> | undefined;
 
   override render(state: TranscriptState): void {
@@ -14,7 +13,6 @@ export class Transcript extends Component<TranscriptState> {
       this.root.classList.add("transcript");
       this.root.innerHTML = `<span class="body"></span><span class="caret"></span>`;
       this.body = this.root.querySelector(".body") as HTMLElement;
-      this.caret = this.root.querySelector(".caret") as HTMLElement;
     }
     this.body.textContent = state.text;
   }
