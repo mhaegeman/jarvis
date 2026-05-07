@@ -3,19 +3,19 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-07
+**Last updated:** 2026-05-07 (post spec-01 brainstorm)
 
 ---
 
 ## Current Phase
-**spec-01-frontend-shell · brainstorming**
+**spec-01-frontend-shell · planning**
 
 ## Macro Progress
 
 | # | Sub-spec | Brainstorm | Plan | Implement | Review | Verify | Merged |
 |---|---|---|---|---|---|---|---|
-| 0 | Umbrella architecture | ✅ approved | n/a | n/a | n/a | n/a | ⏳ pending commit |
-| 1 | spec-01-frontend-shell | ⏳ in progress | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
+| 1 | spec-01-frontend-shell | ✅ committed | ⏳ in progress | ⬜ | ⬜ | ⬜ | ⬜ |
 | 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -32,10 +32,10 @@ Legend: ⬜ not started · ⏳ in progress · ✅ done
 - Multi-agent design: section 6 of architecture doc
 
 ## Last completed action
-Wrote umbrella architecture doc, self-reviewed, user approved with delegation. Created STATUS.md and memory pointer.
+Wrote, self-reviewed, and committed spec-01 design doc: `docs/superpowers/specs/2026-05-07-frontend-shell-design.md`. Auto-approved per Architect delegation.
 
 ## Next action
-Begin spec-01-frontend-shell brainstorm. Orchestrator acts as Brainstorming Lead. Output: `docs/superpowers/specs/2026-05-07-frontend-shell-design.md`. Auto-approved by orchestrator on completion (per delegation), commit, then transition to writing-plans for spec-01.
+Read `.claude/skills/writing-plans.md`, then write spec-01 implementation plan: `docs/superpowers/plans/2026-05-07-frontend-shell.md`. Self-review, commit. Then create `.worktrees/spec-01-frontend-shell` and begin implementation.
 
 ## Open blockers
 None.
