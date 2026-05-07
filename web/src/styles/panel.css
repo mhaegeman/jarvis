@@ -47,3 +47,13 @@
   background: var(--accent);
   box-shadow: 0 0 12px var(--accent);
 }
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+}
+.header .id { letter-spacing: 0.35em; font-size: 11px; color: var(--accent); }
+.header .uptime, .header .clock { font-variant-numeric: tabular-nums; }
+.header .uptime { color: var(--fg-dim); }
