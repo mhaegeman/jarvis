@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Jarvis — C · Holographic HUD</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg-0: #02060a;
+    --bg-1: #03101a;
+    --fg: #d6f0ff;
+    --accent: #5cf0ff;
+    --accent-dim: rgba(92,240,255,.35);
+    --warn: #ffae5c;
+    --grid: rgba(92,240,255,.08);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background:
+      radial-gradient(ellipse at 50% 50%, var(--bg-1) 0%, var(--bg-0) 70%),
+      linear-gradient(transparent 95%, var(--grid) 95%) 0 0 / 100% 32px,
+      linear-gradient(90deg, transparent 95%, var(--grid) 95%) 0 0 / 32px 100%;
+    color: var(--fg);
+    font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: .04em;
+  }
+  .frame {
+    position: fixed; inset: 16px;
+    display: grid;
+    grid-template-columns: 240px 1fr 240px;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "tl  top  tr"
+      "lft ctr  rgt"
+      "bl  bot  br";
+    gap: 14px;
+  }
+  .panel {
+    border: 1px solid var(--accent-dim);
+    background: linear-gradient(180deg, rgba(92,240,255,.04), rgba(92,240,255,.01));
+    padding: 14px 16px;
+    position: relative;
+    backdrop-filter: blur(2px);
+  }
+  .panel::before, .panel::after {
+    content: ""; position: absolute; width: 14px; height: 14px;
+    border: 1px solid var(--accent);
+  }
+  .panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .panel::after  { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+  .panel h4 {
+    margin: 0 0 10px; font-size: 10px; letter-spacing: .3em;
+    color: var(--accent); text-transform: uppercase; font-weight: 500;
+  }
+  .row { display: flex; justify-content: space-between; padding: 3px 0; color: rgba(214,240,255,.78); }
+  .row b { color: var(--fg); font-weight: 500; }
+  .bar {
+    height: 4px; background: rgba(92,240,255,.10); border: 1px solid var(--accent-dim);
+    margin: 6px 0 10px; position: relative; overflow: hidden;
+  }
+  .bar > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+
+  .top { grid-area: top; display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; }
+  .top .id { letter-spacing: .35em; font-size: 11px; color: var(--accent); }
+  .top .clock { font-variant-numeric: tabular-nums; }
+
+  .ctr {
+    grid-area: ctr;
+    display: grid; place-items: center; padding: 0;
+    border-color: var(--accent-dim);
+    overflow: hidden;
+  }
+  .ctr-inner { text-align: center; padding: 32px; max-width: 720px; }
+  .ctr h2 {
+    font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif;
+    font-weight: 200; font-size: clamp(28px, 4.5vw, 56px); margin: 0 0 14px;
+    letter-spacing: -0.02em; color: var(--fg);
+  }
+  .ctr p {
+    font-family: -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif;
+    font-size: clamp(15px, 1.6vw, 19px); line-height: 1.55;
+    color: rgba(214,240,255,.85); margin: 0;
+    min-height: 4em;
+  }
+  .caret { display: inline-block; width: .55ch; height: 1em; background: var(--accent); margin-left: 2px; vertical-align: -.12em; box-shadow: 0 0 8px var(--accent); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .lft { grid-area: lft; }
+  .rgt { grid-area: rgt; }
+  .tl  { grid-area: tl; }   .tr  { grid-area: tr; }
+  .bl  { grid-area: bl; }   .br  { grid-area: br; }
+  .bot { grid-area: bot; display: flex; gap: 10px; align-items: center; padding: 12px 16px; }
+  .bot button {
+    appearance: none; background: rgba(92,240,255,.05); color: var(--fg);
+    border: 1px solid var(--accent-dim); border-radius: 0;
+    padding: 8px 18px; font: inherit; font-size: 11px;
+    letter-spacing: .25em; text-transform: uppercase; cursor: pointer;
+  }
+  .bot button:hover { background: rgba(92,240,255,.15); border-color: var(--accent); }
+  .bot .status { margin-left: auto; color: var(--accent); letter-spacing: .3em; }
+
+  .feed { font-size: 10.5px; line-height: 1.7; color: rgba(214,240,255,.65); height: 100%; overflow: hidden; }
+  .feed div { white-space: nowrap; }
+  .feed .ok   { color: var(--accent); }
+  .feed .warn { color: var(--warn); }
+
+  .scan {
+    position: absolute; left: 0; right: 0; height: 60px; pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(92,240,255,.08), transparent);
+    animation: scan 6s linear infinite;
+  }
+  @keyframes scan { 0% { top: -60px; } 100% { top: 100%; } }
+
+  .label {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+    letter-spacing: .35em; text-transform: uppercase; font-size: 10px;
+    color: rgba(214,240,255,.55); z-index: 5;
+  }
+</style>
+</head>
+<body>
+  <div class="label">Prototype C · Holographic HUD</div>
+
+  <div class="frame">
+    <div class="panel top">
+      <span class="id">JARVIS // OS · v0.1</span>
+      <span class="clock" id="clock">--:--:--</span>
+    </div>
+
+    <div class="panel tl">
+      <h4>System</h4>
+      <div class="row"><span>uptime</span><b id="uptime">00:00:00</b></div>
+      <div class="row"><span>load</span><b>0.42</b></div>
+      <div class="row"><span>tokens / min</span><b>1,284</b></div>
+      <div class="row"><span>session</span><b>#A271</b></div>
+    </div>
+
+    <div class="panel tr">
+      <h4>Memory</h4>
+      <div class="row"><span>context</span><b>62 / 200K</b></div>
+      <div class="bar"><i style="width:31%"></i></div>
+      <div class="row"><span>recall</span><b>98.2%</b></div>
+      <div class="bar"><i style="width:98%"></i></div>
+    </div>
+
+    <div class="panel lft">
+      <h4>Audio</h4>
+      <div class="row"><span>input</span><b id="audIn">-72 dB</b></div>
+      <div class="row"><span>output</span><b id="audOut">-31 dB</b></div>
+      <div class="bar"><i id="audBar" style="width:30%"></i></div>
+      <h4 style="margin-top: 18px">Tasks</h4>
+      <div class="row"><span>queued</span><b>3</b></div>
+      <div class="row"><span>active</span><b>1</b></div>
+      <div class="row"><span>done</span><b>14</b></div>
+    </div>
+
+    <div class="panel ctr">
+      <div class="scan"></div>
+      <div class="ctr-inner">
+        <h2 id="title">Standing by.</h2>
+        <p><span id="text"></span><span class="caret"></span></p>
+      </div>
+    </div>
+
+    <div class="panel rgt">
+      <h4>Telemetry</h4>
+      <div class="feed" id="feed"></div>
+    </div>
+
+    <div class="panel bl">
+      <h4>Calendar</h4>
+      <div class="row"><span>09:30</span><b>Standup</b></div>
+      <div class="row"><span>11:00</span><b>Interview · A. Roy</b></div>
+      <div class="row"><span>14:00</span><b>Playtest review</b></div>
+      <div class="row"><span>17:30</span><b>Maud · dinner</b></div>
+    </div>
+
+    <div class="panel bot">
+      <button id="speakBtn">▶ Speak</button>
+      <button id="listenBtn">◉ Listen</button>
+      <button id="idleBtn">○ Idle</button>
+      <span class="status" id="status">— idle —</span>
+    </div>
+
+    <div class="panel br">
+      <h4>Network</h4>
+      <div class="row"><span>endpoint</span><b>local</b></div>
+      <div class="row"><span>latency</span><b id="lat">12 ms</b></div>
+      <div class="row"><span>packets</span><b id="pkt">0</b></div>
+      <div class="bar"><i id="netBar" style="width:18%"></i></div>
+    </div>
+  </div>
+
+<script>
+  // Clock & uptime
+  const start = Date.now();
+  const pad = n => String(n).padStart(2, '0');
+  setInterval(() => {
+    const d = new Date();
+    document.getElementById('clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    const u = Math.floor((Date.now() - start)/1000);
+    document.getElementById('uptime').textContent = `${pad(Math.floor(u/3600))}:${pad(Math.floor((u%3600)/60))}:${pad(u%60)}`;
+  }, 1000);
+
+  // Telemetry feed
+  const feed = document.getElementById('feed');
+  const events = [
+    ['ok',   'whisper.asr ready'],
+    ['ok',   'tts.openvoice loaded'],
+    ['ok',   'llm.local connected · 7B'],
+    ['',     'kb.index synced · 24,182 docs'],
+    ['warn', 'gpu.temp 71°C'],
+    ['ok',   'context.bridge open'],
+    ['',     'memory.snapshot saved'],
+    ['ok',   'mic.gate open'],
+    ['',     'pipeline.idle'],
+  ];
+  let evi = 0;
+  setInterval(() => {
+    const [cls, msg] = events[evi++ % events.length];
+    const ts = new Date().toTimeString().slice(0,8);
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = `${ts}  ${cls === 'warn' ? '!' : cls === 'ok' ? '+' : '·'} ${msg}`;
+    feed.prepend(line);
+    while (feed.childElementCount > 14) feed.lastChild.remove();
+  }, 900);
+
+  // Net + audio meters
+  setInterval(() => {
+    document.getElementById('lat').textContent = (8 + Math.random()*14|0) + ' ms';
+    document.getElementById('pkt').textContent = (Math.random()*1e4|0).toLocaleString();
+    document.getElementById('netBar').style.width = (15 + Math.random()*40) + '%';
+  }, 1200);
+
+  let mode = 'idle';
+  setInterval(() => {
+    const a = mode === 'speak' ? 60 + Math.random()*35 : mode === 'listen' ? 30 + Math.random()*20 : 5 + Math.random()*8;
+    document.getElementById('audBar').style.width = a + '%';
+    document.getElementById('audOut').textContent = (-60 + a*0.5).toFixed(0) + ' dB';
+    document.getElementById('audIn').textContent  = (-80 + (mode==='listen' ? a*0.6 : Math.random()*4)).toFixed(0) + ' dB';
+  }, 120);
+
+  // Stream
+  const text = document.getElementById('text');
+  const title = document.getElementById('title');
+  const status = document.getElementById('status');
+  let typer;
+  function stream(s) {
+    clearTimeout(typer); text.textContent = '';
+    let i = 0;
+    (function step(){
+      text.textContent = s.slice(0, i++);
+      if (i <= s.length) typer = setTimeout(step, 22 + Math.random()*30);
+    })();
+  }
+
+  function setMode(m, t, body) {
+    mode = m;
+    title.textContent = t;
+    status.textContent = m === 'speak' ? '— speaking —' : m === 'listen' ? '— listening —' : '— idle —';
+    if (body) stream(body); else text.textContent = '';
+  }
+
+  document.getElementById('speakBtn').onclick = () => setMode('speak',
+    'Briefing.',
+    'Two interviews on your calendar today. The playtesting deck is ready for review — three slides flagged.');
+  document.getElementById('listenBtn').onclick = () => setMode('listen', 'Listening.', '');
+  document.getElementById('idleBtn').onclick   = () => setMode('idle',   'Standing by.', '');
+</script>
+</body>
+</html>

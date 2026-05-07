@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Jarvis — D · Liquid Typography</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,200..900,0..100,0..1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0a0a0a;
+    --bg-1: #161616;
+    --fg: #fafafa;
+    --accent: #ffd28a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background:
+      radial-gradient(ellipse at 30% 20%, #1a1410 0%, var(--bg-0) 60%),
+      radial-gradient(ellipse at 80% 90%, #10141a 0%, var(--bg-0) 70%),
+      var(--bg-0);
+    color: var(--fg);
+    font-family: "Fraunces", "Times New Roman", serif;
+  }
+  .label {
+    position: fixed; top: 24px; left: 28px;
+    letter-spacing: .35em; text-transform: uppercase; font-size: 10px;
+    font-family: -apple-system, "SF Mono", monospace;
+    color: rgba(250,250,250,.55); z-index: 5;
+  }
+
+  .stage {
+    position: fixed; inset: 0;
+    display: grid; grid-template-rows: 1fr auto;
+  }
+  .text-wrap {
+    display: grid; place-items: center;
+    padding: 6vh 8vw 0;
+  }
+  #headline {
+    font-size: clamp(32px, 6.6vw, 110px);
+    line-height: 1.02;
+    font-weight: 300;
+    font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
+    letter-spacing: -0.025em;
+    color: var(--fg);
+    max-width: 16ch;
+    text-align: left;
+  }
+  #headline .word { display: inline-block; margin-right: .25em; }
+  #headline .ch {
+    display: inline-block;
+    will-change: transform, opacity, filter;
+    transform-origin: 50% 70%;
+  }
+  #headline .ch.in {
+    animation: drift-in 900ms cubic-bezier(.2,.7,.1,1) both;
+  }
+  #headline .ch.out {
+    animation: drift-out 600ms cubic-bezier(.6,.0,.7,.3) both;
+  }
+  @keyframes drift-in {
+    0%   { opacity: 0; transform: translateY(.6em) skewY(8deg); filter: blur(14px); font-variation-settings: "opsz" 9, "SOFT" 100, "WONK" 1, "wght" 600; }
+    60%  { opacity: 1; filter: blur(0); }
+    100% { opacity: 1; transform: translateY(0) skewY(0);     filter: blur(0);   font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1, "wght" 300; }
+  }
+  @keyframes drift-out {
+    0%   { opacity: 1; transform: translateY(0); filter: blur(0); }
+    100% { opacity: 0; transform: translateY(-.3em) skewY(-6deg); filter: blur(10px); }
+  }
+
+  .meta-row {
+    display: flex; align-items: baseline; gap: 18px;
+    padding: 0 8vw 4vh;
+    font-family: -apple-system, "SF Mono", monospace;
+    font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+    color: rgba(250,250,250,.45);
+  }
+  .meta-row .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 14px var(--accent);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
+  .meta-row .spacer { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(250,250,250,.25), transparent); }
+
+  .controls {
+    position: fixed; bottom: 28px; right: 28px;
+    display: flex; gap: 10px;
+    font-family: -apple-system, "SF Mono", monospace;
+  }
+  button {
+    appearance: none; background: transparent;
+    color: var(--fg); border: 1px solid rgba(250,250,250,.2);
+    border-radius: 999px; padding: 11px 22px;
+    font: inherit; font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+    cursor: pointer; transition: border-color .2s, color .2s, background .2s;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="label">Prototype D · Liquid Typography</div>
+
+  <div class="stage">
+    <div class="text-wrap">
+      <h1 id="headline" aria-live="polite"></h1>
+    </div>
+    <div class="meta-row">
+      <span class="dot"></span>
+      <span id="status">idle</span>
+      <span class="spacer"></span>
+      <span id="time">00:00</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="speakBtn">Speak</button>
+    <button id="thinkBtn">Think</button>
+    <button id="idleBtn">Reset</button>
+  </div>
+
+<script>
+  const head = document.getElementById('headline');
+  const status = document.getElementById('status');
+  const time = document.getElementById('time');
+
+  setInterval(() => {
+    const d = new Date();
+    time.textContent = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }, 1000);
+
+  let timers = [];
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+  function render(text) {
+    // Animate out existing
+    const old = head.querySelectorAll('.ch.in');
+    old.forEach((el, i) => {
+      el.classList.remove('in');
+      el.classList.add('out');
+      timers.push(setTimeout(() => el.remove(), 600));
+    });
+
+    const startDelay = old.length ? 350 : 0;
+    timers.push(setTimeout(() => {
+      head.innerHTML = '';
+      const words = text.split(' ');
+      words.forEach((word, wi) => {
+        const wEl = document.createElement('span');
+        wEl.className = 'word';
+        for (const c of word) {
+          const span = document.createElement('span');
+          span.className = 'ch';
+          span.textContent = c;
+          wEl.appendChild(span);
+        }
+        head.appendChild(wEl);
+      });
+      // Stagger letter entrance
+      const letters = head.querySelectorAll('.ch');
+      letters.forEach((el, i) => {
+        timers.push(setTimeout(() => el.classList.add('in'), i * 35));
+      });
+    }, startDelay));
+  }
+
+  const lines = {
+    speak: [
+      "Two interviews. One review. One quiet hour.",
+      "Briefing ready when you are.",
+      "Today is lighter than yesterday — make it count."
+    ],
+    think: [
+      "Considering.",
+      "Reading the room.",
+      "Holding context."
+    ],
+    idle: [
+      "Listening for you."
+    ]
+  };
+
+  function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+  document.getElementById('speakBtn').onclick = () => {
+    status.textContent = 'speaking';
+    clearTimers();
+    render(pick(lines.speak));
+  };
+  document.getElementById('thinkBtn').onclick = () => {
+    status.textContent = 'thinking';
+    clearTimers();
+    render(pick(lines.think));
+  };
+  document.getElementById('idleBtn').onclick = () => {
+    status.textContent = 'idle';
+    clearTimers();
+    render(pick(lines.idle));
+  };
+
+  // initial
+  render("Listening for you.");
+</script>
+</body>
+</html>

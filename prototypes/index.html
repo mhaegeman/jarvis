@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Jarvis · Prototype Gallery</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg-0: #050608;
+    --bg-1: #0c0e12;
+    --fg: #ecf2fb;
+    --muted: rgba(236,242,251,.55);
+    --line: rgba(236,242,251,.12);
+    --accent: #7df9ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg-0); color: var(--fg); font-family: -apple-system, "Inter", "SF Pro Display", system-ui, sans-serif; }
+  header { padding: 56px 8vw 24px; }
+  header h1 { font-weight: 200; font-size: clamp(28px, 4vw, 44px); letter-spacing: -0.02em; margin: 0 0 8px; }
+  header p { color: var(--muted); margin: 0; max-width: 620px; line-height: 1.55; }
+  .grid {
+    display: grid; gap: 24px; padding: 24px 8vw 64px;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  }
+  a.card {
+    display: block; text-decoration: none; color: inherit;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+    border-radius: 14px; padding: 0;
+    overflow: hidden;
+    transition: border-color .25s, transform .25s;
+  }
+  a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .preview {
+    height: 220px; position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    background: #02040a;
+  }
+  iframe {
+    border: 0; width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .body { padding: 18px 22px 22px; }
+  .tag {
+    display: inline-block;
+    font-family: ui-monospace, "SF Mono", monospace; font-size: 10px; letter-spacing: .25em;
+    text-transform: uppercase; color: var(--accent);
+    border: 1px solid rgba(125,249,255,.3);
+    padding: 3px 9px; border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  h3 { margin: 4px 0 6px; font-weight: 400; font-size: 22px; }
+  p.desc { margin: 0; color: var(--muted); line-height: 1.5; font-size: 14px; }
+  footer { padding: 0 8vw 56px; color: var(--muted); font-size: 13px; }
+  footer code { background: rgba(236,242,251,.06); padding: 2px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Jarvis · Visual Prototypes</h1>
+    <p>Four directions for the Jarvis UI. Click any card to open the live prototype. Each prototype has buttons to demo the <em>idle / think / speak</em> states.</p>
+  </header>
+
+  <div class="grid">
+    <a class="card" href="a-living-orb.html">
+      <div class="preview"><iframe src="a-living-orb.html" title="A"></iframe></div>
+      <div class="body">
+        <span class="tag">A · Living Orb</span>
+        <h3>The core that breathes</h3>
+        <p class="desc">A central, deforming sphere of light. Pulses while idle, swells and shifts to warm hues when speaking. Iconic, focused, calm.</p>
+      </div>
+    </a>
+
+    <a class="card" href="b-waveform.html">
+      <div class="preview"><iframe src="b-waveform.html" title="B"></iframe></div>
+      <div class="body">
+        <span class="tag">B · Waveform</span>
+        <h3>The presence that flows</h3>
+        <p class="desc">Layered audio-reactive waveforms across the full screen. Minimal, ambient, atmospheric. Text floats above the motion.</p>
+      </div>
+    </a>
+
+    <a class="card" href="c-hud.html">
+      <div class="preview"><iframe src="c-hud.html" title="C"></iframe></div>
+      <div class="body">
+        <span class="tag">C · Holographic HUD</span>
+        <h3>The cockpit</h3>
+        <p class="desc">Multi-panel sci-fi command surface. Live telemetry, calendar, status indicators. Conversation in the centre. Information-dense.</p>
+      </div>
+    </a>
+
+    <a class="card" href="d-liquid-type.html">
+      <div class="preview"><iframe src="d-liquid-type.html" title="D"></iframe></div>
+      <div class="body">
+        <span class="tag">D · Liquid Typography</span>
+        <h3>The voice that writes itself</h3>
+        <p class="desc">Text is the entire stage. Letters drift in, distort, dissolve, reform. Editorial, restrained, unmistakably human-scale.</p>
+      </div>
+    </a>
+  </div>
+
+  <footer>
+    Open any one full-screen by clicking. To preview locally, run <code>python3 -m http.server</code> from <code>prototypes/</code> and visit <code>http://localhost:8000</code>.
+  </footer>
+</body>
+</html>

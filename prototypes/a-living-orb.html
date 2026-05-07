@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Jarvis — A · Living Orb</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg-0: #03060d;
+    --bg-1: #06101f;
+    --fg: #e6f1ff;
+    --accent: #6cf0ff;
+    --accent-warm: #ffb866;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: radial-gradient(ellipse at center, var(--bg-1) 0%, var(--bg-0) 70%);
+    color: var(--fg);
+    font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+  }
+  .stage {
+    position: fixed; inset: 0;
+    display: grid; grid-template-rows: 1fr auto;
+    place-items: center;
+  }
+  .orb-wrap {
+    position: relative;
+    width: min(60vmin, 520px); aspect-ratio: 1;
+    display: grid; place-items: center;
+  }
+  .orb {
+    width: 100%; height: 100%;
+    filter: drop-shadow(0 0 60px rgba(108,240,255,.35));
+    transition: filter .8s ease;
+  }
+  .orb.speaking { filter: drop-shadow(0 0 90px rgba(255,184,102,.55)); }
+  .ring {
+    position: absolute; inset: -8%;
+    border: 1px solid rgba(108,240,255,.18);
+    border-radius: 50%;
+    animation: spin 24s linear infinite;
+  }
+  .ring.r2 { inset: -16%; border-color: rgba(108,240,255,.10); animation-duration: 60s; animation-direction: reverse; }
+  .ring.r3 { inset: -24%; border-color: rgba(108,240,255,.06); animation-duration: 120s; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .transcript {
+    position: absolute; bottom: 14vh; left: 0; right: 0;
+    text-align: center; padding: 0 8vw;
+    font-size: clamp(16px, 2.4vw, 22px);
+    letter-spacing: .01em;
+    line-height: 1.5;
+    color: rgba(230,241,255,.92);
+    min-height: 4em;
+  }
+  .transcript .caret {
+    display: inline-block; width: .55ch; height: 1.1em;
+    margin-left: 2px; vertical-align: -.18em;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .controls {
+    padding: 32px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  }
+  button {
+    appearance: none; background: rgba(108,240,255,.06);
+    color: var(--fg); border: 1px solid rgba(108,240,255,.35);
+    border-radius: 999px; padding: 12px 22px;
+    font: inherit; letter-spacing: .04em; cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background .2s, border-color .2s, transform .1s;
+  }
+  button:hover { background: rgba(108,240,255,.12); border-color: var(--accent); }
+  button:active { transform: scale(.97); }
+
+  .label {
+    position: fixed; top: 24px; left: 28px;
+    letter-spacing: .3em; text-transform: uppercase; font-size: 11px;
+    color: rgba(230,241,255,.55);
+  }
+</style>
+</head>
+<body>
+  <div class="label">Prototype A · Living Orb</div>
+
+  <div class="stage">
+    <div class="orb-wrap">
+      <div class="ring"></div>
+      <div class="ring r2"></div>
+      <div class="ring r3"></div>
+      <svg class="orb" viewBox="-150 -150 300 300" aria-hidden="true">
+        <defs>
+          <radialGradient id="core" cx="50%" cy="45%" r="55%">
+            <stop offset="0%"  stop-color="#bff6ff" stop-opacity="1"/>
+            <stop offset="35%" stop-color="#6cf0ff" stop-opacity=".95"/>
+            <stop offset="70%" stop-color="#1f63a8" stop-opacity=".75"/>
+            <stop offset="100%" stop-color="#0a1830" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="coreWarm" cx="50%" cy="45%" r="55%">
+            <stop offset="0%"  stop-color="#fff2dc" stop-opacity="1"/>
+            <stop offset="35%" stop-color="#ffb866" stop-opacity=".95"/>
+            <stop offset="70%" stop-color="#a14a18" stop-opacity=".7"/>
+            <stop offset="100%" stop-color="#0a1830" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="warp" x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence id="turb" type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="3"/>
+            <feDisplacementMap in="SourceGraphic" scale="14"/>
+          </filter>
+        </defs>
+        <g filter="url(#warp)">
+          <circle id="blob" r="115" fill="url(#core)"/>
+        </g>
+      </svg>
+    </div>
+    <div class="controls">
+      <button id="speakBtn">▶ Speak</button>
+      <button id="thinkBtn">◉ Think</button>
+      <button id="idleBtn">○ Idle</button>
+    </div>
+  </div>
+
+  <div class="transcript">
+    <span id="text"></span><span class="caret"></span>
+  </div>
+
+<script>
+  const blob   = document.getElementById('blob');
+  const turb   = document.getElementById('turb');
+  const orb    = document.querySelector('.orb');
+  const text   = document.getElementById('text');
+
+  let mode = 'idle';
+  let t = 0;
+
+  function loop() {
+    t += 0.016;
+    let amp, freq, scale;
+    if (mode === 'idle')      { amp = 4 + Math.sin(t*1.1)*1.5;   freq = 0.010; scale = 110 + Math.sin(t*0.9)*4; }
+    else if (mode === 'think'){ amp = 9 + Math.sin(t*2.4)*4;     freq = 0.018; scale = 110 + Math.sin(t*1.6)*7; }
+    else                      { amp = 18 + Math.sin(t*5)*6 + Math.random()*4; freq = 0.024; scale = 112 + Math.sin(t*3.2)*9; }
+    document.querySelector('feDisplacementMap').setAttribute('scale', amp);
+    turb.setAttribute('baseFrequency', freq.toFixed(4));
+    blob.setAttribute('r', scale.toFixed(1));
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  function setMode(m, fillId) {
+    mode = m;
+    blob.setAttribute('fill', `url(#${fillId})`);
+    orb.classList.toggle('speaking', m === 'speak');
+  }
+
+  // Mock streaming text
+  const lines = [
+    "Good evening, Maxime. Two interviews on your calendar today.",
+    "I drafted the playtesting deck — three slides need your review.",
+    "Synthesised yesterday's research notes into eight key insights."
+  ];
+  let typing = null;
+  function streamLine(s) {
+    cancelAnimationFrame(typing);
+    text.textContent = '';
+    let i = 0;
+    function step() {
+      text.textContent = s.slice(0, i++);
+      if (i <= s.length) typing = setTimeout(step, 28 + Math.random()*30);
+    }
+    step();
+  }
+
+  document.getElementById('speakBtn').onclick = () => {
+    setMode('speak', 'coreWarm');
+    streamLine(lines[Math.floor(Math.random()*lines.length)]);
+  };
+  document.getElementById('thinkBtn').onclick = () => { setMode('think', 'core'); text.textContent = ''; };
+  document.getElementById('idleBtn').onclick  = () => { setMode('idle',  'core'); text.textContent = ''; };
+</script>
+</body>
+</html>
