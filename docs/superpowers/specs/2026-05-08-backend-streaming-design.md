@@ -8,6 +8,19 @@
 
 ---
 
+## 0. Implementation phasing (decision: 2026-05-08)
+
+Spec-02 is implemented in two phases:
+
+- **Phase 1 — mock pipelines (this plan).** Real FastAPI server, real WS protocol, real binary framing, real CLI test client, real session orchestrator and sentence splitter. The STT / LLM / TTS pipelines are **mocked**: the server emits canned events on realistic timings, drawn from a small library of scripted scenarios (analogous to the frontend's `MockEventSource`). No external service dependencies. Sufficient for spec-03 (browser ↔ backend integration) to proceed.
+- **Phase 2 — real pipelines (future spec-02b).** Replace the three mock pipelines with `faster-whisper` (STT), `openai.AsyncOpenAI` streaming (LLM, default LM Studio), and OpenVoice (TTS). Triggered after spec-04 deploys the mock end-to-end stack.
+
+Sections §5.1, §5.2, §5.4 below describe the full Phase 2 design. The Phase 1 plan implements them with mocks that share the **same async interface** as the real pipelines, so swap is mechanical.
+
+§11 lists Phase 1 and Phase 2 acceptance criteria separately.
+
+---
+
 ## 1. Goal
 
 Deliver a `server/` Python package: a FastAPI WebSocket server that wraps streaming Whisper (STT), an OpenAI-compatible LLM client, and OpenVoice (TTS) into a single per-session pipeline. End-to-end: mic audio in → transcribed text → LLM tokens → spoken sentences out, all streaming.
@@ -353,18 +366,25 @@ No bare `except:` clauses. Specific exception types per pipeline. Tracebacks log
 
 ## 11. Acceptance criteria
 
-A reviewer can verify spec-02 is done by checking:
+### 11.A Phase 1 (mock pipelines — this plan)
 
-1. `cd server && pip install -e .[dev]` succeeds.
-2. `uvicorn server.main:app --port 8765` boots without errors and logs `ready` per loaded pipeline.
+1. `cd server && pip install -e .[dev]` succeeds with no external model dependencies.
+2. `uvicorn server.main:app --port 8765` boots and emits `ready` immediately (no model loading).
 3. `pytest` passes (unit suite, ≥80% coverage on `protocol.py` / `session.py` / `sentence_split.py`).
-4. `python -m server.cli_test --text "say hi"` connects, prints streamed `llm.token`s and `tts.sentence`/`tts.end` markers, exits on `llm.end`. Real OpenAI-compatible LLM (LM Studio) must be reachable; if not, error message is clear.
-5. `python -m server.cli_test` REPL accepts multi-turn input, preserves history (verifiable by referencing earlier turn).
-6. Sending `interrupt` mid-reply (CLI: `Ctrl-C` then keystroke) cancels server generation; LLM endpoint is hit with a close, not left dangling.
+4. `python -m server.cli_test --text "say hi"` connects, prints streamed `llm.token`s and `tts.sentence`/`tts.end` markers, exits on `llm.end`. The reply comes from the canned scenario library; no external service needed.
+5. `python -m server.cli_test` REPL accepts multi-turn input, preserves history (verifiable: a follow-up scenario references the prior turn's content slot).
+6. Sending `interrupt` mid-reply cancels server generation: subsequent `llm.token`s and `tts.sentence`s stop arriving, exactly one `llm.end` is emitted (idempotent), and the CLI returns to the prompt.
 7. Binary frame round-trip: a self-test in `test_protocol.py` proves the §4.4 framing.
-8. `pytest -m requires_models tests/integration/` passes when run on a machine with LM Studio + OpenVoice + a recorded WAV fixture available (this is the "real" gate; not run in CI).
+8. Audio-input flow (CLI sends `audio.start` + N binary chunks + `audio.end`): server emits `stt.partial`(s) and `stt.final` with a canned transcription, then proceeds to LLM+TTS path.
 9. `ruff check` clean (lint).
 10. `mypy server` clean (strict).
+11. Mock TTS in Phase 1 emits `tts.sentence` and `tts.end` for every sentence but **does not** emit binary `tts.audioChunk` frames. (The frontend's synthetic amplitude envelope handles "speaking" state visualization in spec-03 until Phase 2 delivers real audio.)
+
+### 11.B Phase 2 (real pipelines — future spec-02b, not run in this plan)
+
+12. `python -m server.cli_test --text "say hi"` against a running LM Studio produces a real reply.
+13. Real Whisper + OpenVoice integration test passes when run with `pytest -m requires_models tests/integration/` on a machine with the local model infra set up.
+14. Audio-output flow: `tts.audioChunk` binary frames carry actual PCM Int16 from OpenVoice synthesis; chunks pace at ~100 ms windows per §5.4.
 
 ## 12. Risks
 
