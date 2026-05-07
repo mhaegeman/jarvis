@@ -9,7 +9,7 @@ import asyncio
 import contextlib
 import logging
 import secrets
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, MutableMapping
 from typing import Any, Protocol
 
 from .audio import KIND_CLIENT_MIC, decode_audio_frame, encode_tts_chunk
@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 class _WS(Protocol):
     async def send_text(self, data: str) -> None: ...
     async def send_bytes(self, data: bytes) -> None: ...
-    async def receive(self) -> dict[str, Any]: ...
+    async def receive(self) -> MutableMapping[str, Any]: ...
 
 
 _AUDIO_ID_RANDS = "abcdefghijklmnopqrstuvwxyz0123456789"
