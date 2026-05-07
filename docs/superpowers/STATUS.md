@@ -3,7 +3,7 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-07 (post spec-01 plan)
+**Last updated:** 2026-05-08 (spec-01 Task 2/22 complete)
 
 ---
 
@@ -15,7 +15,7 @@
 | # | Sub-spec | Brainstorm | Plan | Implement | Review | Verify | Merged |
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
-| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ⏳ Task 1/22 | ⬜ | ⬜ | ⬜ |
+| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ⏳ Task 2/22 done | ⬜ | ⬜ | ⬜ |
 | 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -32,7 +32,15 @@ Legend: ⬜ not started · ⏳ in progress · ✅ done
 - Multi-agent design: section 6 of architecture doc
 
 ## Last completed action
-Wrote, self-reviewed, and committed spec-01 implementation plan: `docs/superpowers/plans/2026-05-07-frontend-shell.md` (22 tasks, 3218 lines, full TDD code).
+Spec-01 Task 2 done. Worktree `.worktrees/spec-01-frontend-shell` set up with Vite + TS scaffold and full toolchain (TS strict, ESLint flat config, Prettier, Vitest). All quality gates green.
+
+### Toolchain deviations from plan (Node 18 environment)
+The plan was authored assuming a modern Node 20+ env. Adapted on the fly:
+- **Vite scaffold**: manual (create-vite v9 requires Node 20+).
+- **ESLint**: pinned to v9 (flat config), v10 has Node 20+ formatter dep.
+- **Vitest**: pinned to v2 (v4 uses rolldown which needs Node 20+).
+- **TS composite config**: dropped `tsconfig.node.json` + project refs; `tsc --noEmit && vite build` is sufficient.
+- **`web/.gitignore`**: must contain `!package.json` and `!package-lock.json` to negate the root repo's global `package*` ignore rule.
 
 ## Execution mode for spec-01
 **Inline** via `executing-plans` skill (orchestrator runs each task in this session). Trade-off: chosen over subagent-driven for visibility/velocity given the user's emphasis on constant progress updates and the plan's high specificity (subagent reviews would add little marginal quality given TDD steps + tight specs).
@@ -43,7 +51,7 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Read `.claude/skills/executing-plans.md`, then begin Task 1: create worktree `.worktrees/spec-01-frontend-shell` and scaffold the Vite + TS project in `web/`.
+Continue from Task 3 (shared types) → Task 6 (EventSource interface + mock skeleton). All four are pure TS with TDD; no install drama expected. Then checkpoint before Task 7 (UI assembly begins).
 
 ## Resume hint for future sessions
 1. Read this file.
