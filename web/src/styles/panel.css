@@ -65,3 +65,9 @@
   height: 100%;
 }
 .panel-stack > div { min-height: 0; }
+
+.feed { font-size: 10.5px; line-height: 1.7; color: var(--fg-dim); height: 100%; overflow: hidden; }
+.feed .line { white-space: nowrap; }
+.feed .line.ok { color: var(--accent); }
+.feed .line.warn { color: var(--warn); }
+.feed .line.error { color: #ff6c6c; }

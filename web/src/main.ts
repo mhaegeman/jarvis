@@ -5,6 +5,8 @@ import { MemoryPanel } from "@/ui/panels/MemoryPanel";
 import { CalendarPanel } from "@/ui/panels/CalendarPanel";
 import { NetworkPanel } from "@/ui/panels/NetworkPanel";
 import { TasksPanel } from "@/ui/panels/TasksPanel";
+import { TelemetryPanel } from "@/ui/panels/TelemetryPanel";
+import type { TelemetryEvent } from "@/types";
 import { TODAY } from "@/data/calendar";
 
 const start = Date.now();
@@ -21,6 +23,16 @@ document.querySelector('[data-cell="left"]')!.innerHTML = `
     <div data-slot="tasks"></div>
   </div>`;
 const tasks = new TasksPanel('[data-slot="tasks"]');
+const telemetry = new TelemetryPanel('[data-cell="right"]');
+
+const seedEvents: TelemetryEvent[] = [
+  { ts: Date.now() - 5000, level: "ok", message: "whisper.asr ready" },
+  { ts: Date.now() - 4500, level: "ok", message: "tts.openvoice loaded" },
+  { ts: Date.now() - 4000, level: "ok", message: "llm.local connected · 7B" },
+  { ts: Date.now() - 3000, level: "info", message: "kb.index synced · 24,182 docs" },
+  { ts: Date.now() - 2000, level: "warn", message: "gpu.temp 71°C" },
+  { ts: Date.now() - 1000, level: "ok", message: "context.bridge open" },
+];
 
 function tick(): void {
   const u = Date.now() - start;
@@ -30,6 +42,7 @@ function tick(): void {
   calendar.render({ entries: TODAY });
   network.render({ endpoint: "local", latencyMs: 12, packets: 0, busyPct: 18 });
   tasks.render({ queued: 3, active: 1, done: 14 });
+  telemetry.render({ events: seedEvents });
   requestAnimationFrame(tick);
 }
 tick();
