@@ -3,19 +3,22 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-01 implementation complete — 22/22)
+**Last updated:** 2026-05-08 (spec-01 merged to main)
 
 ---
 
 ## Current Phase
-**spec-01-frontend-shell · implementation (inline mode)**
+**spec-02-backend-streaming · brainstorming (next)**
 
 ## Macro Progress
 
 | # | Sub-spec | Brainstorm | Plan | Implement | Review | Verify | Merged |
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
-| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 in worktree | ⏳ pending | ⏳ pending | ⬜ |
+| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
+| 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -32,15 +35,23 @@ Legend: ⬜ not started · ⏳ in progress · ✅ done
 - Multi-agent design: section 6 of architecture doc
 
 ## Last completed action
-Spec-01 Task 2 done. Worktree `.worktrees/spec-01-frontend-shell` set up with Vite + TS scaffold and full toolchain (TS strict, ESLint flat config, Prettier, Vitest). All quality gates green.
+**Spec-01 merged to `main` (commit 7a6abe1).** Code review by fresh subagent identified 7 important issues; all addressed before merge:
+- AudioPanel HTML-escapes `mic.message` (XSS hardening)
+- main.ts tracks open `audioId`s + `llm.end` so multi-sentence replies finish correctly
+- mic stream stopped on transition out of `listening`
+- MockEventSource `interrupt()` is idempotent for `llm.end`; clears scenario state
+- Spec doc clarified that `AnalyserNode` is sufficient for spec-01 (vs `AudioWorklet` planned for spec-03 PCM streaming)
 
-### Toolchain deviations from plan (Node 18 environment)
+Worktree `.worktrees/spec-01-frontend-shell` removed. Branch `spec-01-frontend-shell` deleted.
+
+### Toolchain deviations from plan (Node 18 environment) — applies to spec-02 too
 The plan was authored assuming a modern Node 20+ env. Adapted on the fly:
 - **Vite scaffold**: manual (create-vite v9 requires Node 20+).
 - **ESLint**: pinned to v9 (flat config), v10 has Node 20+ formatter dep.
 - **Vitest**: pinned to v2 (v4 uses rolldown which needs Node 20+).
 - **TS composite config**: dropped `tsconfig.node.json` + project refs; `tsc --noEmit && vite build` is sufficient.
-- **`web/.gitignore`**: must contain `!package.json` and `!package-lock.json` to negate the root repo's global `package*` ignore rule.
+- **`web/.gitignore`**: must contain `!package.json` and `!package-lock.json` to negate the root repo's global `package*` ignore rule. Same will apply to `server/`.
+- **Playwright e2e** requires `sudo npx playwright install-deps chromium` (system libs). Documented in `web/README.md`.
 
 ## Execution mode for spec-01
 **Inline** via `executing-plans` skill (orchestrator runs each task in this session). Trade-off: chosen over subagent-driven for visibility/velocity given the user's emphasis on constant progress updates and the plan's high specificity (subagent reviews would add little marginal quality given TDD steps + tight specs).
@@ -51,11 +62,19 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-**Code review pass on spec-01**, then run `finishing-a-development-branch` skill to merge `spec-01-frontend-shell` → `main`. After merge, begin spec-02 (backend streaming server) brainstorm.
+Begin **spec-02 (backend streaming server)** brainstorm. Orchestrator acts as Brainstorming Lead. Output: `docs/superpowers/specs/2026-05-08-backend-streaming-design.md`. Auto-approved per delegation. Then plan, then implement in `.worktrees/spec-02-backend-streaming`.
+
+Spec-02 scope per umbrella architecture §5:
+- FastAPI + websockets server in `server/`
+- Streaming Whisper STT
+- OpenAI-compatible LLM client (works with LM Studio / Ollama)
+- Sentence-chunked OpenVoice TTS
+- Implements the protocol from architecture §4.1 (must match the EventSource interface that `web/src/events/eventSource.ts` already commits to)
+- CLI test client to prove end-to-end voice roundtrip in terminal
 
 ## Spec-01 implementation summary
 
-**24 commits on branch `spec-01-frontend-shell`.** All quality gates green:
+**24 task commits + 1 fix commit + 1 docs commit + merge** on `main`. All quality gates green:
 - 29/29 unit tests passing (Vitest)
 - ESLint clean
 - `tsc --noEmit` clean
