@@ -28,6 +28,7 @@ export function createMicCapture(): MicCapture {
 
   return {
     async start() {
+      if (stream) return; // idempotent — already active
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       ctx = new AudioContext();
       const src = ctx.createMediaStreamSource(stream);
@@ -49,7 +50,9 @@ export function createMicCapture(): MicCapture {
       stream = undefined;
       void ctx?.close();
       ctx = undefined;
-      subs.clear();
+      // NOTE: subscribers are intentionally retained — `start()` may be
+      // called again later, and we want the existing amplitude wiring
+      // to continue receiving levels without re-registration.
     },
     onAmplitude(cb) {
       subs.add(cb);

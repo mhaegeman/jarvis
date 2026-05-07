@@ -87,4 +87,20 @@ describe("MockEventSource conversation flow", () => {
 
     expect(sentences.mock.calls.length).toBeLessThan(3);
   });
+
+  it("llm.end fires exactly once even if interrupt() is called after natural end", async () => {
+    const m = new MockEventSource({ scenarioOverride: { user: "hi", reply: "ok." } });
+    const llmEnd = vi.fn();
+    m.on("llm.end", llmEnd);
+
+    await m.start();
+    m.beginListening();
+    await vi.advanceTimersByTimeAsync(500);
+    m.endListening();
+    await vi.advanceTimersByTimeAsync(5000);
+    m.interrupt(); // late interrupt after natural completion
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(llmEnd).toHaveBeenCalledOnce();
+  });
 });

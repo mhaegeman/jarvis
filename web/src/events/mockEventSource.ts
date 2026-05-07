@@ -17,6 +17,7 @@ export class MockEventSource implements EventSource {
   private currentReply: string | undefined;
   private timers = new Set<PendingTimer>();
   private cancelled = false;
+  private llmEnded = false;
 
   constructor(private opts: Options = {}) {}
 
@@ -36,6 +37,7 @@ export class MockEventSource implements EventSource {
   beginListening(): void {
     if (!this.started) return;
     this.cancelled = false;
+    this.llmEnded = false;
     const scenario = this.opts.scenarioOverride ?? pickScenario();
     this.currentUser = scenario.user;
     this.currentReply = scenario.reply;
@@ -66,7 +68,12 @@ export class MockEventSource implements EventSource {
   interrupt(): void {
     this.cancelled = true;
     this.cancelAll();
-    this.emit("llm.end", undefined);
+    this.currentUser = undefined;
+    this.currentReply = undefined;
+    if (!this.llmEnded) {
+      this.llmEnded = true;
+      this.emit("llm.end", undefined);
+    }
   }
 
   on<E extends EventName>(event: E, handler: EventHandler<E>): () => void {
@@ -89,7 +96,10 @@ export class MockEventSource implements EventSource {
     const tokenStep = (): void => {
       if (this.cancelled) return;
       if (charIdx >= reply.length) {
-        this.emit("llm.end", undefined);
+        if (!this.llmEnded) {
+          this.llmEnded = true;
+          this.emit("llm.end", undefined);
+        }
         return;
       }
       const next = Math.min(charIdx + 3 + Math.floor(Math.random() * 4), reply.length);

@@ -15,6 +15,9 @@ export interface AudioState {
   mic: MicStatus;
 }
 
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 const banner = (mic: MicStatus): string => {
   switch (mic.kind) {
     case "unprompted":
@@ -26,7 +29,7 @@ const banner = (mic: MicStatus): string => {
     case "unsupported":
       return `<div class="mic-banner warn"><span>Voice mode unavailable in this browser.</span></div>`;
     case "error":
-      return `<div class="mic-banner warn"><span>${mic.message}</span> <button data-action="mic-request">Retry</button></div>`;
+      return `<div class="mic-banner warn"><span>${escapeHtml(mic.message)}</span> <button data-action="mic-request">Retry</button></div>`;
   }
 };
 

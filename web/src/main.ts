@@ -49,6 +49,11 @@ const log = (level: TelemetryEvent["level"], message: string): void => {
 // EventSource (mock for spec-01)
 const events = new MockEventSource();
 
+// Track open TTS sentences so we only return to idle after the last one and
+// after the LLM has signalled the end of generation.
+const openAudioIds = new Set<string>();
+let llmEnded = false;
+
 // Components
 const header = new Header('[data-cell="top"]');
 const system = new SystemPanel('[data-cell="tl"]');
@@ -71,7 +76,12 @@ mic.onAmplitude((level) => store.update(() => ({ micAmplitude: level })));
 
 async function ensureMic(): Promise<boolean> {
   const status = store.get().micStatus;
-  if (status.kind === "granted") return true;
+  if (status.kind === "granted") {
+    // Permission already granted; ensure the stream is (re)started.
+    // mic.start() is idempotent.
+    await mic.start();
+    return true;
+  }
   const probe = await probeMicSupport();
   if (probe !== true) {
     const status: MicStatus =
@@ -122,17 +132,20 @@ const actions = {
   onMicUp: (): void => {
     if (store.get().state !== "listening") return;
     events.endListening();
+    mic.stop();
     tryTransition("stopListening");
     store.update(() => ({ centerTitle: "Thinking." }));
   },
   onInterrupt: (): void => {
     events.interrupt();
+    mic.stop();
     center.interruptTranscript();
     tryTransition("interrupt");
     store.update(() => ({ centerTitle: "Standing by." }));
   },
   onIdle: (): void => {
     events.interrupt();
+    mic.stop();
     center.clearTranscript();
     tryTransition("interrupt");
     store.update(() => ({ centerTitle: "Standing by." }));
@@ -166,6 +179,9 @@ events.on("stt.partial", ({ text }) => {
 });
 events.on("stt.final", ({ text }) => {
   log("info", `you: ${text}`);
+  // Reset reply tracking for the new turn.
+  openAudioIds.clear();
+  llmEnded = false;
 });
 events.on("llm.token", ({ delta }) => {
   if (store.get().state === "thinking") {
@@ -176,17 +192,26 @@ events.on("llm.token", ({ delta }) => {
   center.appendToken(delta);
 });
 events.on("llm.end", () => {
-  // Stay in `speaking` until tts.end of the last sentence; mock fires that shortly.
+  llmEnded = true;
+  maybeFinishSpeaking();
 });
-events.on("tts.end", () => {
-  // Naive: any tts.end while speaking ends the session. Real impl tracks queue.
-  if (store.get().state === "speaking") {
-    setTimeout(() => {
-      tryTransition("replyEnd");
-      store.update(() => ({ centerTitle: "Standing by." }));
-    }, 200);
-  }
+events.on("tts.sentence", ({ audioId }) => {
+  openAudioIds.add(audioId);
 });
+events.on("tts.end", ({ audioId }) => {
+  openAudioIds.delete(audioId);
+  maybeFinishSpeaking();
+});
+
+function maybeFinishSpeaking(): void {
+  if (store.get().state !== "speaking") return;
+  if (!llmEnded || openAudioIds.size > 0) return;
+  setTimeout(() => {
+    if (store.get().state !== "speaking") return;
+    tryTransition("replyEnd");
+    store.update(() => ({ centerTitle: "Standing by." }));
+  }, 200);
+}
 events.on("error", (e) => log("error", `${e.code}: ${e.message}`));
 events.on("telemetry", (t) =>
   store.update((d) => ({ telemetry: [t, ...d.telemetry].slice(0, 14) })),
