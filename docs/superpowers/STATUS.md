@@ -3,7 +3,7 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-01 Task 2/22 complete)
+**Last updated:** 2026-05-08 (spec-01 Task 6/22 complete)
 
 ---
 
@@ -15,7 +15,7 @@
 | # | Sub-spec | Brainstorm | Plan | Implement | Review | Verify | Merged |
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
-| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ⏳ Task 2/22 done | ⬜ | ⬜ | ⬜ |
+| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ⏳ Task 6/22 done | ⬜ | ⬜ | ⬜ |
 | 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -51,7 +51,19 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Continue from Task 3 (shared types) → Task 6 (EventSource interface + mock skeleton). All four are pure TS with TDD; no install drama expected. Then checkpoint before Task 7 (UI assembly begins).
+Continue from Task 7 (HTML grid shell + base CSS) → Task 11 (static info panels + telemetry). Pure UI assembly; no test infra changes. Then checkpoint before Task 12 (mic capture).
+
+## Spec-01 milestone reached
+**State + event plumbing complete (Tasks 1-6).** 17 tests passing.
+
+| File | Lines | Tests |
+|---|---|---|
+| `src/types.ts` | 48 | n/a |
+| `src/state/stateMachine.ts` | 26 | 8 |
+| `src/state/store.ts` | 41 | 5 |
+| `src/events/eventSource.ts` | 11 | n/a |
+| `src/events/mockEventSource.ts` | 49 | 3 (skeleton; full behaviour Task 18) |
+| `test/sanity.test.ts` | 8 | 1 |
 
 ## Resume hint for future sessions
 1. Read this file.
