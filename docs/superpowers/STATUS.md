@@ -3,19 +3,19 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-07 (post spec-01 brainstorm)
+**Last updated:** 2026-05-07 (post spec-01 plan)
 
 ---
 
 ## Current Phase
-**spec-01-frontend-shell · planning**
+**spec-01-frontend-shell · implementation (inline mode)**
 
 ## Macro Progress
 
 | # | Sub-spec | Brainstorm | Plan | Implement | Review | Verify | Merged |
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
-| 1 | spec-01-frontend-shell | ✅ committed | ⏳ in progress | ⬜ | ⬜ | ⬜ | ⬜ |
+| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ⏳ Task 1/22 | ⬜ | ⬜ | ⬜ |
 | 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -32,10 +32,25 @@ Legend: ⬜ not started · ⏳ in progress · ✅ done
 - Multi-agent design: section 6 of architecture doc
 
 ## Last completed action
-Wrote, self-reviewed, and committed spec-01 design doc: `docs/superpowers/specs/2026-05-07-frontend-shell-design.md`. Auto-approved per Architect delegation.
+Wrote, self-reviewed, and committed spec-01 implementation plan: `docs/superpowers/plans/2026-05-07-frontend-shell.md` (22 tasks, 3218 lines, full TDD code).
+
+## Execution mode for spec-01
+**Inline** via `executing-plans` skill (orchestrator runs each task in this session). Trade-off: chosen over subagent-driven for visibility/velocity given the user's emphasis on constant progress updates and the plan's high specificity (subagent reviews would add little marginal quality given TDD steps + tight specs).
+
+Quality safeguards retained:
+- TDD steps in every task
+- After every group of 3-4 tasks: dispatch a fresh code-review subagent on the diff
+- After Task 22: full verification + final code review
 
 ## Next action
-Read `.claude/skills/writing-plans.md`, then write spec-01 implementation plan: `docs/superpowers/plans/2026-05-07-frontend-shell.md`. Self-review, commit. Then create `.worktrees/spec-01-frontend-shell` and begin implementation.
+Read `.claude/skills/executing-plans.md`, then begin Task 1: create worktree `.worktrees/spec-01-frontend-shell` and scaffold the Vite + TS project in `web/`.
+
+## Resume hint for future sessions
+1. Read this file.
+2. Read `docs/superpowers/plans/2026-05-07-frontend-shell.md`.
+3. Check the worktree at `.worktrees/spec-01-frontend-shell`.
+4. `cd` into the worktree and run `git log --oneline main..HEAD` to see what's been completed.
+5. Look at the highest-numbered Task N already committed. Resume at Task N+1.
 
 ## Open blockers
 None.
