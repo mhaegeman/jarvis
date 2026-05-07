@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-02 brainstorm complete, planning next)
+**Last updated:** 2026-05-08 (spec-02 plan complete, implementation starting)
 
 ---
 
 ## Current Phase
-**spec-02-backend-streaming · planning**
+**spec-02-backend-streaming · implementation (Phase 1, mock pipelines, inline mode)**
 
 ## Macro Progress
 
@@ -16,7 +16,7 @@
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
-| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ⏳ in progress | ⬜ | ⬜ | ⬜ | ⬜ |
+| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ⏳ Task 1/19 | ⬜ | ⬜ | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
