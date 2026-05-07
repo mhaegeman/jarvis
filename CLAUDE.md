@@ -58,6 +58,10 @@ Available skills:
 - `finishing-a-development-branch` — When implementation is complete
 - `dispatching-parallel-agents` — When 2+ independent tasks can be parallelised
 - `writing-skills` — When creating or modifying skills
+- `stop-slop` — When writing, editing, or reviewing prose for AI writing tells
+- `ui-ux-pro-max` — When designing UI components, color palettes, typography, or UX patterns
+- `context-engineering` — When structuring context or reasoning protocols for LLM tasks
+- `remotion` — When building programmatic videos with React and Remotion
 
 ## The Rule
 
