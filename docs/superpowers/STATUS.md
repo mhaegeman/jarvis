@@ -3,7 +3,7 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-02 plan complete, implementation starting)
+**Last updated:** 2026-05-08 (spec-02 Phase 1 implementation complete)
 
 ---
 
@@ -16,7 +16,7 @@
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
-| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ⏳ Task 1/19 | ⬜ | ⬜ | ⬜ |
+| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ⏳ pending | ⏳ pending | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
@@ -59,15 +59,24 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Read `.claude/skills/writing-plans.md`, then write spec-02 implementation plan: `docs/superpowers/plans/2026-05-08-backend-streaming.md`. Self-review, commit. Then create worktree `.worktrees/spec-02-backend-streaming` and begin implementation.
+Code review pass on spec-02 (fresh subagent, sealed context: spec + diff). Apply Important fixes. Then `finishing-a-development-branch` to merge `spec-02-backend-streaming` → `main`. After merge, begin spec-03 (browser ↔ backend integration) brainstorm.
 
-### Implementation pre-requisites (will gate the impl phase)
-The protocol layer, session orchestrator, and sentence splitter can all be built and tested with mock pipelines on this machine. The full pipeline acceptance criteria (§11.4–§11.6 of the design) require:
-- LM Studio running locally with a model loaded (or another OpenAI-compatible endpoint reachable)
-- A Whisper model cached (faster-whisper auto-downloads `base.en` on first use)
-- OpenVoice cloned to `~/OpenVoice` with checkpoints
+### Spec-02 Phase 1 implementation summary
+**13 commits on branch `spec-02-backend-streaming`.** All quality gates green:
+- 54/54 tests passing (pytest)
+- Coverage: protocol 97%, sentence_split 96%, session 87%, total 90%
+- `ruff check` clean
+- `mypy --strict` clean
+- `uvicorn server.main:app` boots; `/health` returns 200
+- `python -m server.cli_test --text "Brief me on today"` streams a reply end-to-end
+- `python -m server.cli_test --audio-fixture tests/fixtures/silence.wav` exercises the audio path
 
-If any of those is missing on the dev machine when impl reaches integration, surface to Architect and proceed with mock-only acceptance for now.
+### Phase 2 (deferred)
+- Replace `MockSTT` with `faster-whisper`; pre-load `base.en` in lifespan
+- Replace `MockLLM` with `openai.AsyncOpenAI` streaming (default LM Studio)
+- Replace `MockTTS` with OpenVoice; emit real PCM Int16 binary frames
+- Triggered after spec-04 deploys the Phase 1 stack
+- Pre-reqs: LM Studio running, Whisper model cached, OpenVoice cloned + checkpoints
 
 ## Spec-01 implementation summary
 
