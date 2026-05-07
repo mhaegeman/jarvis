@@ -1,0 +1,9 @@
+node_modules
+dist
+.vite
+playwright-report
+test-results
+
+# Re-include package files (root .gitignore globally excludes "package*")
+!package.json
+!package-lock.json
