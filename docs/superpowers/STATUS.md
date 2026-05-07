@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-01 merged to main)
+**Last updated:** 2026-05-08 (spec-02 brainstorm complete, planning next)
 
 ---
 
 ## Current Phase
-**spec-02-backend-streaming · brainstorming (next)**
+**spec-02-backend-streaming · planning**
 
 ## Macro Progress
 
@@ -16,10 +16,7 @@
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
-| 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ⏳ in progress | ⬜ | ⬜ | ⬜ | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
@@ -62,15 +59,15 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Begin **spec-02 (backend streaming server)** brainstorm. Orchestrator acts as Brainstorming Lead. Output: `docs/superpowers/specs/2026-05-08-backend-streaming-design.md`. Auto-approved per delegation. Then plan, then implement in `.worktrees/spec-02-backend-streaming`.
+Read `.claude/skills/writing-plans.md`, then write spec-02 implementation plan: `docs/superpowers/plans/2026-05-08-backend-streaming.md`. Self-review, commit. Then create worktree `.worktrees/spec-02-backend-streaming` and begin implementation.
 
-Spec-02 scope per umbrella architecture §5:
-- FastAPI + websockets server in `server/`
-- Streaming Whisper STT
-- OpenAI-compatible LLM client (works with LM Studio / Ollama)
-- Sentence-chunked OpenVoice TTS
-- Implements the protocol from architecture §4.1 (must match the EventSource interface that `web/src/events/eventSource.ts` already commits to)
-- CLI test client to prove end-to-end voice roundtrip in terminal
+### Implementation pre-requisites (will gate the impl phase)
+The protocol layer, session orchestrator, and sentence splitter can all be built and tested with mock pipelines on this machine. The full pipeline acceptance criteria (§11.4–§11.6 of the design) require:
+- LM Studio running locally with a model loaded (or another OpenAI-compatible endpoint reachable)
+- A Whisper model cached (faster-whisper auto-downloads `base.en` on first use)
+- OpenVoice cloned to `~/OpenVoice` with checkpoints
+
+If any of those is missing on the dev machine when impl reaches integration, surface to Architect and proceed with mock-only acceptance for now.
 
 ## Spec-01 implementation summary
 
