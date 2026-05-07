@@ -3,7 +3,7 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-01 Task 6/22 complete)
+**Last updated:** 2026-05-08 (spec-01 implementation complete — 22/22)
 
 ---
 
@@ -15,7 +15,7 @@
 | # | Sub-spec | Brainstorm | Plan | Implement | Review | Verify | Merged |
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
-| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ⏳ Task 6/22 done | ⬜ | ⬜ | ⬜ |
+| 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 in worktree | ⏳ pending | ⏳ pending | ⬜ |
 | 2 | spec-02-backend-streaming | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -51,19 +51,36 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Continue from Task 7 (HTML grid shell + base CSS) → Task 11 (static info panels + telemetry). Pure UI assembly; no test infra changes. Then checkpoint before Task 12 (mic capture).
+**Code review pass on spec-01**, then run `finishing-a-development-branch` skill to merge `spec-01-frontend-shell` → `main`. After merge, begin spec-02 (backend streaming server) brainstorm.
 
-## Spec-01 milestone reached
-**State + event plumbing complete (Tasks 1-6).** 17 tests passing.
+## Spec-01 implementation summary
 
-| File | Lines | Tests |
-|---|---|---|
-| `src/types.ts` | 48 | n/a |
-| `src/state/stateMachine.ts` | 26 | 8 |
-| `src/state/store.ts` | 41 | 5 |
-| `src/events/eventSource.ts` | 11 | n/a |
-| `src/events/mockEventSource.ts` | 49 | 3 (skeleton; full behaviour Task 18) |
-| `test/sanity.test.ts` | 8 | 1 |
+**24 commits on branch `spec-01-frontend-shell`.** All quality gates green:
+- 29/29 unit tests passing (Vitest)
+- ESLint clean
+- `tsc --noEmit` clean
+- `vite build` ~7KB gzip JS, ~2KB gzip CSS
+- `vite preview` serves HTTP 200
+
+**Caveat:** Playwright e2e smoke test code is committed but the test run requires `sudo npx playwright install-deps chromium` (system libs). Documented in `web/README.md`.
+
+### File breakdown
+
+| Area | Files |
+|---|---|
+| Types | `src/types.ts` |
+| State | `src/state/stateMachine.ts`, `src/state/store.ts` |
+| Events | `src/events/eventSource.ts`, `src/events/mockEventSource.ts`, `src/events/scenarios.ts` |
+| Audio | `src/audio/analyzer.ts`, `src/audio/micCapture.ts` |
+| UI | `src/ui/Component.ts`, `Panel.ts`, `Header.ts`, `Centerpiece.ts`, `Waveform.ts`, `Transcript.ts`, `Controls.ts`, `keyboard.ts` |
+| Panels | `src/ui/panels/{System,Memory,Calendar,Network,Tasks,Telemetry,Audio}Panel.ts` |
+| Data | `src/data/calendar.ts` |
+| App | `src/main.ts` (boot sequence wiring everything) |
+| Styles | `src/styles/{global,grid,panel}.css` |
+| Tests | `test/{sanity,stateMachine,store,mockEventSource,component,transcript,analyzer}.test.ts` (29 tests) |
+| E2E | `e2e/smoke.spec.ts`, `playwright.config.ts` |
+| Tooling | `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `eslint.config.js`, `.prettierrc.json`, `.gitignore` |
+| Docs | `web/README.md` |
 
 ## Resume hint for future sessions
 1. Read this file.
