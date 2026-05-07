@@ -6,12 +6,13 @@
     <title>Jarvis</title>
   </head>
   <body data-state="idle">
-    <div id="app" class="hud">
+    <a href="#center" class="skip-link">Skip to conversation</a>
+    <div id="app" class="hud" role="application" aria-label="Jarvis">
       <header class="cell cell-top"      data-cell="top"></header>
       <section class="cell cell-tl"      data-cell="tl"></section>
       <section class="cell cell-tr"      data-cell="tr"></section>
       <section class="cell cell-left"    data-cell="left"></section>
-      <section class="cell cell-center"  data-cell="center"></section>
+      <section id="center" class="cell cell-center" data-cell="center" tabindex="-1"></section>
       <section class="cell cell-right"   data-cell="right"></section>
       <section class="cell cell-bl"      data-cell="bl"></section>
       <footer  class="cell cell-bottom"  data-cell="bottom"></footer>
