@@ -1,0 +1,23 @@
+.hud {
+  position: fixed;
+  inset: 16px;
+  display: grid;
+  grid-template-columns: 240px 1fr 240px;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "tl  top    tr"
+    "left center right"
+    "bl  bottom br";
+  gap: 14px;
+}
+
+.cell { min-width: 0; min-height: 0; }
+.cell-top    { grid-area: top; }
+.cell-tl     { grid-area: tl; }
+.cell-tr     { grid-area: tr; }
+.cell-left   { grid-area: left; }
+.cell-center { grid-area: center; }
+.cell-right  { grid-area: right; }
+.cell-bl     { grid-area: bl; }
+.cell-bottom { grid-area: bottom; }
+.cell-br     { grid-area: br; }
