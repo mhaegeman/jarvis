@@ -57,21 +57,76 @@ cd .worktrees/spec-01-frontend-shell
 
 Expected: new branch + working tree. Verify with `git worktree list`.
 
-- [ ] **Step 2: Scaffold Vite (vanilla TS template)**
+- [ ] **Step 2: Scaffold Vite manually (Node 18-compatible)**
+
+`create-vite@latest` requires Node ≥20. Since we're on Node 18 and don't want to introduce a Node upgrade, scaffold the project files by hand. Output is identical in shape to what `create-vite --template vanilla-ts` produces.
 
 ```bash
-mkdir -p web
+mkdir -p web/src web/public
 cd web
-npm create vite@latest . -- --template vanilla-ts
 ```
 
-When prompted, accept defaults (current directory). Output: `package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `src/main.ts`, `src/style.css`, `src/typescript.svg`, `src/counter.ts`, `src/vite-env.d.ts`, `public/`.
+Create `web/package.json`:
 
-- [ ] **Step 3: Remove the demo files**
+```json
+{
+  "name": "jarvis-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~5.4.5",
+    "vite": "^5.4.10"
+  }
+}
+```
+
+Create `web/tsconfig.json` (interim — replaced in Task 2):
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["src"]
+}
+```
+
+Create `web/vite.config.ts`:
+
+```ts
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  server: { port: 5173 },
+});
+```
+
+Create `web/src/vite-env.d.ts`:
+
+```ts
+/// <reference types="vite/client" />
+```
+
+Run install:
 
 ```bash
-rm src/counter.ts src/typescript.svg public/vite.svg
+npm install
 ```
+
+- [ ] **Step 3: (no-op — manual scaffold has no demo files to remove)**
 
 - [ ] **Step 4: Replace `web/index.html`**
 

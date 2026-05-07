@@ -169,11 +169,13 @@ Even without a backend, the waveform is **driven by real signals** in v1:
 | State | Waveform amplitude source |
 |---|---|
 | `idle` | Synthetic gentle ambient envelope |
-| `listening` | **Real mic input amplitude** (via `getUserMedia` + AudioWorklet) |
+| `listening` | **Real mic input amplitude** (via `getUserMedia` + `AnalyserNode` polling) |
 | `thinking` | Synthetic medium pulse (suggests internal activity) |
 | `speaking` | Synthetic envelope shaped to mock TTS chunk timing |
 
 Mic permission is requested the first time the user activates `listening`. If denied, listening is disabled and the AudioPanel shows an inline reason + a retry link.
+
+**Note on `AudioWorklet`:** spec-03 will need an `AudioWorklet` node to capture raw PCM frames for the WebSocket pipeline (the `AnalyserNode` exposes time-domain data for visualization but not low-overhead PCM streaming). Spec-01 only needs amplitude for the waveform, so the simpler `AnalyserNode` polling is used here. Spec-03 will replace `micCapture.ts`'s analyzer wiring with an `AudioWorklet` that does both PCM capture and amplitude reporting.
 
 ## 5. Components
 
