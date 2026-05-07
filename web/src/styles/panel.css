@@ -100,3 +100,25 @@
   inset: 0;
   display: block;
 }
+
+.transcript {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  font-family: -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif;
+  font-size: clamp(15px, 1.6vw, 19px);
+  line-height: 1.55;
+  color: var(--fg);
+  max-width: 720px;
+  padding: 0 24px;
+}
+.transcript .caret {
+  display: inline-block;
+  width: 0.55ch; height: 1em;
+  background: var(--accent);
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  box-shadow: 0 0 8px var(--accent);
+  animation: tcaret 1s steps(1) infinite;
+}
+@keyframes tcaret { 50% { opacity: 0; } }
