@@ -5,6 +5,7 @@ import { MemoryPanel } from "@/ui/panels/MemoryPanel";
 import { CalendarPanel } from "@/ui/panels/CalendarPanel";
 import { NetworkPanel } from "@/ui/panels/NetworkPanel";
 import { TasksPanel } from "@/ui/panels/TasksPanel";
+import { AudioPanel, type MicStatus } from "@/ui/panels/AudioPanel";
 import { TelemetryPanel } from "@/ui/panels/TelemetryPanel";
 import type { TelemetryEvent } from "@/types";
 import { TODAY } from "@/data/calendar";
@@ -24,6 +25,8 @@ document.querySelector('[data-cell="left"]')!.innerHTML = `
   </div>`;
 const tasks = new TasksPanel('[data-slot="tasks"]');
 const telemetry = new TelemetryPanel('[data-cell="right"]');
+const audio = new AudioPanel('[data-slot="audio"]');
+const micStatus: MicStatus = { kind: "unprompted" };
 
 const seedEvents: TelemetryEvent[] = [
   { ts: Date.now() - 5000, level: "ok", message: "whisper.asr ready" },
@@ -43,6 +46,7 @@ function tick(): void {
   network.render({ endpoint: "local", latencyMs: 12, packets: 0, busyPct: 18 });
   tasks.render({ queued: 3, active: 1, done: 14 });
   telemetry.render({ events: seedEvents });
+  audio.render({ inputDb: -72, outputDb: -31, inputBarPct: 30, mic: micStatus });
   requestAnimationFrame(tick);
 }
 tick();

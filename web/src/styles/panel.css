@@ -71,3 +71,26 @@
 .feed .line.ok { color: var(--accent); }
 .feed .line.warn { color: var(--warn); }
 .feed .line.error { color: #ff6c6c; }
+
+.mic-banner {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent-dim);
+  background: var(--accent-faint);
+  font-size: 10.5px;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.mic-banner.warn { border-color: rgba(255, 174, 92, 0.4); background: rgba(255, 174, 92, 0.08); color: var(--warn); }
+.mic-banner button {
+  appearance: none;
+  background: rgba(92, 240, 255, 0.08);
+  color: var(--fg);
+  border: 1px solid var(--accent-dim);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.mic-banner button:hover { background: rgba(92, 240, 255, 0.18); border-color: var(--accent); }
