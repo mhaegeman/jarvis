@@ -114,8 +114,11 @@ class CalendarClient:
         service = self._ensure_service()
         if service is None:
             return []
-        now = dt.datetime.now(dt.UTC)
-        start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Compute "today" in the laptop's local timezone, not UTC. Otherwise
+        # users in non-UTC zones miss legitimate same-day events around the
+        # UTC boundary (e.g. a 19:00 PT meeting falls into "tomorrow" in UTC).
+        local_now = dt.datetime.now().astimezone()
+        start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_day = start_of_day + dt.timedelta(days=1)
 
         def _call() -> dict[str, Any]:

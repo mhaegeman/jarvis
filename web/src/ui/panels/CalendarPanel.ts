@@ -8,6 +8,14 @@ export interface CalendarState {
   onSync: () => void;
 }
 
+const escapeHtml = (s: string): string =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 export class CalendarPanel extends Component<CalendarState> {
   override render(s: CalendarState): void {
     const body =
@@ -16,7 +24,9 @@ export class CalendarPanel extends Component<CalendarState> {
         : s.entries
             .map((e) => {
               const duration = e.durationMin > 0 ? ` (${e.durationMin}m)` : "";
-              return `<div class="row"><span>${e.time}</span><b>${e.title}${duration}</b></div>`;
+              const time = escapeHtml(e.time);
+              const title = escapeHtml(e.title);
+              return `<div class="row"><span>${time}</span><b>${title}${duration}</b></div>`;
             })
             .join("");
 

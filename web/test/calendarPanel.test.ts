@@ -50,4 +50,23 @@ describe("CalendarPanel", () => {
     const root = mount({ entries, syncing: false, onSync: () => {} });
     expect(root.querySelectorAll(".row").length).toBe(5);
   });
+
+  it("escapes HTML in entry titles to prevent XSS (regression: PR#7 P1)", () => {
+    const root = mount({
+      entries: [
+        {
+          time: "09:00",
+          title: `<img src=x onerror="alert(1)">`,
+          durationMin: 30,
+        },
+      ],
+      syncing: false,
+      onSync: () => {},
+    });
+    // The raw markup must not appear in innerHTML — only its escaped form.
+    expect(root.innerHTML).not.toContain("<img src=x");
+    expect(root.innerHTML).toContain("&lt;img src=x");
+    // Also confirm no real <img> element was created.
+    expect(root.querySelector("img")).toBeNull();
+  });
 });

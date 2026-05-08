@@ -96,3 +96,51 @@ async def test_fetch_today_uses_injected_service(tmp_path: Path) -> None:
     result = await client.fetch_today()
     assert len(result) == 1
     assert result[0]["title"] == "Standup"
+
+
+@pytest.mark.asyncio
+async def test_fetch_today_uses_local_timezone_bounds(tmp_path: Path) -> None:
+    """Regression: PR#7 P2 — day bounds must use the local timezone, not UTC.
+
+    Otherwise a Pacific-time user's 19:00 meeting falls outside the UTC "today"
+    window. We assert the timeMin sent to the Google API carries a non-Z (i.e.
+    offset-bearing) ISO timestamp on systems where local != UTC.
+    """
+    creds = tmp_path / "creds.json"
+    token = tmp_path / "token.json"
+    creds.write_text("{}")
+    token.write_text("{}")
+
+    fake_service = MagicMock()
+    fake_service.events().list.return_value.execute.return_value = {"items": []}
+
+    client = CalendarClient(
+        credentials_path=creds, token_path=token, service=fake_service
+    )
+    await client.fetch_today()
+
+    # Inspect the kwargs the implementation passed to events().list(...)
+    list_calls = fake_service.events.return_value.list.call_args_list
+    # The MagicMock chain returns the same mock for repeated `.events()` calls,
+    # so the most recent call is the one we want.
+    last = list_calls[-1]
+    time_min: str = last.kwargs["timeMin"]
+    time_max: str = last.kwargs["timeMax"]
+
+    # timeMin/timeMax come from `.isoformat()` of an aware datetime; if they
+    # were built in UTC they would carry "+00:00" only.
+    import datetime as _dt
+
+    expected_offset = _dt.datetime.now().astimezone().strftime("%z")
+    # %z emits "+0200"; isoformat emits "+02:00". Reformat for comparison.
+    expected_iso_offset = (
+        f"{expected_offset[:3]}:{expected_offset[3:]}"
+        if expected_offset
+        else "+00:00"
+    )
+    assert time_min.endswith(expected_iso_offset), (
+        f"timeMin {time_min!r} should carry local offset {expected_iso_offset!r}"
+    )
+    assert time_max.endswith(expected_iso_offset)
+    # Sanity: both bounds start at the same local-midnight prefix
+    assert "T00:00:00" in time_min
