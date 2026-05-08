@@ -302,6 +302,106 @@ describe("WSEventSource — handshake + dispatch", () => {
     expect(onFrame).toBeNull();
   });
 
+  it("audio.start is sent only AFTER mic setup resolves (regression: P1)", async () => {
+    const ctx = new FakeAudioContext();
+    let resolveMic: ((h: { stop: () => void }) => void) | null = null;
+    const src = new WSEventSource({
+      url: "ws://x",
+      audioCtx: ctx as unknown as AudioContext,
+      micFactory: (_ctx, _cb) =>
+        new Promise<{ stop: () => void }>((r) => {
+          resolveMic = r;
+        }),
+    });
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+
+    const begin = src.beginListening();
+    // Mic factory pending — audio.start MUST NOT be sent yet.
+    expect(
+      ws.sent.some(
+        (m) => typeof m === "string" && m.includes("audio.start"),
+      ),
+    ).toBe(false);
+
+    resolveMic!({ stop: () => {} });
+    await begin;
+    expect(
+      ws.sent.some(
+        (m) => typeof m === "string" && m.includes("audio.start"),
+      ),
+    ).toBe(true);
+  });
+
+  it("mic factory failure leaves no audio.start on the wire (regression: P1)", async () => {
+    const ctx = new FakeAudioContext();
+    const src = new WSEventSource({
+      url: "ws://x",
+      audioCtx: ctx as unknown as AudioContext,
+      micFactory: () => Promise.reject(new Error("worklet load failed")),
+    });
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+
+    await expect(src.beginListening()).rejects.toThrow("worklet load failed");
+    expect(
+      ws.sent.some(
+        (m) => typeof m === "string" && m.includes("audio.start"),
+      ),
+    ).toBe(false);
+    expect(
+      ws.sent.some(
+        (m) => typeof m === "string" && m.includes("audio.end"),
+      ),
+    ).toBe(false);
+  });
+
+  it("endListening during in-flight beginListening cancels with no audio.start/end (regression: P1)", async () => {
+    const ctx = new FakeAudioContext();
+    let resolveMic: ((h: { stop: () => void }) => void) | null = null;
+    let stopCalled = false;
+    const src = new WSEventSource({
+      url: "ws://x",
+      audioCtx: ctx as unknown as AudioContext,
+      micFactory: (_ctx, _cb) =>
+        new Promise<{ stop: () => void }>((r) => {
+          resolveMic = r;
+        }),
+    });
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+
+    const begin = src.beginListening();
+    src.endListening(); // user releases push-to-talk before mic is ready
+    resolveMic!({
+      stop: () => {
+        stopCalled = true;
+      },
+    });
+    await begin;
+
+    expect(stopCalled).toBe(true);
+    expect(
+      ws.sent.some(
+        (m) => typeof m === "string" && m.includes("audio.start"),
+      ),
+    ).toBe(false);
+    expect(
+      ws.sent.some(
+        (m) => typeof m === "string" && m.includes("audio.end"),
+      ),
+    ).toBe(false);
+  });
+
   it("interrupt() stops local playback synchronously and sends interrupt msg", async () => {
     const { src, ctx } = freshSrc();
     const p = src.start();

@@ -152,10 +152,19 @@ const actions = {
   onMicDown: async (): Promise<void> => {
     if (store.get().state !== "idle") return;
     const ok = await ensureMic();
-    if (ok) {
+    if (!ok) return;
+    // Transition immediately so a release during async mic startup still
+    // routes through onMicUp's stop path (state guard would otherwise bail).
+    tryTransition("startListening");
+    store.update(() => ({ centerTitle: "Listening." }));
+    try {
       await events.beginListening();
-      tryTransition("startListening");
-      store.update(() => ({ centerTitle: "Listening." }));
+    } catch (err) {
+      log("warn", `mic start failed: ${String(err)}`);
+      events.endListening();
+      stopMicStream();
+      tryTransition("interrupt");
+      store.update(() => ({ centerTitle: "Standing by." }));
     }
   },
   onMicUp: (): void => {

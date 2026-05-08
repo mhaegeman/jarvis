@@ -38,6 +38,8 @@ export class WSEventSource implements IEventSource {
   private closedByUser = false;
   private playback: PlaybackQueue | null = null;
   private mic: MicWorkletHandle | null = null;
+  private listenAbort: AbortController | null = null;
+  private audioStartSent = false;
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private static BACKOFF_S = [1, 2, 4, 8, 16, 30];
@@ -92,6 +94,32 @@ export class WSEventSource implements IEventSource {
 
   async beginListening(): Promise<void> {
     if (!this.opts.audioCtx) throw new Error("audioCtx required for listening");
+    // Defer `audio.start` until the mic is actually capturing — if mic setup
+    // fails or is cancelled, the server is never told we're recording.
+    this.listenAbort?.abort();
+    const abort = new AbortController();
+    this.listenAbort = abort;
+    const onFrame = (int16: Int16Array): void => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(encodeMicFrame(int16));
+      }
+    };
+    let handle: MicWorkletHandle;
+    if (this.opts.micFactory) {
+      handle = await this.opts.micFactory(this.opts.audioCtx, onFrame);
+    } else {
+      if (!this.opts.micSource) {
+        throw new Error("micSource required when micFactory absent");
+      }
+      const source = await this.opts.micSource();
+      handle = await startMicWorklet(this.opts.audioCtx, source, onFrame);
+    }
+    if (abort.signal.aborted) {
+      // endListening() ran while we were awaiting mic setup — discard.
+      handle.stop();
+      return;
+    }
+    this.mic = handle;
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(
         JSON.stringify({
@@ -100,29 +128,21 @@ export class WSEventSource implements IEventSource {
           format: "pcm_s16le",
         }),
       );
+      this.audioStartSent = true;
     }
-    const onFrame = (int16: Int16Array): void => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.ws.send(encodeMicFrame(int16));
-      }
-    };
-    if (this.opts.micFactory) {
-      this.mic = await this.opts.micFactory(this.opts.audioCtx, onFrame);
-      return;
-    }
-    if (!this.opts.micSource) {
-      throw new Error("micSource required when micFactory absent");
-    }
-    const source = await this.opts.micSource();
-    this.mic = await startMicWorklet(this.opts.audioCtx, source, onFrame);
   }
 
   endListening(): void {
+    // Cancel any in-flight beginListening so a quick press/release pair
+    // never leaves the server in a half-started state.
+    this.listenAbort?.abort();
+    this.listenAbort = null;
     this.mic?.stop();
     this.mic = null;
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    if (this.audioStartSent && this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type: "audio.end" }));
     }
+    this.audioStartSent = false;
   }
 
   sendText(content: string): void {
