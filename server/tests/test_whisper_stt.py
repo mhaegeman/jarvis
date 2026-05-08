@@ -6,8 +6,6 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
-import numpy as np
-
 from server.pipelines.whisper_stt import WhisperSTT
 
 

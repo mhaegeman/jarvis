@@ -42,10 +42,12 @@ class WhisperSTT(STT):
         self._loader = loader or _default_loader
 
     async def partials(self, audio: AsyncIterator[bytes]) -> AsyncIterator[str]:
+        # Drain so the caller's send loop terminates; v1 has no interim
+        # transcripts — final() handles transcription on audio.end.
         async for _chunk in audio:
             pass
         return
-        yield ""  # pragma: no cover — yield turns this into an async generator
+        yield ""  # pragma: no cover — unreachable; yield makes this an async generator
 
     async def final(self, audio: AsyncIterator[bytes]) -> str:
         chunks: list[bytes] = []
