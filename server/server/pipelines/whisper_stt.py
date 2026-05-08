@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import AsyncIterator, Callable
 from typing import Any
 
-import numpy as np
+import numpy as np  # type: ignore[import-not-found]
 
 from .interfaces import STT
 
