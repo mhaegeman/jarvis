@@ -5,9 +5,10 @@ from __future__ import annotations
 import pytest
 from pydantic import SecretStr
 
-from server.main import _build_llm, _resolve_device
+from server.main import _build_llm, _build_stt, _resolve_device
 from server.pipelines.claude_llm import ClaudeLLM
 from server.pipelines.mock_llm import MockLLM
+from server.pipelines.mock_stt import MockSTT
 
 
 class TestBuildLLM:
@@ -56,3 +57,10 @@ class TestResolveDevice:
         # Block the import of torch within _resolve_device.
         monkeypatch.setitem(sys.modules, "torch", None)
         assert _resolve_device() == "cpu"
+
+
+class TestBuildSTT:
+    def test_mock_engine_returns_mock_stt(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.stt_engine", "mock")
+        stt = _build_stt()
+        assert isinstance(stt, MockSTT)

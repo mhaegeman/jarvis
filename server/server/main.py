@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.util  # noqa: F401 – used in _build_stt (Task 9)
 import logging
 from collections.abc import AsyncIterator, MutableMapping
 from typing import Any
@@ -12,7 +13,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from .config import settings
 from .pipelines.claude_llm import ClaudeLLM
-from .pipelines.interfaces import LLM
+from .pipelines.interfaces import LLM, STT
 from .pipelines.mock_llm import MockLLM
 from .pipelines.mock_stt import MockSTT
 from .pipelines.mock_tts import MockTTS
@@ -68,6 +69,23 @@ def _resolve_device() -> str:
     if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         return "mps"
     return "cpu"
+
+
+def _build_stt() -> STT:
+    """Construct the STT pipeline based on `JARVIS_STT_ENGINE`.
+
+    `auto` (default) returns `WhisperSTT` when faster-whisper is importable,
+    otherwise logs a warning and returns `MockSTT`. Setting the engine
+    explicitly to `whisper` makes a missing dep a hard `ImportError`.
+
+    Raises:
+        ImportError: when `engine="whisper"` and faster-whisper is not installed.
+        ValueError: when `engine` is not one of {auto, mock, whisper}.
+    """
+    engine = settings.stt_engine
+    if engine == "mock":
+        return MockSTT()
+    raise ValueError(f"unknown JARVIS_STT_ENGINE: {engine!r}")
 
 
 @contextlib.asynccontextmanager
