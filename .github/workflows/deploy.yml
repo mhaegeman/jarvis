@@ -1,0 +1,66 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build + encrypt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install
+        run: npm ci
+        working-directory: web
+      - name: Build
+        run: npm run build
+        working-directory: web
+        env:
+          VITE_WS_URL: ws://localhost:8000/ws
+          VITE_BASE: /jarvis/
+      - name: Verify staticrypt secret
+        env:
+          STATICRYPT_PASSWORD: ${{ secrets.STATICRYPT_PASSWORD }}
+        run: |
+          if [ -z "$STATICRYPT_PASSWORD" ]; then
+            echo "::error::STATICRYPT_PASSWORD repo secret is not set."
+            echo "Configure: Settings → Secrets and variables → Actions → New repository secret"
+            exit 1
+          fi
+      - name: Encrypt index.html
+        env:
+          STATICRYPT_PASSWORD: ${{ secrets.STATICRYPT_PASSWORD }}
+        run: |
+          npx -y staticrypt@^3 web/dist/index.html \
+            -p "$STATICRYPT_PASSWORD" \
+            --short \
+            -d web/dist
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    name: Publish to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
