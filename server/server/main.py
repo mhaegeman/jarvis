@@ -140,7 +140,7 @@ async def ws_endpoint(ws: WebSocket) -> None:
     # Per-connection pipelines (stateless; cheap to allocate).
     session = Session(
         ws=_StarletteWSAdapter(ws),
-        stt=MockSTT(),
+        stt=_build_stt(),
         llm=_build_llm(),
         tts=MockTTS(),
     )
