@@ -27,6 +27,22 @@ jobs:
         run: npx vitest run
       - name: Build
         run: npm run build
+      - name: staticrypt template smoke test
+        run: |
+          mkdir -p /tmp/unlock-smoke
+          cp dist/index.html /tmp/unlock-smoke/index.html
+          npx -y staticrypt@^3 /tmp/unlock-smoke/index.html \
+            -p ci-smoke-password \
+            --short \
+            --template unlock-template.html \
+            -d /tmp/unlock-smoke
+          # The rendered template must surface our HUD title.
+          grep -q 'JARVIS // OS' /tmp/unlock-smoke/index.html
+          # The staticrypt engine's element-ID contract must survive our restyling.
+          grep -q 'id="staticrypt-form"' /tmp/unlock-smoke/index.html
+          grep -q 'id="staticrypt-password"' /tmp/unlock-smoke/index.html
+          grep -q 'id="staticrypt_loading"' /tmp/unlock-smoke/index.html
+          grep -q 'id="staticrypt_content"' /tmp/unlock-smoke/index.html
 
   server:
     name: server (ruff, mypy, pytest)
