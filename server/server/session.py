@@ -467,7 +467,8 @@ class Session:
             "SELECT id, session_id, ts, role, content FROM turns ORDER BY id DESC LIMIT ?",
             (self._recent_window,),
         )
-        rows = list(reversed(await cur.fetchall()))
+        rows = list(await cur.fetchall())
+        rows.reverse()
         from .memory.types import Turn
         latest = [Turn(id=r[0], session_id=r[1], ts=r[2], role=r[3], content=r[4]) for r in rows]
         if not latest:

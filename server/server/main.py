@@ -5,9 +5,8 @@ from __future__ import annotations
 import contextlib
 import logging
 from collections.abc import AsyncIterator, MutableMapping
-from typing import Any
-
 from pathlib import Path
+from typing import Any
 
 import anthropic
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect

@@ -116,7 +116,7 @@ class MemoryStore:
         last_ts = datetime.strptime(row[1], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
         if datetime.now(UTC) - last_ts > timedelta(minutes=within_minutes):
             return None
-        return row[0]
+        return str(row[0])
 
     # ─── turns ────────────────────────────────────────────────────────
 
@@ -140,8 +140,8 @@ class MemoryStore:
             """,
             (session_id, cap),
         )
-        rows = await cur.fetchall()
-        rows = list(reversed(rows))
+        rows = list(await cur.fetchall())
+        rows.reverse()
         return [Turn(id=r[0], session_id=r[1], ts=r[2], role=r[3], content=r[4]) for r in rows]
 
     # ─── recent_summary (single-row table) ────────────────────────────

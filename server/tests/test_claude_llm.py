@@ -347,8 +347,9 @@ class TestSpokenErrorFor:
 
 async def test_extra_context_appended_to_system_prompt() -> None:
     """ClaudeLLM.stream concatenates extra_context after the base system prompt."""
-    from unittest.mock import AsyncMock, MagicMock
-    from server.pipelines.claude_llm import ClaudeLLM, JARVIS_SYSTEM_PROMPT
+    from unittest.mock import MagicMock
+
+    from server.pipelines.claude_llm import JARVIS_SYSTEM_PROMPT, ClaudeLLM
 
     class _NoopStream:
         async def __aenter__(self): return self

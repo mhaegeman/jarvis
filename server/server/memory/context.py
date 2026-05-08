@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 
 from .store import MemoryStore
+from .types import Turn
 
 FACTS_CAP_DEFAULT = 50
 DIGEST_SESSIONS_DEFAULT = 10
@@ -60,7 +61,7 @@ class MemoryContext:
             sections.append(f"Recent sessions (most recent first):\n{lines}")
 
         # Verbatim search across all turns.
-        matches: list = []
+        matches: list[Turn] = []
         for tok in _query_tokens(user_text):
             matches = await store.search_turns(tok, limit=search_cap)
             if matches:

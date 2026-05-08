@@ -5,8 +5,6 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from server.memory.summarizer import ClaudeSummarizer
 from server.memory.types import Turn
 
@@ -44,7 +42,9 @@ async def test_summarize_session_returns_text() -> None:
 
 
 async def test_extract_facts_parses_json_list() -> None:
-    client = _mock_client_returning('[{"key": "lang", "value": "TS"}, {"key": "city", "value": "BRU"}]')
+    client = _mock_client_returning(
+        '[{"key": "lang", "value": "TS"}, {"key": "city", "value": "BRU"}]'
+    )
     s = ClaudeSummarizer(client=client)
     facts = await s.extract_facts(_turns(("user", "I use TS in BRU")))
     assert len(facts) == 2
