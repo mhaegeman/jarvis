@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     model_name: str = "mock"
     model_context_max: int = 200000
+    llm_max_tokens: int = 1024
 
 
 settings = Settings()
