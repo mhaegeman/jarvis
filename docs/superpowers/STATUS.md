@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (panels-v2 implementation complete on branch)
+**Last updated:** 2026-05-08 (panels-v2 merged)
 
 ---
 
 ## Current Phase
-**panels-v2 · pending PR review (real data on all 9 HUD panels; manual e2e + GH OAuth setup pending)**
+**panels-v2 merged · 9 panels live with real data · v2 milestone shipped**
 
 ## Macro Progress
 
@@ -19,7 +19,7 @@
 | 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + Codex P1/P2 | ✅ 58/58 tests | ✅ merged 6efecde + 95e6eee |
 | 3 | spec-03-integration | ✅ committed (dc84817) | ✅ committed (c1f6041) | ✅ 13/13 tasks | ✅ Codex P1/P1 (5cfb2dc) | ✅ 60/60 vitest, lint+tsc+build clean | ✅ merged ab7cb7c |
 | 4 | spec-04-deploy-and-gate | ✅ committed (f80d562) | ✅ committed (84da47e) | ✅ 5/5 tasks | ✅ Codex P1 (fe7f892) | ✅ CI green on PR | ✅ merged c0a1e99 |
-| 5 | panels-v2 | ✅ committed (edf4ad4) | ✅ committed (833db55) | ✅ Phase A+B+C+D | ⏳ pending PR | ✅ 99 vitest, 96 pytest, lint+tsc+build clean | ⏳ branch pushed |
+| 5 | panels-v2 | ✅ committed (edf4ad4) | ✅ committed (833db55) | ✅ Phase A+B+C+D | ✅ Codex P1/P2 (b7644d6) | ✅ 100 vitest, 97 pytest, lint+tsc+build clean | ✅ merged 32226ef |
 
 Legend: ⬜ not started · ⏳ in progress · ✅ done
 
@@ -61,15 +61,19 @@ Quality safeguards retained:
 
 ## Next action
 
-**panels-v2 implementation complete on branch `panels-v2`.** Architect to:
+**panels-v2 merged to `main` (commit `32226ef`).** PR #7 also picked up two
+Codex review fixes (Calendar XSS in titles, UTC-vs-local timezone bug);
+both addressed in `b7644d6` before merge.
 
-1. Open PR — CI runs against the branch
-2. Walk the manual e2e checklist in `web/README.md` (panels-v2 section) against a real `uvicorn server.main:app`
-3. Set up Google Cloud OAuth desktop client + `~/.config/jarvis/credentials.json` per `server/deploy/README.md` (only required for the Calendar panel; everything else works without it)
-4. Merge
+All 9 panels now display real data with a backend running. The only thing
+left to wire up at the laptop level is Google OAuth for the Calendar panel
+(see `server/deploy/README.md` Google Calendar section). The other 8
+panels work without any additional setup.
 
-After merge, all 9 panels display real data when the backend is running. v1
-codebase remains shipped (spec-04 deploy gate untouched by panels-v2).
+No active development thread. Future scope candidates (post-v2):
+spec-02 Phase 2 (real Whisper / LLM / OpenVoice), HTTPS for backend
+(Cloudflare tunnel), persistent task queue, calendar event creation/edit,
+multiple calendars, second-brain ingestor wiring into the tasks panel.
 
 ### Spec-04 implementation summary
 **8 commits on branch `spec-04-deploy-and-gate`** (7 plan commits + 1
