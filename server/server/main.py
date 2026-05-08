@@ -61,7 +61,7 @@ def _resolve_device() -> str:
     if explicit in ("cuda", "mps", "cpu"):
         return explicit
     try:
-        import torch
+        import torch  # type: ignore[import-not-found]
     except ImportError:
         return "cpu"
     if torch.cuda.is_available():
