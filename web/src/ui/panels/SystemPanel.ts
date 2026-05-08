@@ -6,6 +6,7 @@ export interface SystemState {
   load: number;
   tokensPerMin: number;
   sessionId: string;
+  modelName: string;
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
@@ -22,6 +23,7 @@ export class SystemPanel extends Component<SystemState> {
       <div class="row"><span>load</span><b>${s.load.toFixed(2)}</b></div>
       <div class="row"><span>tokens / min</span><b>${s.tokensPerMin.toLocaleString()}</b></div>
       <div class="row"><span>session</span><b>#${s.sessionId}</b></div>
+      <div class="row"><span>model</span><b>${s.modelName}</b></div>
     `,
     );
   }

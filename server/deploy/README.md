@@ -68,3 +68,43 @@ systemctl --user restart jarvis-backend
 systemctl --user stop jarvis-backend
 systemctl --user disable jarvis-backend
 ```
+
+## Google Calendar (panels v2)
+
+The Calendar HUD panel reads today's events from Google Calendar via a
+read-only OAuth client. Without these credentials the panel just stays
+empty — no other system feature is affected.
+
+### One-time setup
+
+1. **Google Cloud Console** → create (or pick) a project.
+2. Enable the **Google Calendar API**.
+3. **APIs & Services → OAuth consent screen** → set up as External, add
+   yourself as a test user, scopes: `calendar.readonly`.
+4. **APIs & Services → Credentials → Create credentials → OAuth client
+   ID** → application type **Desktop**. Download the JSON.
+5. Save it as `~/.config/jarvis/credentials.json`:
+
+```bash
+mkdir -p ~/.config/jarvis
+mv ~/Downloads/client_secret_*.json ~/.config/jarvis/credentials.json
+chmod 600 ~/.config/jarvis/credentials.json
+```
+
+### First run
+
+The first time the server fetches the calendar (right after the next
+WS connection), it pops a browser tab for OAuth consent. After you
+grant access, a refresh token is saved at
+`~/.config/jarvis/google-token.json` (`chmod 600`). Subsequent runs use
+the refresh token silently.
+
+### If Google rotates the refresh token
+
+You'll see a `calendar fetch failed` line in `journalctl --user -u
+jarvis-backend`. Delete the token and the next fetch re-prompts:
+
+```bash
+rm ~/.config/jarvis/google-token.json
+systemctl --user restart jarvis-backend
+```

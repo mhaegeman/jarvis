@@ -4,6 +4,8 @@ import type {
   EventHandler,
   EventMap,
   TelemetryEvent,
+  StateSnapshot,
+  CalendarUpdate,
 } from "@/types";
 import {
   decodeAudioFrame,
@@ -156,6 +158,12 @@ export class WSEventSource implements IEventSource {
     }
   }
 
+  syncCalendar(): void {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: "calendar.sync" }));
+    }
+  }
+
   private openSocket(): void {
     const ws = new WebSocket(this.opts.url);
     ws.binaryType = "arraybuffer";
@@ -264,6 +272,23 @@ export class WSEventSource implements IEventSource {
         this.emit("telemetry", t);
         return;
       }
+      case "state.snapshot":
+        this.emit(
+          "state.snapshot",
+          msg as unknown as StateSnapshot,
+        );
+        return;
+      case "calendar.update":
+        this.emit(
+          "calendar.update",
+          msg as unknown as CalendarUpdate,
+        );
+        return;
+      case "ping":
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ type: "pong", seq: msg.seq }));
+        }
+        return;
       case "error":
         this.emit("error", {
           code: String(msg.code ?? "unknown"),

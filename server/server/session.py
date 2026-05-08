@@ -13,18 +13,23 @@ from collections.abc import AsyncIterator, MutableMapping
 from typing import Any, Protocol
 
 from .audio import KIND_CLIENT_MIC, decode_audio_frame, encode_tts_chunk
+from .calendar_client import CalendarClient
+from .heartbeat import Heartbeat
 from .pipelines.interfaces import LLM, STT, TTS
 from .pipelines.sentence_split import split_sentences_stream
 from .protocol import (
     AudioEnd,
     AudioStart,
+    CalendarSync,
     Hello,
     Interrupt,
+    Pong,
     ServerMessage,
     TextIn,
     decode_client,
     encode_server,
 )
+from .state import StateEmitter
 
 log = logging.getLogger(__name__)
 
@@ -72,13 +77,23 @@ class Session:
         # llm_ended starts True so a stray `interrupt` while idle does not
         # spuriously emit `llm.end`. Reset to False at the start of each turn.
         self._llm_ended = True
+        self.heartbeat = Heartbeat(interval_s=HEARTBEAT_INTERVAL_S)
+        self.session_id = secrets.token_hex(4)
+        self.endpoint = "ws://localhost:8000/ws"
+        self.emitter = StateEmitter(self)
+        self._state_task: asyncio.Task[None] | None = None
+        self.calendar = CalendarClient()
+        self._calendar_sync_task: asyncio.Task[None] | None = None
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
     async def run(self) -> None:
         self._sender_task = asyncio.create_task(self._sender_loop())
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
-        await self._enqueue_json(ServerMessage.ready())
+        self._state_task = asyncio.create_task(self.emitter.run())
+        await self._enqueue_json(ServerMessage.ready(session_id=self.session_id))
+        # Calendar starts empty; the client requests a sync via calendar.sync.
+        await self._enqueue_json(ServerMessage.calendar_update(entries=[]))
         try:
             while not self._closing:
                 ev = await self._ws.receive()
@@ -96,7 +111,13 @@ class Session:
 
     async def cleanup(self) -> None:
         self._closing = True
-        for t in (self._partials_task, self._turn_task, self._heartbeat_task):
+        for t in (
+            self._partials_task,
+            self._turn_task,
+            self._heartbeat_task,
+            self._state_task,
+            self._calendar_sync_task,
+        ):
             if t and not t.done():
                 t.cancel()
                 with contextlib.suppress(asyncio.CancelledError, Exception):
@@ -140,6 +161,12 @@ class Session:
             return
         if isinstance(msg, Interrupt):
             await self._do_interrupt()
+            return
+        if isinstance(msg, Pong):
+            self.heartbeat.record_pong(msg.seq)
+            return
+        if isinstance(msg, CalendarSync):
+            await self._do_calendar_sync()
             return
 
     async def _handle_binary(self, payload: bytes) -> None:
@@ -254,6 +281,7 @@ class Session:
             try:
                 async for delta in llm_iter:
                     assistant_buf.append(delta)
+                    self.emitter.record_token()
                     await self._enqueue_json(ServerMessage.llm_token(delta))
                     await token_q.put(delta)
             finally:
@@ -299,6 +327,11 @@ class Session:
             self._history.append({"role": "assistant", "content": full})
         if len(self._history) > self._history_cap:
             self._history = self._history[-self._history_cap :]
+        # Approximate token budget tracking: ~4 chars per token. Cheap and
+        # stable for v2; spec-02 Phase 2 will replace this with a real
+        # tokenizer when the LLM client lands.
+        total_chars = sum(len(m["content"]) for m in self._history)
+        self.emitter.record_token_budget(total_chars // 4)
 
     async def _do_interrupt(self) -> None:
         if self._turn_task and not self._turn_task.done():
@@ -314,14 +347,24 @@ class Session:
     async def _enqueue_json(self, msg: dict[str, Any]) -> None:
         try:
             self._send_q.put_nowait(("text", encode_server(msg)))
+            self.emitter.record_packet()
         except asyncio.QueueFull:
             log.warning("send queue overflow, dropping JSON: %s", msg.get("type"))
 
     async def _enqueue_bytes(self, payload: bytes) -> None:
         try:
             self._send_q.put_nowait(("bytes", payload))
+            self.emitter.record_packet()
         except asyncio.QueueFull:
             log.warning("send queue overflow, dropping audio chunk (%dB)", len(payload))
+
+    @property
+    def send_queue_depth(self) -> int:
+        return self._send_q.qsize()
+
+    @property
+    def send_queue_max(self) -> int:
+        return self._send_q.maxsize
 
     async def _sender_loop(self) -> None:
         while True:
@@ -337,12 +380,30 @@ class Session:
                 log.exception("send failed")
                 return
 
+    async def _do_calendar_sync(self) -> None:
+        """Fetch today's calendar on demand. Concurrent syncs coalesce."""
+        if self._calendar_sync_task and not self._calendar_sync_task.done():
+            return
+        self._calendar_sync_task = asyncio.create_task(self._run_calendar_sync())
+
+    async def _run_calendar_sync(self) -> None:
+        try:
+            entries = await self.calendar.fetch_today()
+            await self._enqueue_json(ServerMessage.calendar_update(entries=entries))
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001
+            log.exception("calendar sync failed")
+            await self._enqueue_json(
+                ServerMessage.error("calendar.fetch_failed", "calendar fetch failed")
+            )
+
     async def _heartbeat_loop(self) -> None:
         try:
             while not self._closing:
                 await asyncio.sleep(HEARTBEAT_INTERVAL_S)
-                await self._enqueue_json(
-                    ServerMessage.telemetry(level="info", message="heartbeat")
-                )
+                self.heartbeat.evict_stale()
+                seq = self.heartbeat.send_ping()
+                await self._enqueue_json(ServerMessage.ping(seq=seq))
         except asyncio.CancelledError:
             raise

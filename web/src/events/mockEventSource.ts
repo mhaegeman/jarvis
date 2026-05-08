@@ -76,6 +76,17 @@ export class MockEventSource implements EventSource {
     }
   }
 
+  syncCalendar(): void {
+    // Demo mode: emit a small canned set so the panel shows something on click.
+    this.emit("calendar.update", {
+      entries: [
+        { time: "09:00", title: "(demo) Standup", durationMin: 30 },
+        { time: "11:00", title: "(demo) Deep work", durationMin: 90 },
+        { time: "15:00", title: "(demo) Review", durationMin: 45 },
+      ],
+    });
+  }
+
   on<E extends EventName>(event: E, handler: EventHandler<E>): () => void {
     let set = this.handlers[event] as Set<EventHandler<E>> | undefined;
     if (!set) {

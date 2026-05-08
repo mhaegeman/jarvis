@@ -31,6 +31,43 @@ export interface ProtocolError {
   message: string;
 }
 
+export interface PanelDataSystem {
+  load: number;
+  tokensPerMin: number;
+  sessionId: string;
+  modelName: string;
+}
+export interface PanelDataMemory {
+  contextUsed: number;
+  contextMax: number;
+}
+export interface PanelDataNetwork {
+  endpoint: string;
+  latencyMs: number | null;
+  packets: number;
+  sendQueueDepth: number;
+  sendQueueMax: number;
+}
+export interface PanelDataTasks {
+  queued: number;
+  active: number;
+  done: number;
+}
+export interface PanelDataCalendarEntry {
+  time: string;
+  title: string;
+  durationMin: number;
+}
+export interface StateSnapshot {
+  system: PanelDataSystem;
+  memory: PanelDataMemory;
+  network: PanelDataNetwork;
+  tasks: PanelDataTasks;
+}
+export interface CalendarUpdate {
+  entries: PanelDataCalendarEntry[];
+}
+
 export type EventMap = {
   ready: void;
   "stt.partial": SttPartial;
@@ -42,6 +79,8 @@ export type EventMap = {
   "tts.end": TtsEnd;
   error: ProtocolError;
   telemetry: TelemetryEvent;
+  "state.snapshot": StateSnapshot;
+  "calendar.update": CalendarUpdate;
 };
 
 export type EventName = keyof EventMap;

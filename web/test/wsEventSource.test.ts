@@ -402,6 +402,85 @@ describe("WSEventSource — handshake + dispatch", () => {
     ).toBe(false);
   });
 
+  it("dispatches state.snapshot to handlers (regression: panels-v2)", async () => {
+    const { src } = freshSrc();
+    const spy = vi.fn();
+    src.on("state.snapshot", spy);
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+    ws.receiveText(
+      JSON.stringify({
+        type: "state.snapshot",
+        system: {
+          load: 12,
+          tokensPerMin: 100,
+          sessionId: "abc",
+          modelName: "m",
+        },
+        memory: { contextUsed: 1, contextMax: 200000 },
+        network: {
+          endpoint: "ws://x",
+          latencyMs: 4,
+          packets: 5,
+          sendQueueDepth: 0,
+          sendQueueMax: 256,
+        },
+        tasks: { queued: 0, active: 0, done: 0 },
+      }),
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].system.sessionId).toBe("abc");
+  });
+
+  it("dispatches calendar.update to handlers (regression: panels-v2)", async () => {
+    const { src } = freshSrc();
+    const spy = vi.fn();
+    src.on("calendar.update", spy);
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+    ws.receiveText(
+      JSON.stringify({
+        type: "calendar.update",
+        entries: [{ time: "09:00", title: "Standup", durationMin: 30 }],
+      }),
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0].entries[0].title).toBe("Standup");
+  });
+
+  it("auto-replies to server ping with pong of the same seq (regression: panels-v2)", async () => {
+    const { src } = freshSrc();
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+    ws.sent.length = 0;
+    ws.receiveText(JSON.stringify({ type: "ping", seq: 42 }));
+    const sent = ws.sent.find((m) => typeof m === "string" && m.includes("pong"));
+    expect(sent).toBe(JSON.stringify({ type: "pong", seq: 42 }));
+  });
+
+  it("syncCalendar() sends calendar.sync over the wire (regression: panels-v2)", async () => {
+    const { src } = freshSrc();
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+    src.syncCalendar();
+    const sent = ws.sent.find(
+      (m) => typeof m === "string" && m.includes("calendar.sync"),
+    );
+    expect(sent).toBe(JSON.stringify({ type: "calendar.sync" }));
+  });
+
   it("interrupt() stops local playback synchronously and sends interrupt msg", async () => {
     const { src, ctx } = freshSrc();
     const p = src.start();

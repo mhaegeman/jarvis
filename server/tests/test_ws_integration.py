@@ -38,9 +38,14 @@ def test_ws_unknown_type_returns_error() -> None:
     with client.websocket_connect("/ws") as ws:
         _ = ws.receive_json()  # ready
         ws.send_text(json.dumps({"type": "garbage"}))
-        msg = ws.receive_json()
-        assert msg["type"] == "error"
-        assert msg["code"].startswith("protocol.")
+        # Drain ambient panel-data messages (calendar.update on connect,
+        # state.snapshot every 1s) until the error response arrives.
+        for _ in range(10):
+            msg = ws.receive_json()
+            if msg["type"] == "error":
+                assert msg["code"].startswith("protocol.")
+                return
+        raise AssertionError("expected error message; only saw ambient traffic")
 
 
 def test_health_endpoint() -> None:
