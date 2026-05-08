@@ -296,9 +296,22 @@ class Session:
         return final
 
     async def _do_llm_and_tts(self, user_text: str) -> None:
+        from .memory.context import MemoryContext
+        from .memory.triggers import is_memory_query
+
         self._history.append({"role": "user", "content": user_text})
 
-        llm_iter = self._llm.stream(self._history, user_text)
+        if self._memory is not None:
+            await self._memory.append_turn(self.session_id, "user", user_text)
+
+        extra = ""
+        if self._memory is not None:
+            if is_memory_query(user_text):
+                extra = await MemoryContext.full(self._memory, user_text)
+            else:
+                extra = await MemoryContext.default(self._memory)
+
+        llm_iter = self._llm.stream(self._history, user_text, extra_context=extra)
         token_q: asyncio.Queue[str | None] = asyncio.Queue()
         sentence_q: asyncio.Queue[str | None] = asyncio.Queue()
         assistant_buf: list[str] = []
@@ -351,6 +364,8 @@ class Session:
         full = "".join(assistant_buf)
         if full:
             self._history.append({"role": "assistant", "content": full})
+            if self._memory is not None:
+                await self._memory.append_turn(self.session_id, "assistant", full)
         if len(self._history) > self._history_cap:
             self._history = self._history[-self._history_cap :]
         # Approximate token budget tracking: ~4 chars per token. Cheap and
@@ -358,6 +373,8 @@ class Session:
         # tokenizer when the LLM client lands.
         total_chars = sum(len(m["content"]) for m in self._history)
         self.emitter.record_token_budget(total_chars // 4)
+
+        await self._maybe_refresh_recent_summary()
 
     async def _do_interrupt(self) -> None:
         if self._turn_task and not self._turn_task.done():
@@ -433,3 +450,29 @@ class Session:
                 await self._enqueue_json(ServerMessage.ping(seq=seq))
         except asyncio.CancelledError:
             raise
+
+    async def _maybe_refresh_recent_summary(self) -> None:
+        if self._memory is None or self._summarizer is None:
+            return
+        meta = await self._memory.get_recent_summary_meta()
+        delta = await self._memory.turns_since(meta.last_turn_id)
+        if delta < self._refresh_turns:
+            return
+        # Pull the latest N turns across all sessions for the summary.
+        # We access _conn directly because we need a cross-session SELECT;
+        # the public API doesn't expose a "latest N turns globally" method.
+        cur = await self._memory._conn.execute(
+            "SELECT id, session_id, ts, role, content FROM turns ORDER BY id DESC LIMIT ?",
+            (self._recent_window,),
+        )
+        rows = list(reversed(await cur.fetchall()))
+        from .memory.types import Turn
+        latest = [Turn(id=r[0], session_id=r[1], ts=r[2], role=r[3], content=r[4]) for r in rows]
+        if not latest:
+            return
+        try:
+            summary = await self._summarizer.refresh_recent_summary(latest)
+            if summary:
+                await self._memory.write_recent_summary(summary, latest[-1].id)
+        except Exception:
+            log.exception("recent_summary refresh failed")
