@@ -117,7 +117,10 @@ export class WSEventSource implements IEventSource {
   }
 
   interrupt(): void {
-    /* implemented in Task 8 */
+    this.playback?.interrupt();
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: "interrupt" }));
+    }
   }
 
   private openSocket(): void {

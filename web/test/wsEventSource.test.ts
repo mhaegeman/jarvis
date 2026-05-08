@@ -223,6 +223,32 @@ describe("WSEventSource — handshake + dispatch", () => {
     expect(onFrame).toBeNull();
   });
 
+  it("interrupt() stops local playback synchronously and sends interrupt msg", async () => {
+    const { src, ctx } = freshSrc();
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+
+    const samples = new Int16Array(2400);
+    const idBytes = new TextEncoder().encode("a");
+    const frame = new Uint8Array(2 + 1 + samples.byteLength);
+    frame[0] = 0x02;
+    frame[1] = 1;
+    frame.set(idBytes, 2);
+    frame.set(new Uint8Array(samples.buffer), 3);
+    ws.receiveBinary(frame.buffer);
+    expect(ctx.sources[0].stopCalls.length).toBe(0);
+
+    src.interrupt();
+    expect(ctx.sources[0].stopCalls.length).toBe(1);
+    const sent = ws.sent.find(
+      (m): m is string => typeof m === "string" && m.includes("interrupt"),
+    );
+    expect(sent).toBe(JSON.stringify({ type: "interrupt" }));
+  });
+
   it("stop() closes the socket and prevents reconnect", () => {
     const { src } = freshSrc();
     void src.start();
