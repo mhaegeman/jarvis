@@ -151,4 +151,6 @@ class OpenVoiceTTS(TTS):
                     audio=audio, src_se=loaded.en_source_se, tgt_se=loaded.target_se
                 )
         clipped = np.clip(audio * 32767.0, -32768, 32767).astype(np.int16)
-        return clipped.tobytes()
+        # bytes() wrapper is a no-op at runtime but pins the static return
+        # type to `bytes` even when numpy stubs flow as Any.
+        return bytes(clipped.tobytes())
