@@ -348,11 +348,11 @@ The package is built around small, swappable seams. Most tests are unit tests wi
 
 | File | What it covers |
 |---|---|
-| `tests/memory/test_triggers.py` | Phrase list — true positives and the documented false-positive landmines |
-| `tests/memory/test_store.py` | Schema migrations, all CRUD methods, LRU fact eviction, resume-window math, idempotent `start_session` |
-| `tests/memory/test_context.py` | Default blob shape, full blob with all-empty / partial / saturated inputs, section ordering, total-size guard |
-| `tests/memory/test_summarizer.py` | Mocks `AsyncAnthropic.messages.create`; asserts Haiku model id, JSON-mode for `extract_facts`, tolerance for malformed JSON |
-| `tests/memory/test_session_integration.py` | E2E with `:memory:` store + `FakeSummarizer` + `MockLLM`: resume flow, per-turn append, refresh cadence, consolidation on cleanup, crash-mid-session leaves turns intact |
+| `server/tests/test_memory_triggers.py` | Phrase list — true positives and the documented false-positive landmines |
+| `server/tests/test_memory_store.py` | Schema migrations, all CRUD methods, LRU fact eviction, resume-window math, idempotent `start_session` |
+| `server/tests/test_memory_context.py` | Default blob shape, full blob with all-empty / partial / saturated inputs, section ordering, total-size guard |
+| `server/tests/test_memory_summarizer.py` | Mocks `AsyncAnthropic.messages.create`; asserts Haiku model id, JSON-mode for `extract_facts`, tolerance for malformed JSON |
+| `server/tests/test_memory_session.py` | E2E with `:memory:` store + `FakeSummarizer` + `MockLLM`: resume flow, per-turn append, refresh cadence, consolidation on cleanup, crash-mid-session leaves turns intact |
 
 `tests/test_session.py` (existing) must still pass unchanged. `Session.__init__` gains optional `memory: MemoryStore | None = None`; when `None`, the memory path is skipped and behavior matches today's.
 
@@ -390,7 +390,7 @@ The package is built around small, swappable seams. Most tests are unit tests wi
 
 A reviewer can verify the spec is satisfied by:
 
-1. `pytest server/tests/memory/` passes.
+1. `pytest server/tests/test_memory_*.py` passes.
 2. `pytest server/tests/test_session.py` still passes (no regressions).
 3. Setting `JARVIS_MEMORY=off`, the server behaves identically to today.
 4. With memory on: connect, send 6+ turns, disconnect, reconnect within 30 min → next turn proceeds with prior `_history` populated (verified via WS frames).
