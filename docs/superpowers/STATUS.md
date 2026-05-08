@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-04 implementation complete on branch)
+**Last updated:** 2026-05-08 (spec-04 merged — v1 shipped)
 
 ---
 
 ## Current Phase
-**spec-04-deploy-and-gate · pending PR + Architect manual setup (Pages source, secret, branch protection)**
+**v1 complete · all four sub-specs on `main` · awaiting Architect post-merge setup**
 
 ## Macro Progress
 
@@ -18,7 +18,7 @@
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
 | 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + Codex P1/P2 | ✅ 58/58 tests | ✅ merged 6efecde + 95e6eee |
 | 3 | spec-03-integration | ✅ committed (dc84817) | ✅ committed (c1f6041) | ✅ 13/13 tasks | ✅ Codex P1/P1 (5cfb2dc) | ✅ 60/60 vitest, lint+tsc+build clean | ✅ merged ab7cb7c |
-| 4 | spec-04-deploy-and-gate | ✅ committed (f80d562) | ✅ committed (84da47e) | ✅ 5/5 tasks | ⏳ pending PR | ⏳ CI runs against PR | ⏳ branch pushed |
+| 4 | spec-04-deploy-and-gate | ✅ committed (f80d562) | ✅ committed (84da47e) | ✅ 5/5 tasks | ✅ Codex P1 (fe7f892) | ✅ CI green on PR | ✅ merged c0a1e99 |
 
 Legend: ⬜ not started · ⏳ in progress · ✅ done
 
@@ -59,23 +59,25 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Spec-04 implementation complete on branch `spec-04-deploy-and-gate`
-(7 commits). Architect to:
 
-1. Open PR — CI workflow self-tests by running on this PR
-2. Set repo secret `STATICRYPT_PASSWORD`
-3. Settings → Pages → Source: "GitHub Actions"
-4. Settings → Branches → main → require `web` and `server` checks
-5. Merge PR — first deploy lands at `https://mhaegeman.github.io/jarvis/`
-6. Install systemd unit on the laptop per `server/deploy/README.md`
+**v1 codebase is complete.** All four sub-specs merged to `main`. Pure
+infra now sits between the user and the live site:
 
-After merge, v1 ships. Future scope (out of v1): spec-02 Phase 2 (real
-Whisper / LLM / OpenVoice), HTTPS for backend (Cloudflare tunnel),
-custom domain.
+1. **Set repo secret** `STATICRYPT_PASSWORD` (Settings → Secrets → Actions)
+2. **Pages source** = "GitHub Actions" (Settings → Pages → Source)
+3. **Branch protection on `main`** — require `web` + `server` CI checks
+4. **Push any commit to `main`** (or re-run Deploy workflow) to land the
+   first deploy at `https://mhaegeman.github.io/jarvis/`
+5. **Install backend service** on the laptop: see `server/deploy/README.md`
+
+Once those are done, the loop closes: laptop runs `uvicorn` via systemd,
+GH Pages serves the password-gated frontend, browser connects to
+`ws://localhost:8000/ws`, full streaming voice conversation works.
 
 ### Spec-04 implementation summary
-**7 commits on branch `spec-04-deploy-and-gate`.** No application-code
-changes; pure infra:
+**8 commits on branch `spec-04-deploy-and-gate`** (7 plan commits + 1
+Codex review fix), merged via PR #6 as `c0a1e99`. No application-code
+changes — pure infra:
 - `web/vite.config.ts` — `base: process.env.VITE_BASE ?? "/"` (one line)
 - `.github/workflows/ci.yml` — web (npm ci → tsc → eslint → vitest →
   vite build) + server (pip install → ruff → mypy → pytest), parallel
@@ -86,8 +88,27 @@ changes; pure infra:
 - `server/deploy/README.md` — install + verify + lingering procedure
 - `web/README.md` — Live URL + password-rotation + autostart pointers
 
-Local verification passing: 60/60 vitest, 58/58 pytest, both default
-and `VITE_BASE=/jarvis/` builds produce correct asset paths.
+Codex P1 (commit `fe7f892`): the install snippet's
+`JARVIS_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"` was broken in
+copy-paste shell context (`$0` resolves to the shell binary, not the
+README). Replaced with `git rev-parse --show-toplevel` + a no-git
+fallback line.
+
+Final verification on PR: CI workflow ran twice (web + server), both
+green. Local: 60/60 vitest, 58/58 pytest.
+
+## Future scope (post-v1, deferred)
+
+- **spec-02 Phase 2** — replace mock pipelines with real `faster-whisper`
+  (STT), `openai.AsyncOpenAI` streaming against LM Studio (LLM), and
+  OpenVoice (TTS). Pre-reqs: LM Studio running, Whisper model cached,
+  OpenVoice cloned + checkpoints. Spec-02 §11 lists Phase 2 acceptance.
+- **HTTPS for the backend** — Cloudflare tunnel (`cloudflared`) so the
+  deployed site can reach a non-`localhost` backend. Architecture §7
+  notes the swap is a frontend URL flip only.
+- **Custom domain** for GH Pages.
+- **Persistent conversation memory beyond the WS session** (architecture §8).
+- **Tool use / function calling** (architecture §8).
 
 ### Spec-03 implementation summary
 **14 commits on `spec-03-integration` + Codex review fix, merged via PR #5.** All quality gates green at merge:
