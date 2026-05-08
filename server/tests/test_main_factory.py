@@ -5,9 +5,10 @@ from __future__ import annotations
 import pytest
 from pydantic import SecretStr
 
-from server.main import _build_llm
+from server.main import _build_llm, _build_stt, _resolve_device
 from server.pipelines.claude_llm import ClaudeLLM
 from server.pipelines.mock_llm import MockLLM
+from server.pipelines.mock_stt import MockSTT
 
 
 class TestBuildLLM:
@@ -34,3 +35,83 @@ class TestBuildLLM:
         monkeypatch.setattr("server.main.settings.model_name", "gpt-99")
         with pytest.raises(ValueError, match="JARVIS_MODEL_NAME"):
             _build_llm()
+
+
+class TestResolveDevice:
+    def test_explicit_cpu(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.device", "cpu")
+        assert _resolve_device() == "cpu"
+
+    def test_explicit_cuda(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.device", "cuda")
+        assert _resolve_device() == "cuda"
+
+    def test_explicit_mps(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.device", "mps")
+        assert _resolve_device() == "mps"
+
+    def test_auto_without_torch_returns_cpu(self, monkeypatch):
+        """When torch is not importable, auto resolves to cpu."""
+        import sys
+        monkeypatch.setattr("server.main.settings.device", "auto")
+        # Block the import of torch within _resolve_device.
+        monkeypatch.setitem(sys.modules, "torch", None)
+        assert _resolve_device() == "cpu"
+
+
+class TestBuildSTT:
+    def test_mock_engine_returns_mock_stt(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.stt_engine", "mock")
+        stt = _build_stt()
+        assert isinstance(stt, MockSTT)
+
+    def test_auto_with_faster_whisper_returns_whisper_stt(self, monkeypatch):
+        from server.pipelines.whisper_stt import WhisperSTT
+        monkeypatch.setattr("server.main.settings.stt_engine", "auto")
+        monkeypatch.setattr("server.main.settings.whisper_model", "base.en")
+        monkeypatch.setattr("server.main.settings.device", "cpu")
+        # Stub find_spec → faster-whisper appears installed.
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec",
+            lambda name: object() if name == "faster_whisper" else None,
+        )
+        stt = _build_stt()
+        assert isinstance(stt, WhisperSTT)
+
+    def test_explicit_whisper_returns_whisper_stt(self, monkeypatch):
+        from server.pipelines.whisper_stt import WhisperSTT
+        monkeypatch.setattr("server.main.settings.stt_engine", "whisper")
+        monkeypatch.setattr("server.main.settings.whisper_model", "base.en")
+        monkeypatch.setattr("server.main.settings.device", "cpu")
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec",
+            lambda name: object() if name == "faster_whisper" else None,
+        )
+        stt = _build_stt()
+        assert isinstance(stt, WhisperSTT)
+
+    def test_auto_without_faster_whisper_logs_and_returns_mock(self, monkeypatch, caplog):
+        import logging
+        monkeypatch.setattr("server.main.settings.stt_engine", "auto")
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec", lambda name: None
+        )
+        with caplog.at_level(logging.WARNING, logger="server.main"):
+            stt = _build_stt()
+        assert isinstance(stt, MockSTT)
+        assert any(
+            "faster-whisper not installed" in rec.message for rec in caplog.records
+        )
+
+    def test_explicit_whisper_without_faster_whisper_raises(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.stt_engine", "whisper")
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec", lambda name: None
+        )
+        with pytest.raises(ImportError, match="faster-whisper is not installed"):
+            _build_stt()
+
+    def test_unknown_engine_raises(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.stt_engine", "vosk")
+        with pytest.raises(ValueError, match="JARVIS_STT_ENGINE"):
+            _build_stt()
