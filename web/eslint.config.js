@@ -16,5 +16,17 @@ export default [
       "@typescript-eslint/consistent-type-imports": "error",
     },
   },
+  {
+    files: ["public/**/*.js"],
+    languageOptions: {
+      globals: {
+        AudioWorkletProcessor: "readonly",
+        registerProcessor: "readonly",
+        sampleRate: "readonly",
+        currentTime: "readonly",
+        currentFrame: "readonly",
+      },
+    },
+  },
   prettier,
 ];
