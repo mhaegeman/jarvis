@@ -71,7 +71,9 @@ def _default_loader(
         str(conv_dir / "config.json"), device=device
     )
     tone_color_converter.load_ckpt(str(conv_dir / "checkpoint.pth"))
-    en_source_se = torch.load(str(base_dir / "en_default_se.pth")).to(device)
+    en_source_se = torch.load(
+        str(base_dir / "en_default_se.pth"), weights_only=True
+    ).to(device)
 
     target_se: Any | None = None
     if speaker_wav:

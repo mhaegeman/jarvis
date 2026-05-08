@@ -374,7 +374,7 @@ class TestDefaultLoaderCache:
 
         # Stub torch.load to return a sentinel embedding.
         torch_module = sys.modules.get("torch") or types.ModuleType("torch")
-        torch_module.load = lambda _path: types.SimpleNamespace(  # type: ignore[attr-defined]
+        torch_module.load = lambda _path, **_kw: types.SimpleNamespace(  # type: ignore[attr-defined]
             to=lambda _device: object()
         )
         monkeypatch.setitem(sys.modules, "torch", torch_module)
@@ -436,7 +436,7 @@ class TestDefaultLoaderCache:
         monkeypatch.setitem(sys.modules, "se_extractor", se_module)
 
         torch_module = sys.modules.get("torch") or types.ModuleType("torch")
-        torch_module.load = lambda _p: types.SimpleNamespace(  # type: ignore[attr-defined]
+        torch_module.load = lambda _p, **_kw: types.SimpleNamespace(  # type: ignore[attr-defined]
             to=lambda _d: object()
         )
         monkeypatch.setitem(sys.modules, "torch", torch_module)
