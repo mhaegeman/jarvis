@@ -108,3 +108,34 @@ jarvis-backend`. Delete the token and the next fetch re-prompts:
 rm ~/.config/jarvis/google-token.json
 systemctl --user restart jarvis-backend
 ```
+
+## Real pipelines (optional)
+
+The default install runs with mock pipelines. To enable real Whisper STT:
+
+### STT — faster-whisper
+
+```bash
+cd server
+pip install -e .[stt]
+```
+
+Then either leave `JARVIS_STT_ENGINE=auto` (default) or set it explicitly:
+
+```bash
+export JARVIS_STT_ENGINE=whisper
+export JARVIS_WHISPER_MODEL=base.en   # or small.en, tiny.en, medium.en
+export JARVIS_DEVICE=auto              # auto | cuda | mps | cpu
+```
+
+Restart the server. The first WS connection downloads the model (~140 MB
+for `base.en`) into `~/.cache/huggingface/hub` and warms the singleton;
+later connections reuse the cached model.
+
+If `JARVIS_STT_ENGINE=auto` and faster-whisper isn't installed, the
+server logs a `WARNING` and falls back to `MockSTT`. Set the engine to
+`whisper` to make a missing dep a hard failure.
+
+### TTS — OpenVoice
+
+(Coming in the next release — see `docs/superpowers/specs/2026-05-08-real-stt-tts-design.md`.)
