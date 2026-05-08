@@ -16,7 +16,7 @@
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
-| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ⏳ pending | ⏳ pending | ⬜ |
+| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + 7 fixes | ✅ 56/56 tests | ⏳ PR open |
 | 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
@@ -59,7 +59,10 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Code review pass on spec-02 (fresh subagent, sealed context: spec + diff). Apply Important fixes. Then `finishing-a-development-branch` to merge `spec-02-backend-streaming` → `main`. After merge, begin spec-03 (browser ↔ backend integration) brainstorm.
+Branch `spec-02-backend-streaming` pushed to GitHub. PR creation URL:
+**https://github.com/mhaegeman/jarvis/pull/new/spec-02-backend-streaming**
+
+Architect (Maxime) opens the PR, reviews, and merges. After merge, begin spec-03 (browser ↔ backend integration) brainstorm.
 
 ### Spec-02 Phase 1 implementation summary
 **13 commits on branch `spec-02-backend-streaming`.** All quality gates green:
