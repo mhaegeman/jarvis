@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +13,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     model_name: str = "mock"
     model_context_max: int = 200000
+    llm_max_tokens: int = 1024
+
+    # validation_alias bypasses env_prefix so this loads from ANTHROPIC_API_KEY
+    # (the SDK's standard convention) in either .env or the process environment.
+    anthropic_api_key: SecretStr | None = Field(
+        default=None, validation_alias="ANTHROPIC_API_KEY"
+    )
 
 
 settings = Settings()

@@ -69,14 +69,58 @@ will need in Phase 2. Swap is mechanical at the interface boundary.
   chunks**; spec-03 frontend uses its synthetic amplitude envelope
   during the `speaking` state.
 
+## LLM pipeline
+
+Two backends are wired through the `LLM` ABC: a deterministic mock (default, used for offline dev / CI / demos) and a real Claude-backed pipeline.
+
+### Selecting a backend
+
+Set `JARVIS_MODEL_NAME`:
+
+| Value | Backend | Notes |
+|---|---|---|
+| `mock` (default) | `MockLLM` | Scripted replies; no network calls. |
+| `claude-haiku-4-5` | `ClaudeLLM` | Default Claude model. Requires `ANTHROPIC_API_KEY`. |
+| `claude-sonnet-4-6` | `ClaudeLLM` | Same, with Sonnet as the default for un-prefixed messages. |
+| `claude-opus-4-7` | `ClaudeLLM` | Same, with Opus as the default for un-prefixed messages. |
+
+### Per-turn model prefixes
+
+When `JARVIS_MODEL_NAME` selects a Claude model, you can promote a single turn to a different model with a slash prefix:
+
+| Prefix | Routes to |
+|---|---|
+| `/haiku ...` | `claude-haiku-4-5` |
+| `/sonnet ...` | `claude-sonnet-4-6` |
+| `/opus ...` | `claude-opus-4-7` |
+
+Unrecognized prefixes are passed through to the default model verbatim — JARVIS will see and react to the literal text, including the slash.
+
+### Other env vars
+
+- `ANTHROPIC_API_KEY` — required when `JARVIS_MODEL_NAME` selects Claude. The server will refuse to accept WebSocket connections at startup if it's missing, rather than 401-looping every turn.
+- `JARVIS_LLM_MAX_TOKENS` — base per-request `max_tokens` (default `1024`). Auto-scaled to `2 ×` for `/sonnet` and `4 ×` for `/opus` because heavier models are invoked for harder questions, not for verbosity.
+
+### Smoke test
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+export JARVIS_MODEL_NAME=claude-haiku-4-5
+cd server
+python -m server.main  # in one terminal
+python -m server.cli_test  # in another; type messages, observe deltas
+```
+
+Verify in [Anthropic's usage dashboard](https://console.anthropic.com/) that `/sonnet` and `/opus` prefixes route to the right model IDs.
+
 ## Configuration
 
-Phase 1 reads two env vars (prefix `JARVIS_`):
+Phase 1 reads env vars (prefix `JARVIS_`):
 
 | Var | Default | Notes |
 |---|---|---|
 | `JARVIS_WS_PORT` | `8765` | uvicorn port |
 | `JARVIS_LOG_LEVEL` | `INFO` | uvicorn + app logger |
-
-Phase 2 will add `JARVIS_LLM_BASE_URL`, `JARVIS_WHISPER_MODEL`,
-`JARVIS_OPENVOICE_PATH`, etc.
+| `JARVIS_MODEL_NAME` | `mock` | LLM backend selector (see "LLM pipeline" section above) |
+| `ANTHROPIC_API_KEY` | — | Claude API key; see "LLM pipeline" section |
+| `JARVIS_LLM_MAX_TOKENS` | `1024` | Base token limit; see "LLM pipeline" section |
