@@ -2,6 +2,24 @@
 
 from __future__ import annotations
 
+import sys
+import types
+
+if "torch" not in sys.modules:
+    fake_torch = types.ModuleType("torch")
+
+    class _NoOpCM:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+
+    class _FakeTensor:
+        def __init__(self, data): self.data = data
+        def to(self, _device): return self
+
+    fake_torch.no_grad = lambda: _NoOpCM()  # type: ignore[attr-defined]
+    fake_torch.LongTensor = lambda data: _FakeTensor(data)  # type: ignore[attr-defined]
+    sys.modules["torch"] = fake_torch
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -114,3 +132,48 @@ class TestSampleRate:
         # Second call reuses the cached LoadedOpenVoice (loader called once).
         assert tts.sample_rate() == 24000
         assert len(loader_calls) == 1
+
+
+class TestSynthesizeInfer:
+    async def test_text_wrapped_with_language_marks(self):
+        fake_tts = FakeBaseSpeakerTTS(
+            return_audio=np.zeros(2400, dtype=np.float32),
+        )
+        loaded = LoadedOpenVoice(
+            tts_model=fake_tts,
+            tone_color_converter=FakeToneColorConverter(),
+            en_source_se=object(),
+            target_se=None,
+            sample_rate=24000,
+        )
+        tts = OpenVoiceTTS(
+            openvoice_path="~/OpenVoice", device="cpu", speaker_wav=None,
+            loader=make_loader(loaded),
+        )
+        async for _ in tts.synthesize("hello world", "id1"):
+            pass
+
+        # The wrapper must wrap text in [mark]...[mark] using the english mark
+        # before calling get_text. Mark for english per FakeBaseSpeakerTTS is "EN".
+        assert fake_tts.get_text_calls == ["[EN]hello world[EN]"]
+        # infer is called with OpenVoice's documented noise_scale defaults.
+        assert fake_tts.infer_calls == [{"noise_scale": 0.667, "noise_scale_w": 0.6}]
+
+    async def test_no_target_se_skips_tone_color_convert(self):
+        fake_tts = FakeBaseSpeakerTTS(return_audio=np.zeros(2400, dtype=np.float32))
+        fake_conv = FakeToneColorConverter()
+        loaded = LoadedOpenVoice(
+            tts_model=fake_tts,
+            tone_color_converter=fake_conv,
+            en_source_se=object(),
+            target_se=None,
+            sample_rate=24000,
+        )
+        tts = OpenVoiceTTS(
+            openvoice_path="~/OpenVoice", device="cpu", speaker_wav=None,
+            loader=make_loader(loaded),
+        )
+        async for _ in tts.synthesize("hi", "id1"):
+            pass
+
+        assert fake_conv.convert_calls == []  # no tone-color conversion when target_se is None

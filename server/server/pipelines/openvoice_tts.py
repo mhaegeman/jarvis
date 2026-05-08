@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import re
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from typing import Any
+
+import numpy as np
 
 from .interfaces import TTS
 
@@ -73,7 +77,32 @@ class OpenVoiceTTS(TTS):
         return self._ensure_loaded().sample_rate
 
     async def synthesize(self, text: str, audio_id: str) -> AsyncIterator[bytes]:
-        # Implemented in Task 3; yields nothing for now so the file imports.
-        if False:  # pragma: no cover
-            yield b""
-        return
+        loaded = self._ensure_loaded()
+        pcm = await asyncio.to_thread(self._synth_one, loaded, text)
+        if not pcm:
+            return
+        # Chunking is added in Task 4.
+        yield pcm
+
+    def _synth_one(self, loaded: LoadedOpenVoice, text: str) -> bytes:
+        import torch  # type: ignore[import-not-found]
+
+        text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+        mark = loaded.tts_model.language_marks.get("english", None)
+        wrapped = f"[{mark}]{text}[{mark}]"
+        stn = loaded.tts_model.get_text(wrapped, loaded.tts_model.hps, False)
+        with torch.no_grad():
+            x = stn.unsqueeze(0).to(loaded.tts_model.device)
+            x_len = torch.LongTensor([stn.size(0)]).to(loaded.tts_model.device)
+            sid = torch.LongTensor(
+                [loaded.tts_model.hps.speakers["default"]]
+            ).to(loaded.tts_model.device)
+            audio = loaded.tts_model.model.infer(
+                x, x_len, sid=sid, noise_scale=0.667, noise_scale_w=0.6
+            )[0][0, 0].data.cpu().float().numpy()
+            if loaded.target_se is not None:
+                audio = loaded.tone_color_converter.convert_from_tensor(
+                    audio=audio, src_se=loaded.en_source_se, tgt_se=loaded.target_se
+                )
+        clipped = np.clip(audio * 32767.0, -32768, 32767).astype(np.int16)
+        return clipped.tobytes()
