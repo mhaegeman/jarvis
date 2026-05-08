@@ -25,6 +25,10 @@ dev = [
   "mypy>=1.13",
   "types-psutil>=5.9",
 ]
+stt = [
+  "faster-whisper>=1.0",
+  "numpy>=1.26",
+]
 
 [build-system]
 requires = ["setuptools>=68"]
