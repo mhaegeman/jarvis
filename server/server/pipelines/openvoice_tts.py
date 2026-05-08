@@ -128,7 +128,7 @@ class OpenVoiceTTS(TTS):
             yield pcm[i : i + chunk_bytes]
 
     def _synth_one(self, loaded: LoadedOpenVoice, text: str) -> bytes:
-        import torch  # type: ignore[import-not-found]
+        import torch
 
         text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
         mark = loaded.tts_model.language_marks.get("english", None)
