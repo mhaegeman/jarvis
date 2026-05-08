@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import SecretStr
 
-from server.main import _build_llm
+from server.main import _build_llm, _resolve_device
 from server.pipelines.claude_llm import ClaudeLLM
 from server.pipelines.mock_llm import MockLLM
 
@@ -39,17 +39,14 @@ class TestBuildLLM:
 class TestResolveDevice:
     def test_explicit_cpu(self, monkeypatch):
         monkeypatch.setattr("server.main.settings.device", "cpu")
-        from server.main import _resolve_device
         assert _resolve_device() == "cpu"
 
     def test_explicit_cuda(self, monkeypatch):
         monkeypatch.setattr("server.main.settings.device", "cuda")
-        from server.main import _resolve_device
         assert _resolve_device() == "cuda"
 
     def test_explicit_mps(self, monkeypatch):
         monkeypatch.setattr("server.main.settings.device", "mps")
-        from server.main import _resolve_device
         assert _resolve_device() == "mps"
 
     def test_auto_without_torch_returns_cpu(self, monkeypatch):
@@ -58,5 +55,4 @@ class TestResolveDevice:
         monkeypatch.setattr("server.main.settings.device", "auto")
         # Block the import of torch within _resolve_device.
         monkeypatch.setitem(sys.modules, "torch", None)
-        from server.main import _resolve_device
         assert _resolve_device() == "cpu"
