@@ -4,6 +4,9 @@ dist
 playwright-report
 test-results
 
+# Local staticrypt encrypt cache — leaks the password salt+hash; deploy workflow regenerates this.
+.staticrypt.json
+
 # TypeScript composite-build artifacts for config files
 *.tsbuildinfo
 vite.config.js
