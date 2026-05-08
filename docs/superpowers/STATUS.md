@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (panels-v2 merged)
+**Last updated:** 2026-05-08 (unlock-page-redesign in flight)
 
 ---
 
 ## Current Phase
-**panels-v2 merged · 9 panels live with real data · v2 milestone shipped**
+**unlock-page-redesign in flight · v0.2 polish item ε**
 
 ## Macro Progress
 
@@ -20,6 +20,7 @@
 | 3 | spec-03-integration | ✅ committed (dc84817) | ✅ committed (c1f6041) | ✅ 13/13 tasks | ✅ Codex P1/P1 (5cfb2dc) | ✅ 60/60 vitest, lint+tsc+build clean | ✅ merged ab7cb7c |
 | 4 | spec-04-deploy-and-gate | ✅ committed (f80d562) | ✅ committed (84da47e) | ✅ 5/5 tasks | ✅ Codex P1 (fe7f892) | ✅ CI green on PR | ✅ merged c0a1e99 |
 | 5 | panels-v2 | ✅ committed (edf4ad4) | ✅ committed (833db55) | ✅ Phase A+B+C+D | ✅ Codex P1/P2 (b7644d6) | ✅ 100 vitest, 97 pytest, lint+tsc+build clean | ✅ merged 32226ef |
+| 6 | unlock-page-redesign (v0.2 ε) | ✅ committed (af8006f) | ✅ committed (c21b802) | ✅ 9/9 tasks | ✅ subagent (per-task spec + quality) | ✅ CI smoke green, JS parse OK | (pending merge) |
 
 Legend: ⬜ not started · ⏳ in progress · ✅ done
 

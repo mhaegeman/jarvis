@@ -42,6 +42,10 @@ Deploy is automatic: every push to `main` rebuilds the site, encrypts
 `index.html` with the `STATICRYPT_PASSWORD` repo secret, and publishes to
 GitHub Pages via `actions/deploy-pages`.
 
+The unlock page is a custom staticrypt template at `web/unlock-template.html`.
+Editing it changes the look of the password gate; the encryption pipeline
+(CI workflow, `STATICRYPT_PASSWORD` secret) is unchanged.
+
 ### Rotate the password
 
 1. Settings → Secrets and variables → Actions → `STATICRYPT_PASSWORD` → Update.

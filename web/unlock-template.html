@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="cache-control" content="no-cache" />
+  <title>JARVIS // OS</title>
+  <style>
+    :root {
+      --bg-0: #02060a;
+      --bg-1: #03101a;
+      --fg: #d6f0ff;
+      --fg-dim: rgba(214, 240, 255, 0.65);
+      --accent: #5cf0ff;
+      --accent-dim: rgba(92, 240, 255, 0.35);
+      --accent-faint: rgba(92, 240, 255, 0.10);
+      --grid-line: rgba(92, 240, 255, 0.08);
+      --deny: #ff5c5c;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 50% 50%, var(--bg-1) 0%, var(--bg-0) 70%),
+        linear-gradient(transparent 95%, var(--grid-line) 95%) 0 0 / 100% 32px,
+        linear-gradient(90deg, transparent 95%, var(--grid-line) 95%) 0 0 / 32px 100%;
+      color: var(--fg);
+      font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+
+    /* CRT scanline overlay across the whole viewport. */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(92, 240, 255, 0.06) 0,
+        rgba(92, 240, 255, 0.06) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      z-index: 1;
+    }
+
+    #staticrypt_loading {
+      color: var(--fg-dim);
+      letter-spacing: 0.2em;
+    }
+
+    #staticrypt_content { width: 100%; max-width: 480px; padding: 0 24px; }
+
+    .panel {
+      border: 1px solid var(--accent-dim);
+      background: rgba(3, 16, 26, 0.85);
+      box-shadow: 0 0 32px var(--accent-faint), inset 0 0 0 1px var(--accent-faint);
+      position: relative;
+      z-index: 2;
+    }
+
+    .panel__bar {
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--accent-dim);
+      background: var(--accent-faint);
+      color: var(--accent);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .panel__bar::before {
+      content: "▌" / "";
+      margin-right: 8px;
+    }
+
+    .panel__body { padding: 32px 24px 24px; }
+
+    .field { margin-bottom: 20px; }
+
+    .field__label {
+      display: block;
+      color: var(--accent);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .field__label::before {
+      content: "> " / "";
+      color: var(--fg-dim);
+    }
+
+    .field__input {
+      width: 100%;
+      background: var(--bg-0);
+      border: 1px solid var(--accent-dim);
+      color: var(--fg);
+      font: inherit;
+      letter-spacing: 0.2em;
+      padding: 12px 14px;
+      outline: none;
+    }
+
+    .field__input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-faint);
+    }
+
+    .submit {
+      display: block;
+      width: 100%;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      font: inherit;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      padding: 14px;
+      cursor: pointer;
+      transition: background-color 0.12s ease, color 0.12s ease;
+    }
+
+    .submit:hover, .submit:focus-visible {
+      background: var(--accent);
+      color: var(--bg-0);
+      outline: none;
+    }
+
+    .jarvis-status {
+      display: block;
+      margin-top: 18px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--fg-dim);
+      font-size: 11px;
+    }
+
+    .jarvis-status--idle { color: var(--fg-dim); }
+    .jarvis-status--working { color: var(--accent); }
+    .jarvis-status--denied { color: var(--deny); }
+
+    /* Slow scan bar travelling vertically across the panel. */
+    .panel::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 2px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        var(--accent) 50%,
+        transparent 100%
+      );
+      opacity: 0.5;
+      animation: jarvis-scan 4s linear infinite;
+    }
+
+    @keyframes jarvis-scan {
+      from { top: 0; }
+      to   { top: 100%; }
+    }
+
+    /* Denied: one-shot horizontal shake. */
+    .panel--shake { animation: jarvis-shake 200ms ease-in-out 3; }
+
+    @keyframes jarvis-shake {
+      0%, 100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
+
+    /* Submitting: animated dots on the status line. */
+    .jarvis-status--working::after {
+      content: "";
+      display: inline-block;
+      width: 1.2em;
+      text-align: left;
+      animation: jarvis-dots 600ms steps(4, end) infinite;
+    }
+
+    @keyframes jarvis-dots {
+      0%   { content: "";   }
+      25%  { content: ".";  }
+      50%  { content: ".."; }
+      75%  { content: "..."; }
+    }
+
+    /* Granted: 600 ms opacity fade before page swap. */
+    body { transition: opacity 600ms ease-out; }
+    body.granted { opacity: 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel::after,
+      .panel--shake,
+      .jarvis-status--working::after,
+      .submit,
+      body { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="staticrypt_loading">INITIALISING…</div>
+
+  <div id="staticrypt_content" hidden>
+    <div id="jarvis-panel" class="panel">
+      <div class="panel__bar">JARVIS // OS · v0.1</div>
+      <div class="panel__body">
+        <form id="staticrypt-form" action="#" method="post">
+          <div class="field">
+            <label class="field__label" for="staticrypt-password">PASSWORD</label>
+            <input class="field__input" id="staticrypt-password" type="password"
+                   name="password" autocomplete="current-password" autofocus />
+          </div>
+          <input id="staticrypt-remember" type="checkbox" name="remember" hidden />
+          <button class="submit" type="submit">AUTHENTICATE</button>
+        </form>
+        <output id="jarvis-status" class="jarvis-status jarvis-status--idle" aria-live="polite">
+          STATUS: STANDING BY.
+        </output>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const staticryptInitiator = /*[|js_staticrypt|]*/ 0;
+    const staticryptConfig = /*[|staticrypt_config|]*/ 0;
+    const isRememberEnabled = /*[|is_remember_enabled|]*/ 0;
+    const templateError = "/*[|template_error|]*/0";
+
+    const statusEl = document.getElementById("jarvis-status");
+    const panelEl = document.getElementById("jarvis-panel");
+
+    const setStatus = (text, mode) => {
+      statusEl.textContent = `STATUS: ${text}`;
+      statusEl.className = `jarvis-status jarvis-status--${mode}`;
+    };
+
+    const staticrypt = staticryptInitiator.init(staticryptConfig, {
+      rememberExpirationKey: "staticrypt_expiration",
+      rememberPassphraseKey: "staticrypt_passphrase",
+      // 600 ms fade before the page is replaced; instant swap under reduced-motion.
+      replaceHtmlCallback: (decryptedHtml) => {
+        document.getElementById("staticrypt-form").inert = true;
+        const swap = () => {
+          document.open();
+          document.write(decryptedHtml);
+          document.close();
+        };
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          swap();
+          return;
+        }
+        document.body.classList.add("granted");
+        setTimeout(swap, 600);
+      },
+      clearLocalStorageCallback: null,
+    });
+
+    window.addEventListener("load", async () => {
+      const { isSuccessful } = await staticrypt.handleDecryptOnLoad();
+      if (!isSuccessful) {
+        document.getElementById("staticrypt_loading").hidden = true;
+        document.getElementById("staticrypt_content").hidden = false;
+        document.getElementById("staticrypt-password").focus();
+      }
+    });
+
+    document.getElementById("staticrypt-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setStatus("DECRYPTING", "working");
+      const password = document.getElementById("staticrypt-password").value;
+      const { isSuccessful } = await staticrypt.handleDecryptionOfPage(password, false);
+      if (!isSuccessful) {
+        setStatus("ACCESS DENIED.", "denied");
+        panelEl.classList.add("panel--shake");
+        setTimeout(() => {
+          panelEl.classList.remove("panel--shake");
+          setStatus("STANDING BY.", "idle");
+        }, 1200);
+      }
+      // On success, replaceHtmlCallback runs — no extra branch needed.
+    });
+  </script>
+</body>
+</html>

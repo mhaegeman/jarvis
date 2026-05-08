@@ -49,6 +49,7 @@ jobs:
           npx -y staticrypt@^3 web/dist/index.html \
             -p "$STATICRYPT_PASSWORD" \
             --short \
+            --template web/unlock-template.html \
             -d web/dist
       - uses: actions/upload-pages-artifact@v3
         with:
