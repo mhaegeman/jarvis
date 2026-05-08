@@ -112,3 +112,42 @@ async def test_turns_since_counts_correctly(store: MemoryStore) -> None:
     await store.append_turn(sid, "assistant", "a1")
     await store.append_turn(sid, "user", "u2")
     assert await store.turns_since(t1) == 2
+
+
+async def test_get_facts_empty(store: MemoryStore) -> None:
+    assert await store.get_facts() == {}
+
+
+async def test_upsert_and_get_facts(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    from server.memory.types import Fact
+
+    await store.upsert_facts([Fact("lang", "TS"), Fact("city", "Brussels")], sid)
+    assert await store.get_facts() == {"lang": "TS", "city": "Brussels"}
+
+
+async def test_upsert_overwrites_existing_key(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    from server.memory.types import Fact
+
+    await store.upsert_facts([Fact("lang", "Python")], sid)
+    await store.upsert_facts([Fact("lang", "TypeScript")], sid)
+    assert (await store.get_facts())["lang"] == "TypeScript"
+
+
+async def test_evict_facts_to_cap_keeps_most_recent(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    from server.memory.types import Fact
+
+    # Insert keys 0..9 with manually controlled updated_at so LRU is deterministic.
+    for i in range(10):
+        await store.upsert_facts([Fact(f"k{i}", f"v{i}")], sid)
+        # Ensure distinct timestamps even on fast clocks.
+        await store._conn.execute(
+            "UPDATE facts SET updated_at=? WHERE key=?",
+            (f"2026-05-08T10:00:{i:02d}Z", f"k{i}"),
+        )
+        await store._conn.commit()
+    await store.evict_facts_to_cap(3)
+    facts = await store.get_facts()
+    assert set(facts.keys()) == {"k7", "k8", "k9"}

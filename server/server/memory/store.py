@@ -180,3 +180,40 @@ class MemoryStore:
         )
         row = await cur.fetchone()
         return int(row[0]) if row else 0
+
+    # ─── facts ────────────────────────────────────────────────────────
+
+    async def get_facts(self) -> dict[str, str]:
+        cur = await self._conn.execute("SELECT key, value FROM facts ORDER BY updated_at")
+        return {row[0]: row[1] for row in await cur.fetchall()}
+
+    async def upsert_facts(self, facts: list[Fact], source_session_id: str) -> None:
+        if not facts:
+            return
+        now = _utcnow_iso()
+        await self._conn.executemany(
+            """
+            INSERT INTO facts(key, value, updated_at, source_session_id)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET
+              value = excluded.value,
+              updated_at = excluded.updated_at,
+              source_session_id = excluded.source_session_id
+            """,
+            [(f.key, f.value, now, source_session_id) for f in facts],
+        )
+        await self._conn.commit()
+
+    async def evict_facts_to_cap(self, cap: int) -> None:
+        await self._conn.execute(
+            """
+            DELETE FROM facts
+             WHERE key IN (
+               SELECT key FROM facts
+                ORDER BY updated_at DESC
+                LIMIT -1 OFFSET ?
+             )
+            """,
+            (cap,),
+        )
+        await self._conn.commit()
