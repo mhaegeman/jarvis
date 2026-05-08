@@ -40,10 +40,17 @@ See `docs/superpowers/specs/2026-05-07-frontend-shell-design.md` (this
 spec) and `docs/superpowers/specs/2026-05-07-jarvis-architecture.md`
 (the umbrella architecture).
 
-The mock event source (`src/events/mockEventSource.ts`) implements the
-same `EventSource` interface (`src/events/eventSource.ts`) the real
-WebSocket client will provide in spec-03 — no UI rewiring required when
-the swap happens.
+The frontend connects to the backend via `src/events/connect.ts`, which
+probes `ws://localhost:8000/ws` (override with `VITE_WS_URL`) for ~1 s
+and either returns a real `WSEventSource` (live mode) or falls back to
+`MockEventSource` (demo mode). Both implement the same `EventSource`
+interface (`src/events/eventSource.ts`).
+
+Audio capture uses an AudioWorklet (`public/mic-processor.js`) emitting
+1600-sample (≈100 ms) Int16 LE PCM frames at 16 kHz. Assistant audio is
+played through `src/audio/playbackQueue.ts`, which schedules
+`AudioBufferSourceNode`s through an `AnalyserNode` — the centerpiece
+waveform reacts to that analyser while in `speaking` state.
 
 ## State
 
@@ -55,3 +62,26 @@ observable store (`src/state/store.ts`) and updates components.
 
 - **Space (hold)** — push-to-talk
 - **Esc** — interrupt current reply
+
+## Manual end-to-end checklist (spec-03)
+
+Run with the backend up:
+
+```bash
+# terminal A
+cd server && uvicorn server.main:app --port 8000
+
+# terminal B
+cd web && npm run dev
+```
+
+Then in Chromium at http://localhost:5173:
+
+1. **Live boot.** No "demo mode" telemetry entry. TelemetryPanel shows backend `heartbeat` entries within ~5 s.
+2. **Text path.** Type "Brief me on today" through the dev controls or scenario hook → `stt.final`, streamed `llm.token`s, audible TTS.
+3. **Audio path.** Hold mic (Space) → speak → release. Partial transcripts appear during hold; final on release; assistant replies aloud.
+4. **Barge-in.** Mid-speak press Esc. Audio cuts immediately, UI returns to idle, no orphan `tts.end`.
+5. **Reconnect.** Kill `uvicorn` mid-conversation. TelemetryPanel: `reconnecting (attempt N)…`. Restart. Telemetry: `reconnected`. Next turn works.
+6. **Demo fallback.** Stop backend, hard-reload page. TelemetryPanel: `backend offline — demo mode`. Mock scenario plays end-to-end.
+7. **Mic denied.** Block mic permission, attempt to listen. Telemetry: `mic: denied`. Text/scenario paths still work.
+8. **Centerpiece audio reactivity.** During step 2/3, the waveform should pulse to the assistant's audio (driven by the playback `AnalyserNode`), not synthetic noise.
