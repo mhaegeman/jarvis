@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-04 merged — v1 shipped)
+**Last updated:** 2026-05-08 (panels-v2 implementation complete on branch)
 
 ---
 
 ## Current Phase
-**v1 complete · all four sub-specs on `main` · awaiting Architect post-merge setup**
+**panels-v2 · pending PR review (real data on all 9 HUD panels; manual e2e + GH OAuth setup pending)**
 
 ## Macro Progress
 
@@ -19,6 +19,7 @@
 | 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + Codex P1/P2 | ✅ 58/58 tests | ✅ merged 6efecde + 95e6eee |
 | 3 | spec-03-integration | ✅ committed (dc84817) | ✅ committed (c1f6041) | ✅ 13/13 tasks | ✅ Codex P1/P1 (5cfb2dc) | ✅ 60/60 vitest, lint+tsc+build clean | ✅ merged ab7cb7c |
 | 4 | spec-04-deploy-and-gate | ✅ committed (f80d562) | ✅ committed (84da47e) | ✅ 5/5 tasks | ✅ Codex P1 (fe7f892) | ✅ CI green on PR | ✅ merged c0a1e99 |
+| 5 | panels-v2 | ✅ committed (edf4ad4) | ✅ committed (833db55) | ✅ Phase A+B+C+D | ⏳ pending PR | ✅ 99 vitest, 96 pytest, lint+tsc+build clean | ⏳ branch pushed |
 
 Legend: ⬜ not started · ⏳ in progress · ✅ done
 
@@ -60,19 +61,15 @@ Quality safeguards retained:
 
 ## Next action
 
-**v1 codebase is complete.** All four sub-specs merged to `main`. Pure
-infra now sits between the user and the live site:
+**panels-v2 implementation complete on branch `panels-v2`.** Architect to:
 
-1. **Set repo secret** `STATICRYPT_PASSWORD` (Settings → Secrets → Actions)
-2. **Pages source** = "GitHub Actions" (Settings → Pages → Source)
-3. **Branch protection on `main`** — require `web` + `server` CI checks
-4. **Push any commit to `main`** (or re-run Deploy workflow) to land the
-   first deploy at `https://mhaegeman.github.io/jarvis/`
-5. **Install backend service** on the laptop: see `server/deploy/README.md`
+1. Open PR — CI runs against the branch
+2. Walk the manual e2e checklist in `web/README.md` (panels-v2 section) against a real `uvicorn server.main:app`
+3. Set up Google Cloud OAuth desktop client + `~/.config/jarvis/credentials.json` per `server/deploy/README.md` (only required for the Calendar panel; everything else works without it)
+4. Merge
 
-Once those are done, the loop closes: laptop runs `uvicorn` via systemd,
-GH Pages serves the password-gated frontend, browser connects to
-`ws://localhost:8000/ws`, full streaming voice conversation works.
+After merge, all 9 panels display real data when the backend is running. v1
+codebase remains shipped (spec-04 deploy gate untouched by panels-v2).
 
 ### Spec-04 implementation summary
 **8 commits on branch `spec-04-deploy-and-gate`** (7 plan commits + 1
@@ -96,6 +93,31 @@ fallback line.
 
 Final verification on PR: CI workflow ran twice (web + server), both
 green. Local: 60/60 vitest, 58/58 pytest.
+
+### panels-v2 implementation summary
+
+**Branch `panels-v2`, ~16 commits across four phases.** All quality gates green:
+- 99/99 vitest (35 new for panels-v2)
+- 96/96 pytest (29 new for panels-v2)
+- `tsc --noEmit` / `ruff` / `mypy --strict` / `eslint` / `vite build` all clean
+- Bundle ~9.99 KB gzip JS (still well under 30 KB target)
+
+Phase A — server foundation (5 commits): protocol additions (`state.snapshot`, `calendar.update`, `ping/pong`, `calendar.sync`, `ready.sessionId`); `heartbeat.py` ping/pong RTT tracking; `tasks.py` in-memory queue; `state.py` 1 Hz emitter (CPU load, tokens/min, packets, queue depth, context budget); `calendar_client.py` Google Calendar with manual `calendar.sync` trigger.
+
+Phase B — frontend decode (1 commit): `WSEventSource` decodes `state.snapshot` + `calendar.update`, auto-replies to server pings, exposes `syncCalendar()`. New `panelData` store slice. `main.ts` subscribes and routes data into render calls with safe defaults.
+
+Phase C — per-panel (9 commits via 9 parallel implementer subagents in 3 batches + 1 orchestrator integration commit):
+- C1 Header: `wsState` badge (live/demo/reconnecting)
+- C2 Centerpiece: test coverage only (analyser-driven amplitude already shipped in spec-03)
+- C3 System: `modelName` row from snapshot
+- C4 Memory: dropped placeholder `recallPct`; renders real context budget
+- C5 Calendar: Sync button, real entries with duration suffix, dropped hard-coded TODAY
+- C6 Network: real RTT (nullable), packets, busy bar from queue depth
+- C7 Tasks: test coverage (state already wired)
+- C8 Telemetry: test coverage (already real)
+- C9 Audio: `analyserDb()` helper + `outputDb` wired from playback analyser
+
+Phase D — verification (this commit): full gates, manual e2e checklist appended to `web/README.md`, STATUS update.
 
 ## Future scope (post-v1, deferred)
 

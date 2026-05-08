@@ -104,3 +104,18 @@ Then in Chromium at http://localhost:5173:
 6. **Demo fallback.** Stop backend, hard-reload page. TelemetryPanel: `backend offline — demo mode`. Mock scenario plays end-to-end.
 7. **Mic denied.** Block mic permission, attempt to listen. Telemetry: `mic: denied`. Text/scenario paths still work.
 8. **Centerpiece audio reactivity.** During step 2/3, the waveform should pulse to the assistant's audio (driven by the playback `AnalyserNode`), not synthetic noise.
+
+## Manual end-to-end checklist (panels-v2)
+
+With backend running, every panel should display real, live data within 1–2 s of connect:
+
+- **Header** — `LIVE` badge appears next to the title. Toggling backend off/on flips through `RECONNECT…` to `LIVE`. In demo mode shows `DEMO`.
+- **System** — `load` updates with backend CPU; `tokens / min` climbs while a turn is being generated; `session` shows the server's 8-hex session id (not `A271`); `model` row shows `mock` (or whatever `JARVIS_MODEL_NAME` is set to).
+- **Memory** — `context` bar fills in proportion to the last turn's history-token count; no `recall` row.
+- **Calendar** — empty by default with `Click Sync to load today's calendar`. Clicking `Sync` triggers a Google Calendar fetch (browser may pop OAuth on first run); fetched entries replace the empty state. Button shows `Syncing…` while in flight.
+- **Network** — `endpoint` shows `ws://localhost:8000/ws`; `latency` shows real RTT in ms (`-- ms` until first heartbeat); `packets` increments with every WS message; busy bar = `sendQueueDepth / sendQueueMax`.
+- **Tasks** — counts reflect anything enqueued via `tasks_queue.enqueue()` from the server (zero by default until ingestor/scheduler wires arrive in a future spec).
+- **Telemetry** — backend events (errors, turn transitions, reconnect notices) appear with timestamps and level icons; capped at 14 lines.
+- **Audio** — `output dB` reacts to assistant speech RMS during `speaking` (matches the centerpiece amplitude); idle/listening still uses synthetic values.
+
+Demo mode (no backend): all panels keep working with `--`/zero values + Calendar Sync uses a canned demo response.
