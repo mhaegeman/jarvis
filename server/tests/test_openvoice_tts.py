@@ -325,3 +325,144 @@ class TestPCMConversion:
         assert samples[2] == 0
         assert samples[3] in (16383, 16384)   # 0.5 → ≈16383.5, float32 rounding
         assert samples[4] == 32767   # 2.0 clamped
+
+
+class TestDefaultLoaderCache:
+    """Verify the production loader: sys.path mutation, lazy imports of
+    api/se_extractor, checkpoint construction, speaker_wav singleton, and
+    the (path, device, speaker_wav) cache."""
+
+    def test_default_loader_caches_per_key(self, monkeypatch, tmp_path):
+        # Stub api + se_extractor + torch into sys.modules so the lazy
+        # imports inside _default_loader resolve.
+        import sys
+        import types
+
+        from server.pipelines import openvoice_tts
+
+        # Track constructions to assert singleton behavior.
+        constructions: list[str] = []
+
+        class StubBaseSpeakerTTS:
+            def __init__(self, config_path: str, device: str) -> None:
+                constructions.append(f"BaseSpeakerTTS({config_path}, {device})")
+                self.hps = types.SimpleNamespace(
+                    data=types.SimpleNamespace(sampling_rate=24000),
+                    speakers={"default": 0},
+                )
+
+            def load_ckpt(self, ckpt_path: str) -> None:
+                constructions.append(f"BaseSpeakerTTS.load({ckpt_path})")
+
+        class StubToneColorConverter:
+            def __init__(self, config_path: str, device: str) -> None:
+                constructions.append(f"ToneColorConverter({config_path}, {device})")
+
+            def load_ckpt(self, ckpt_path: str) -> None:
+                constructions.append(f"ToneColorConverter.load({ckpt_path})")
+
+        api_module = types.ModuleType("api")
+        api_module.BaseSpeakerTTS = StubBaseSpeakerTTS  # type: ignore[attr-defined]
+        api_module.ToneColorConverter = StubToneColorConverter  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "api", api_module)
+
+        se_module = types.ModuleType("se_extractor")
+        def _get_se(wav: str, conv: Any, **_kw: Any) -> tuple[Any, str]:
+            return (object(), "processed")
+        se_module.get_se = _get_se  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "se_extractor", se_module)
+
+        # Stub torch.load to return a sentinel embedding.
+        torch_module = sys.modules.get("torch") or types.ModuleType("torch")
+        torch_module.load = lambda _path: types.SimpleNamespace(  # type: ignore[attr-defined]
+            to=lambda _device: object()
+        )
+        monkeypatch.setitem(sys.modules, "torch", torch_module)
+
+        # Build a fake OpenVoice tree with the expected layout.
+        ov = tmp_path / "OpenVoice"
+        (ov / "checkpoints" / "base_speakers" / "EN").mkdir(parents=True)
+        (ov / "checkpoints" / "base_speakers" / "EN" / "config.json").touch()
+        (ov / "checkpoints" / "base_speakers" / "EN" / "checkpoint.pth").touch()
+        (ov / "checkpoints" / "base_speakers" / "EN" / "en_default_se.pth").touch()
+        (ov / "checkpoints" / "converter").mkdir(parents=True)
+        (ov / "checkpoints" / "converter" / "config.json").touch()
+        (ov / "checkpoints" / "converter" / "checkpoint.pth").touch()
+
+        monkeypatch.setattr(openvoice_tts, "_loaded_cache", {})
+
+        loaded1 = openvoice_tts._default_loader(str(ov), "cpu", None)
+        loaded2 = openvoice_tts._default_loader(str(ov), "cpu", None)
+
+        assert loaded1 is loaded2  # cache hit
+        assert loaded1.sample_rate == 24000
+        assert loaded1.target_se is None
+        # Construction happened exactly once.
+        assert sum(1 for c in constructions if "BaseSpeakerTTS(" in c) == 1
+        assert sum(1 for c in constructions if "ToneColorConverter(" in c) == 1
+
+    def test_default_loader_runs_se_extractor_when_speaker_wav_set(
+        self, monkeypatch, tmp_path
+    ):
+        import sys
+        import types
+
+        from server.pipelines import openvoice_tts
+
+        se_calls: list[str] = []
+
+        class StubBaseSpeakerTTS:
+            def __init__(self, *_a: Any, **_k: Any) -> None:
+                self.hps = types.SimpleNamespace(
+                    data=types.SimpleNamespace(sampling_rate=24000),
+                    speakers={"default": 0},
+                )
+            def load_ckpt(self, *_a: Any, **_k: Any) -> None: pass
+
+        class StubToneColorConverter:
+            def __init__(self, *_a: Any, **_k: Any) -> None: pass
+            def load_ckpt(self, *_a: Any, **_k: Any) -> None: pass
+
+        api_module = types.ModuleType("api")
+        api_module.BaseSpeakerTTS = StubBaseSpeakerTTS  # type: ignore[attr-defined]
+        api_module.ToneColorConverter = StubToneColorConverter  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "api", api_module)
+
+        se_module = types.ModuleType("se_extractor")
+        def _get_se(wav: str, *_a: Any, **_k: Any) -> tuple[Any, str]:
+            se_calls.append(wav)
+            return (object(), "processed")
+        se_module.get_se = _get_se  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "se_extractor", se_module)
+
+        torch_module = sys.modules.get("torch") or types.ModuleType("torch")
+        torch_module.load = lambda _p: types.SimpleNamespace(  # type: ignore[attr-defined]
+            to=lambda _d: object()
+        )
+        monkeypatch.setitem(sys.modules, "torch", torch_module)
+
+        ov = tmp_path / "OpenVoice"
+        for sub in (
+            "checkpoints/base_speakers/EN",
+            "checkpoints/converter",
+        ):
+            (ov / sub).mkdir(parents=True)
+        for f in (
+            "checkpoints/base_speakers/EN/config.json",
+            "checkpoints/base_speakers/EN/checkpoint.pth",
+            "checkpoints/base_speakers/EN/en_default_se.pth",
+            "checkpoints/converter/config.json",
+            "checkpoints/converter/checkpoint.pth",
+        ):
+            (ov / f).touch()
+
+        monkeypatch.setattr(openvoice_tts, "_loaded_cache", {})
+
+        wav = "/abs/path/to/voice.wav"
+        loaded1 = openvoice_tts._default_loader(str(ov), "cpu", wav)
+        loaded2 = openvoice_tts._default_loader(str(ov), "cpu", wav)
+
+        assert loaded1 is loaded2
+        assert loaded1.target_se is not None
+        # se_extractor.get_se ran exactly once across both loader calls.
+        assert se_calls == [wav]

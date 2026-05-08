@@ -5,8 +5,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import sys
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -41,16 +43,53 @@ _loaded_cache: dict[tuple[str, str, str | None], LoadedOpenVoice] = {}
 def _default_loader(
     openvoice_path: str, device: str, speaker_wav: str | None
 ) -> LoadedOpenVoice:
-    """Lazy import + cached construction of OpenVoice models.
+    """Lazy import + cached construction of the OpenVoice singletons.
 
-    Not yet implemented — tests pass an injected `loader` instead. The
-    production body (sys.path injection + checkpoint loading + cache
-    write) lands in a follow-up commit.
+    Prepends `openvoice_path` to `sys.path` so the user-cloned `api`,
+    `se_extractor`, and `utils` modules become importable. Constructs
+    `BaseSpeakerTTS`, `ToneColorConverter`, the `en_default_se` tensor,
+    and (when `speaker_wav` is set) the cloned `target_se` exactly once
+    per `(path, device, speaker_wav)` tuple.
     """
-    raise NotImplementedError(
-        "Real OpenVoice model loading is not yet implemented. "
-        "Pass the `loader` keyword to OpenVoiceTTS for unit tests."
+    resolved_path = str(Path(openvoice_path).expanduser())
+    key = (resolved_path, device, speaker_wav)
+    if key in _loaded_cache:
+        return _loaded_cache[key]
+
+    if resolved_path not in sys.path:
+        sys.path.insert(0, resolved_path)
+
+    import torch  # type: ignore[import-not-found]
+    from api import BaseSpeakerTTS, ToneColorConverter  # type: ignore[import-not-found]
+
+    base_dir = Path(resolved_path) / "checkpoints" / "base_speakers" / "EN"
+    conv_dir = Path(resolved_path) / "checkpoints" / "converter"
+
+    tts_model = BaseSpeakerTTS(str(base_dir / "config.json"), device=device)
+    tts_model.load_ckpt(str(base_dir / "checkpoint.pth"))
+    tone_color_converter = ToneColorConverter(
+        str(conv_dir / "config.json"), device=device
     )
+    tone_color_converter.load_ckpt(str(conv_dir / "checkpoint.pth"))
+    en_source_se = torch.load(str(base_dir / "en_default_se.pth")).to(device)
+
+    target_se: Any | None = None
+    if speaker_wav:
+        import se_extractor  # type: ignore[import-not-found]
+        target_se, _ = se_extractor.get_se(
+            speaker_wav, tone_color_converter, target_dir="processed", vad=True
+        )
+
+    sample_rate = int(tts_model.hps.data.sampling_rate)
+    loaded = LoadedOpenVoice(
+        tts_model=tts_model,
+        tone_color_converter=tone_color_converter,
+        en_source_se=en_source_se,
+        target_se=target_se,
+        sample_rate=sample_rate,
+    )
+    _loaded_cache[key] = loaded
+    return loaded
 
 
 class OpenVoiceTTS(TTS):
