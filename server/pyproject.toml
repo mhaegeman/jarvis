@@ -1,0 +1,46 @@
+[project]
+name = "jarvis-server"
+version = "0.0.1"
+description = "Jarvis WebSocket server (spec-02 Phase 1, mock pipelines)"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "websockets>=13",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.5",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.24",
+  "httpx>=0.27",
+  "ruff>=0.7",
+  "mypy>=1.13",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["server*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["requires_models: tests that need real Whisper/LLM/OpenVoice (Phase 2)"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["server"]
