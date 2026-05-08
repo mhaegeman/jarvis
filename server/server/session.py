@@ -27,6 +27,7 @@ from .protocol import (
     decode_client,
     encode_server,
 )
+from .state import StateEmitter
 
 log = logging.getLogger(__name__)
 
@@ -75,13 +76,18 @@ class Session:
         # spuriously emit `llm.end`. Reset to False at the start of each turn.
         self._llm_ended = True
         self.heartbeat = Heartbeat(interval_s=HEARTBEAT_INTERVAL_S)
+        self.session_id = secrets.token_hex(4)
+        self.endpoint = "ws://localhost:8000/ws"
+        self.emitter = StateEmitter(self)
+        self._state_task: asyncio.Task[None] | None = None
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
     async def run(self) -> None:
         self._sender_task = asyncio.create_task(self._sender_loop())
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
-        await self._enqueue_json(ServerMessage.ready())
+        self._state_task = asyncio.create_task(self.emitter.run())
+        await self._enqueue_json(ServerMessage.ready(session_id=self.session_id))
         try:
             while not self._closing:
                 ev = await self._ws.receive()
@@ -99,7 +105,12 @@ class Session:
 
     async def cleanup(self) -> None:
         self._closing = True
-        for t in (self._partials_task, self._turn_task, self._heartbeat_task):
+        for t in (
+            self._partials_task,
+            self._turn_task,
+            self._heartbeat_task,
+            self._state_task,
+        ):
             if t and not t.done():
                 t.cancel()
                 with contextlib.suppress(asyncio.CancelledError, Exception):
@@ -260,6 +271,7 @@ class Session:
             try:
                 async for delta in llm_iter:
                     assistant_buf.append(delta)
+                    self.emitter.record_token()
                     await self._enqueue_json(ServerMessage.llm_token(delta))
                     await token_q.put(delta)
             finally:
@@ -305,6 +317,11 @@ class Session:
             self._history.append({"role": "assistant", "content": full})
         if len(self._history) > self._history_cap:
             self._history = self._history[-self._history_cap :]
+        # Approximate token budget tracking: ~4 chars per token. Cheap and
+        # stable for v2; spec-02 Phase 2 will replace this with a real
+        # tokenizer when the LLM client lands.
+        total_chars = sum(len(m["content"]) for m in self._history)
+        self.emitter.record_token_budget(total_chars // 4)
 
     async def _do_interrupt(self) -> None:
         if self._turn_task and not self._turn_task.done():
@@ -320,14 +337,24 @@ class Session:
     async def _enqueue_json(self, msg: dict[str, Any]) -> None:
         try:
             self._send_q.put_nowait(("text", encode_server(msg)))
+            self.emitter.record_packet()
         except asyncio.QueueFull:
             log.warning("send queue overflow, dropping JSON: %s", msg.get("type"))
 
     async def _enqueue_bytes(self, payload: bytes) -> None:
         try:
             self._send_q.put_nowait(("bytes", payload))
+            self.emitter.record_packet()
         except asyncio.QueueFull:
             log.warning("send queue overflow, dropping audio chunk (%dB)", len(payload))
+
+    @property
+    def send_queue_depth(self) -> int:
+        return self._send_q.qsize()
+
+    @property
+    def send_queue_max(self) -> int:
+        return self._send_q.maxsize
 
     async def _sender_loop(self) -> None:
         while True:

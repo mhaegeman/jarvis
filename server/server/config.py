@@ -10,6 +10,8 @@ class Settings(BaseSettings):
 
     ws_port: int = 8765
     log_level: str = "INFO"
+    model_name: str = "mock"
+    model_context_max: int = 200000
 
 
 settings = Settings()
