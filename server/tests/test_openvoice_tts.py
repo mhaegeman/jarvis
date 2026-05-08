@@ -258,3 +258,35 @@ class TestTextPreprocessing:
         async for _ in tts.synthesize("hello there", "id1"):
             pass
         assert fake_tts.get_text_calls == ["[EN]hello there[EN]"]
+
+
+class TestVoiceCloning:
+    async def test_target_se_triggers_tone_color_convert(self):
+        original = np.full(2400, 0.5, dtype=np.float32)
+        cloned = np.full(2400, 0.25, dtype=np.float32)
+        fake_tts = FakeBaseSpeakerTTS(return_audio=original)
+        fake_conv = FakeToneColorConverter(return_audio=cloned)
+        sentinel_src_se = object()
+        sentinel_tgt_se = object()
+        loaded = LoadedOpenVoice(
+            tts_model=fake_tts,
+            tone_color_converter=fake_conv,
+            en_source_se=sentinel_src_se,
+            target_se=sentinel_tgt_se,
+            sample_rate=24000,
+        )
+        tts = OpenVoiceTTS(
+            openvoice_path="~/OpenVoice", device="cpu",
+            speaker_wav="/some/voice.wav",
+            loader=make_loader(loaded),
+        )
+        chunks = [c async for c in tts.synthesize("hi", "id1")]
+
+        # Conversion called once with the configured src/tgt embeddings.
+        assert len(fake_conv.convert_calls) == 1
+        assert fake_conv.convert_calls[0]["src_se"] is sentinel_src_se
+        assert fake_conv.convert_calls[0]["tgt_se"] is sentinel_tgt_se
+        # Output PCM is the cloned waveform, not the original.
+        joined = b"".join(chunks)
+        expected = np.clip(cloned * 32767.0, -32768, 32767).astype(np.int16).tobytes()
+        assert joined == expected
