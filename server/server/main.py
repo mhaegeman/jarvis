@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
 from collections.abc import AsyncIterator, MutableMapping
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from .config import settings
+from .pipelines.claude_llm import ClaudeLLM
+from .pipelines.interfaces import LLM
 from .pipelines.mock_llm import MockLLM
 from .pipelines.mock_stt import MockSTT
 from .pipelines.mock_tts import MockTTS
@@ -17,6 +20,25 @@ from .session import Session
 
 logging.basicConfig(level=settings.log_level)
 log = logging.getLogger(__name__)
+
+
+def _build_llm() -> LLM:
+    """Construct the LLM pipeline based on `JARVIS_MODEL_NAME`.
+
+    Raises:
+        RuntimeError: when a Claude model is selected but `ANTHROPIC_API_KEY` is unset.
+        ValueError: when `model_name` is not 'mock' and does not start with 'claude-'.
+    """
+    name = settings.model_name
+    if name == "mock":
+        return MockLLM()
+    if name.startswith("claude-"):
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise RuntimeError(
+                "JARVIS_MODEL_NAME selects a Claude model but ANTHROPIC_API_KEY is unset."
+            )
+        return ClaudeLLM(default_model=name, max_tokens=settings.llm_max_tokens)
+    raise ValueError(f"unknown JARVIS_MODEL_NAME: {name!r}")
 
 
 @contextlib.asynccontextmanager
@@ -52,11 +74,11 @@ class _StarletteWSAdapter:
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
     await ws.accept()
-    # Per-connection pipelines (stateless mocks; cheap to allocate).
+    # Per-connection pipelines (stateless; cheap to allocate).
     session = Session(
         ws=_StarletteWSAdapter(ws),
         stt=MockSTT(),
-        llm=MockLLM(),
+        llm=_build_llm(),
         tts=MockTTS(),
     )
     try:
