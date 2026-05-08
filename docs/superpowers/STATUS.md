@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-02 Phase 1 implementation complete)
+**Last updated:** 2026-05-08 (spec-02 merged; spec-03 brainstorm starting)
 
 ---
 
 ## Current Phase
-**spec-02-backend-streaming · implementation (Phase 1, mock pipelines, inline mode)**
+**spec-03-integration · brainstorm (browser ↔ backend WebSocket wiring)**
 
 ## Macro Progress
 
@@ -16,8 +16,8 @@
 |---|---|---|---|---|---|---|---|
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
-| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + 7 fixes | ✅ 56/56 tests | ⏳ PR open |
-| 3 | spec-03-integration | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + Codex P1/P2 | ✅ 58/58 tests | ✅ merged 6efecde + 95e6eee |
+| 3 | spec-03-integration | ⏳ in progress | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 Legend: ⬜ not started · ⏳ in progress · ✅ done
@@ -59,10 +59,15 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Branch `spec-02-backend-streaming` pushed to GitHub. PR creation URL:
-**https://github.com/mhaegeman/jarvis/pull/new/spec-02-backend-streaming**
+Spec-03 brainstorm in progress. Goals:
+- Replace `MockEventSource` in `web/src/main.ts:50` with a real `WebSocketEventSource`
+- Add AudioWorklet-based mic capture (16 kHz PCM int16le → binary `client.mic` frames)
+- Add Web Audio playback queue for streamed `tts.audioChunk` frames (per `audioId`)
+- Wire barge-in: `interrupt` cancels local playback + sends `{type:"interrupt"}`
+- Decide demo/mock fallback policy and reconnect strategy
+- Manual e2e checklist (mic perms, full conversation, barge-in, recovery)
 
-Architect (Maxime) opens the PR, reviews, and merges. After merge, begin spec-03 (browser ↔ backend integration) brainstorm.
+Backend protocol from spec-02 is the binding contract — spec-03 must consume it as-is.
 
 ### Spec-02 Phase 1 implementation summary
 **13 commits on branch `spec-02-backend-streaming`.** All quality gates green:
