@@ -102,8 +102,12 @@ class Session:
                 with contextlib.suppress(asyncio.CancelledError, Exception):
                     await t
         if self._sender_task and not self._sender_task.done():
-            with contextlib.suppress(asyncio.QueueFull):
+            # If the queue is saturated the sentinel is dropped; cancel the
+            # sender so cleanup cannot hang forever waiting on get().
+            try:
                 self._send_q.put_nowait(("__stop__", ""))
+            except asyncio.QueueFull:
+                self._sender_task.cancel()
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await self._sender_task
 
@@ -163,6 +167,14 @@ class Session:
     # ─── listening / partials ─────────────────────────────────────────
 
     async def _begin_listening(self) -> None:
+        if self._mic_active:
+            await self._enqueue_json(
+                ServerMessage.error(
+                    "protocol.audio_unframed",
+                    "audio.start while already recording",
+                )
+            )
+            return
         self._mic_buf = []
         self._mic_q = asyncio.Queue()
         self._mic_active = True
