@@ -8,3 +8,19 @@ export function rms(buf: Float32Array): number {
   }
   return Math.sqrt(sum / buf.length);
 }
+
+/**
+ * Sample the analyser's time-domain data and return a peak-normalised dB value.
+ * Returns -Infinity when silence is detected (RMS == 0). Otherwise returns
+ * 20 * log10(rms), clamped to [-80, 0].
+ *
+ * Pure helper for unit testing; does not allocate per-call when the caller
+ * passes a reusable buffer.
+ */
+export function analyserDb(analyser: AnalyserNode, buf?: Float32Array): number {
+  const data = buf ?? new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(data);
+  const r = rms(data);
+  if (r === 0) return -Infinity;
+  return Math.max(-80, Math.min(0, 20 * Math.log10(r)));
+}
