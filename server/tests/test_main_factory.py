@@ -72,7 +72,7 @@ class TestBuildSTT:
         monkeypatch.setattr("server.main.settings.device", "cpu")
         # Stub find_spec → faster-whisper appears installed.
         monkeypatch.setattr(
-            "importlib.util.find_spec",
+            "server.main.importlib.util.find_spec",
             lambda name: object() if name == "faster_whisper" else None,
         )
         stt = _build_stt()
@@ -84,7 +84,7 @@ class TestBuildSTT:
         monkeypatch.setattr("server.main.settings.whisper_model", "base.en")
         monkeypatch.setattr("server.main.settings.device", "cpu")
         monkeypatch.setattr(
-            "importlib.util.find_spec",
+            "server.main.importlib.util.find_spec",
             lambda name: object() if name == "faster_whisper" else None,
         )
         stt = _build_stt()
@@ -94,7 +94,7 @@ class TestBuildSTT:
         import logging
         monkeypatch.setattr("server.main.settings.stt_engine", "auto")
         monkeypatch.setattr(
-            "importlib.util.find_spec", lambda name: None
+            "server.main.importlib.util.find_spec", lambda name: None
         )
         with caplog.at_level(logging.WARNING, logger="server.main"):
             stt = _build_stt()
@@ -106,7 +106,7 @@ class TestBuildSTT:
     def test_explicit_whisper_without_faster_whisper_raises(self, monkeypatch):
         monkeypatch.setattr("server.main.settings.stt_engine", "whisper")
         monkeypatch.setattr(
-            "importlib.util.find_spec", lambda name: None
+            "server.main.importlib.util.find_spec", lambda name: None
         )
         with pytest.raises(ImportError, match="faster-whisper is not installed"):
             _build_stt()
