@@ -29,3 +29,29 @@ class TestSTTSettings:
         assert s.stt_engine == "whisper"
         assert s.whisper_model == "small.en"
         assert s.device == "cuda"
+
+
+class TestTTSSettings:
+    def test_tts_engine_defaults_to_auto(self, monkeypatch):
+        monkeypatch.delenv("JARVIS_TTS_ENGINE", raising=False)
+        s = Settings()
+        assert s.tts_engine == "auto"
+
+    def test_openvoice_path_default(self, monkeypatch):
+        monkeypatch.delenv("JARVIS_OPENVOICE_PATH", raising=False)
+        s = Settings()
+        assert s.openvoice_path == "~/OpenVoice"
+
+    def test_speaker_wav_defaults_to_none(self, monkeypatch):
+        monkeypatch.delenv("JARVIS_SPEAKER_WAV", raising=False)
+        s = Settings()
+        assert s.speaker_wav is None
+
+    def test_tts_env_overrides(self, monkeypatch):
+        monkeypatch.setenv("JARVIS_TTS_ENGINE", "openvoice")
+        monkeypatch.setenv("JARVIS_OPENVOICE_PATH", "/opt/OpenVoice")
+        monkeypatch.setenv("JARVIS_SPEAKER_WAV", "/tmp/voice.wav")
+        s = Settings()
+        assert s.tts_engine == "openvoice"
+        assert s.openvoice_path == "/opt/OpenVoice"
+        assert s.speaker_wav == "/tmp/voice.wav"
