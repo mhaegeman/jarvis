@@ -151,3 +151,37 @@ async def test_evict_facts_to_cap_keeps_most_recent(store: MemoryStore) -> None:
     await store.evict_facts_to_cap(3)
     facts = await store.get_facts()
     assert set(facts.keys()) == {"k7", "k8", "k9"}
+
+
+async def test_write_and_list_session_summaries(store: MemoryStore) -> None:
+    sid1 = await store.start_session()
+    sid2 = await store.start_session()
+    await store.write_session_summary(sid1, "discussed deploys")
+    await store.write_session_summary(sid2, "reviewed schema")
+    summaries = await store.list_recent_summaries(limit=5)
+    assert [s.summary for s in summaries] == ["reviewed schema", "discussed deploys"]
+
+
+async def test_list_recent_summaries_respects_limit(store: MemoryStore) -> None:
+    for i in range(5):
+        sid = await store.start_session()
+        await store.write_session_summary(sid, f"s{i}")
+    summaries = await store.list_recent_summaries(limit=2)
+    assert len(summaries) == 2
+    assert summaries[0].summary == "s4"
+
+
+async def test_search_turns_like_match(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    await store.append_turn(sid, "user", "I prefer to deploy on Fridays")
+    await store.append_turn(sid, "assistant", "noted: Fridays")
+    await store.append_turn(sid, "user", "what's the weather")
+    matches = await store.search_turns("deploy", limit=5)
+    assert any("deploy" in t.content.lower() for t in matches)
+    assert all(isinstance(t.id, int) for t in matches)
+
+
+async def test_search_turns_returns_empty_for_no_match(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    await store.append_turn(sid, "user", "hello")
+    assert await store.search_turns("nonexistent_phrase", limit=5) == []

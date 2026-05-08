@@ -217,3 +217,55 @@ class MemoryStore:
             (cap,),
         )
         await self._conn.commit()
+
+    # ─── session_summaries ────────────────────────────────────────────
+
+    async def write_session_summary(self, session_id: str, summary: str) -> None:
+        await self._conn.execute(
+            """
+            INSERT INTO session_summaries(session_id, summary, created_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+              summary = excluded.summary,
+              created_at = excluded.created_at
+            """,
+            (session_id, summary, _utcnow_iso()),
+        )
+        await self._conn.commit()
+
+    async def list_recent_summaries(self, limit: int) -> list[SessionSummary]:
+        cur = await self._conn.execute(
+            """
+            SELECT s.session_id, s.started_at, s.ended_at, ss.summary
+              FROM session_summaries ss
+              JOIN sessions s ON s.session_id = ss.session_id
+             ORDER BY ss.rowid DESC
+             LIMIT ?
+            """,
+            (limit,),
+        )
+        rows = await cur.fetchall()
+        return [
+            SessionSummary(session_id=r[0], started_at=r[1], ended_at=r[2], summary=r[3])
+            for r in rows
+        ]
+
+    # ─── verbatim search ──────────────────────────────────────────────
+
+    async def search_turns(self, query: str, limit: int) -> list[Turn]:
+        q = query.strip().lower()
+        if not q:
+            return []
+        like = f"%{q}%"
+        cur = await self._conn.execute(
+            """
+            SELECT id, session_id, ts, role, content
+              FROM turns
+             WHERE LOWER(content) LIKE ?
+             ORDER BY id DESC
+             LIMIT ?
+            """,
+            (like, limit),
+        )
+        rows = await cur.fetchall()
+        return [Turn(id=r[0], session_id=r[1], ts=r[2], role=r[3], content=r[4]) for r in rows]
