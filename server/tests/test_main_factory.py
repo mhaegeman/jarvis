@@ -110,3 +110,8 @@ class TestBuildSTT:
         )
         with pytest.raises(ImportError, match="faster-whisper is not installed"):
             _build_stt()
+
+    def test_unknown_engine_raises(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.stt_engine", "vosk")
+        with pytest.raises(ValueError, match="JARVIS_STT_ENGINE"):
+            _build_stt()
