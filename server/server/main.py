@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util  # noqa: F401 – used in _build_stt (Task 9)
+import importlib.util
 import logging
 from collections.abc import AsyncIterator, MutableMapping
 from typing import Any
@@ -85,6 +85,22 @@ def _build_stt() -> STT:
     engine = settings.stt_engine
     if engine == "mock":
         return MockSTT()
+    if engine in ("auto", "whisper"):
+        if importlib.util.find_spec("faster_whisper") is None:
+            if engine == "whisper":
+                raise ImportError(
+                    "faster-whisper is not installed; run `pip install -e .[stt]`."
+                )
+            log.warning(
+                "STT auto: faster-whisper not installed; using MockSTT. "
+                "Install with `pip install -e .[stt]`."
+            )
+            return MockSTT()
+        from .pipelines.whisper_stt import WhisperSTT
+        return WhisperSTT(
+            model=settings.whisper_model,
+            device=_resolve_device(),
+        )
     raise ValueError(f"unknown JARVIS_STT_ENGINE: {engine!r}")
 
 

@@ -64,3 +64,28 @@ class TestBuildSTT:
         monkeypatch.setattr("server.main.settings.stt_engine", "mock")
         stt = _build_stt()
         assert isinstance(stt, MockSTT)
+
+    def test_auto_with_faster_whisper_returns_whisper_stt(self, monkeypatch):
+        from server.pipelines.whisper_stt import WhisperSTT
+        monkeypatch.setattr("server.main.settings.stt_engine", "auto")
+        monkeypatch.setattr("server.main.settings.whisper_model", "base.en")
+        monkeypatch.setattr("server.main.settings.device", "cpu")
+        # Stub find_spec → faster-whisper appears installed.
+        monkeypatch.setattr(
+            "importlib.util.find_spec",
+            lambda name: object() if name == "faster_whisper" else None,
+        )
+        stt = _build_stt()
+        assert isinstance(stt, WhisperSTT)
+
+    def test_explicit_whisper_returns_whisper_stt(self, monkeypatch):
+        from server.pipelines.whisper_stt import WhisperSTT
+        monkeypatch.setattr("server.main.settings.stt_engine", "whisper")
+        monkeypatch.setattr("server.main.settings.whisper_model", "base.en")
+        monkeypatch.setattr("server.main.settings.device", "cpu")
+        monkeypatch.setattr(
+            "importlib.util.find_spec",
+            lambda name: object() if name == "faster_whisper" else None,
+        )
+        stt = _build_stt()
+        assert isinstance(stt, WhisperSTT)
