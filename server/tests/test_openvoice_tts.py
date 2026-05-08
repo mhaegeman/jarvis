@@ -290,3 +290,35 @@ class TestVoiceCloning:
         joined = b"".join(chunks)
         expected = np.clip(cloned * 32767.0, -32768, 32767).astype(np.int16).tobytes()
         assert joined == expected
+
+
+class TestPCMConversion:
+    async def test_float32_clipped_to_int16_range(self):
+        # Out-of-range floats must clip to ±32767 / -32768, not wrap.
+        # Construct: -2.0, -0.5, 0.0, 0.5, 2.0 → -32768, -16384, 0, 16384, 32767.
+        # Pad with zeros so chunking yields a single chunk.
+        edges = np.array([-2.0, -0.5, 0.0, 0.5, 2.0], dtype=np.float32)
+        pad = np.zeros(2395, dtype=np.float32)  # total 2400 samples = 100 ms
+        fake_tts = FakeBaseSpeakerTTS(
+            return_audio=np.concatenate([edges, pad]),
+        )
+        loaded = LoadedOpenVoice(
+            tts_model=fake_tts,
+            tone_color_converter=FakeToneColorConverter(),
+            en_source_se=object(),
+            target_se=None,
+            sample_rate=24000,
+        )
+        tts = OpenVoiceTTS(
+            openvoice_path="~/OpenVoice", device="cpu", speaker_wav=None,
+            loader=make_loader(loaded),
+        )
+        chunks = [c async for c in tts.synthesize("hi", "id1")]
+
+        joined = b"".join(chunks)
+        samples = np.frombuffer(joined, dtype=np.int16)
+        assert samples[0] == -32768  # -2.0 clamped
+        assert samples[1] in (-16384, -16383)  # -0.5 → ≈-16383.5, float32 rounding
+        assert samples[2] == 0
+        assert samples[3] in (16383, 16384)   # 0.5 → ≈16383.5, float32 rounding
+        assert samples[4] == 32767   # 2.0 clamped
