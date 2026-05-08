@@ -78,3 +78,137 @@ class TestSystemPrompt:
         # Spec §6 requires voice-friendly guidance.
         assert "spoken aloud" in JARVIS_SYSTEM_PROMPT
         assert "no markdown" in JARVIS_SYSTEM_PROMPT.lower() or "plain prose" in JARVIS_SYSTEM_PROMPT.lower()
+
+
+from dataclasses import dataclass, field
+from typing import Any
+
+
+@dataclass
+class _FakeDelta:
+    type: str
+    text: str = ""
+
+
+@dataclass
+class _FakeEvent:
+    type: str
+    delta: _FakeDelta | None = None
+
+
+def text_delta(text: str) -> _FakeEvent:
+    """Build a content_block_delta event with a text payload."""
+    return _FakeEvent(type="content_block_delta", delta=_FakeDelta(type="text_delta", text=text))
+
+
+def non_text_event() -> _FakeEvent:
+    """Build a content_block_start event the consumer should skip."""
+    return _FakeEvent(type="content_block_start", delta=None)
+
+
+@dataclass
+class _FakeStream:
+    events: list[_FakeEvent]
+    aexit_called: bool = False
+
+    async def __aenter__(self) -> "_FakeStream":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> bool:
+        self.aexit_called = True
+        return False  # do not suppress
+
+    def __aiter__(self) -> "_FakeStream":
+        return self
+
+    async def __anext__(self) -> _FakeEvent:
+        if not self.events:
+            raise StopAsyncIteration
+        return self.events.pop(0)
+
+
+@dataclass
+class _FakeMessages:
+    events: list[_FakeEvent] = field(default_factory=list)
+    raise_on_stream: BaseException | None = None
+    captured_kwargs: dict[str, Any] = field(default_factory=dict)
+    last_stream: _FakeStream | None = None
+
+    def stream(self, **kwargs: Any) -> _FakeStream:
+        self.captured_kwargs = kwargs
+        if self.raise_on_stream is not None:
+            raise self.raise_on_stream
+        self.last_stream = _FakeStream(events=list(self.events))
+        return self.last_stream
+
+
+@dataclass
+class FakeAnthropic:
+    """Minimal fake of `anthropic.AsyncAnthropic` for unit tests."""
+
+    events: list[_FakeEvent] = field(default_factory=list)
+    raise_on_stream: BaseException | None = None
+
+    def __post_init__(self) -> None:
+        self.messages = _FakeMessages(
+            events=self.events, raise_on_stream=self.raise_on_stream
+        )
+
+
+from server.pipelines.claude_llm import ClaudeLLM
+
+
+class TestStream:
+    async def test_yields_text_deltas_in_order(self):
+        client = FakeAnthropic(events=[
+            text_delta("Hello "),
+            text_delta("there, "),
+            text_delta("Max."),
+        ])
+        llm = ClaudeLLM(default_model=HAIKU, client=client)
+
+        chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
+
+        assert chunks == ["Hello ", "there, ", "Max."]
+
+    async def test_skips_non_text_events(self):
+        client = FakeAnthropic(events=[
+            non_text_event(),
+            text_delta("hi"),
+            non_text_event(),
+        ])
+        llm = ClaudeLLM(default_model=HAIKU, client=client)
+
+        chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
+
+        assert chunks == ["hi"]
+
+    async def test_passes_correct_kwargs_to_stream(self):
+        client = FakeAnthropic(events=[text_delta("ok")])
+        llm = ClaudeLLM(default_model=HAIKU, client=client, max_tokens=1024)
+
+        history = [{"role": "user", "content": "earlier"}, {"role": "assistant", "content": "reply"}]
+        async for _ in llm.stream(history=history, user_text="now"):
+            pass
+
+        kwargs = client.messages.captured_kwargs
+        assert kwargs["model"] == HAIKU
+        assert kwargs["max_tokens"] == 1024
+        assert kwargs["system"] == JARVIS_SYSTEM_PROMPT
+        assert kwargs["messages"] == [
+            {"role": "user", "content": "earlier"},
+            {"role": "assistant", "content": "reply"},
+            {"role": "user", "content": "now"},
+        ]
+
+    async def test_prefix_routes_to_sonnet_with_doubled_max_tokens(self):
+        client = FakeAnthropic(events=[text_delta("ok")])
+        llm = ClaudeLLM(default_model=HAIKU, client=client, max_tokens=1024)
+
+        async for _ in llm.stream(history=[], user_text="/sonnet Explain"):
+            pass
+
+        kwargs = client.messages.captured_kwargs
+        assert kwargs["model"] == SONNET
+        assert kwargs["max_tokens"] == 2048
+        assert kwargs["messages"] == [{"role": "user", "content": "Explain"}]
