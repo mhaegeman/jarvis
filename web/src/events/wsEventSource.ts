@@ -5,13 +5,26 @@ import type {
   EventMap,
   TelemetryEvent,
 } from "@/types";
-import { decodeAudioFrame, KIND_SERVER_TTS } from "@/audio/wsCodec";
+import {
+  decodeAudioFrame,
+  encodeMicFrame,
+  KIND_SERVER_TTS,
+} from "@/audio/wsCodec";
 import { PlaybackQueue } from "@/audio/playbackQueue";
+import {
+  startMicWorklet,
+  type MicWorkletHandle,
+} from "@/audio/micWorklet";
 
 export interface WSEventSourceOpts {
   url: string;
   audioCtx?: AudioContext;
   clientVersion?: string;
+  micFactory?: (
+    ctx: AudioContext,
+    onFrame: (int16: Int16Array) => void,
+  ) => Promise<MicWorkletHandle>;
+  micSource?: () => Promise<MediaStreamAudioSourceNode>;
 }
 
 type Handlers = { [K in EventName]?: Set<EventHandler<K>> };
@@ -24,6 +37,7 @@ export class WSEventSource implements IEventSource {
   private readyPromise: Promise<void> | null = null;
   private closedByUser = false;
   private playback: PlaybackQueue | null = null;
+  private mic: MicWorkletHandle | null = null;
 
   constructor(private opts: WSEventSourceOpts) {
     if (opts.audioCtx) this.playback = new PlaybackQueue(opts.audioCtx);
@@ -63,12 +77,39 @@ export class WSEventSource implements IEventSource {
     this.ws = null;
   }
 
-  beginListening(): void {
-    /* implemented in Task 7 */
+  async beginListening(): Promise<void> {
+    if (!this.opts.audioCtx) throw new Error("audioCtx required for listening");
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "audio.start",
+          sampleRate: 16000,
+          format: "pcm_s16le",
+        }),
+      );
+    }
+    const onFrame = (int16: Int16Array): void => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(encodeMicFrame(int16));
+      }
+    };
+    if (this.opts.micFactory) {
+      this.mic = await this.opts.micFactory(this.opts.audioCtx, onFrame);
+      return;
+    }
+    if (!this.opts.micSource) {
+      throw new Error("micSource required when micFactory absent");
+    }
+    const source = await this.opts.micSource();
+    this.mic = await startMicWorklet(this.opts.audioCtx, source, onFrame);
   }
 
   endListening(): void {
-    /* implemented in Task 7 */
+    this.mic?.stop();
+    this.mic = null;
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: "audio.end" }));
+    }
   }
 
   sendText(content: string): void {

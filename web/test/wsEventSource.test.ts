@@ -183,6 +183,46 @@ describe("WSEventSource — handshake + dispatch", () => {
     );
   });
 
+  it("beginListening sends audio.start; mic frames go out as binary; endListening sends audio.end", async () => {
+    const ctx = new FakeAudioContext();
+    let onFrame: ((s: Int16Array) => void) | null = null;
+    const src = new WSEventSource({
+      url: "ws://x",
+      audioCtx: ctx as unknown as AudioContext,
+      micFactory: async (_ctx, cb) => {
+        onFrame = cb;
+        return {
+          stop(): void {
+            onFrame = null;
+          },
+        };
+      },
+    });
+    const p = src.start();
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    ws.receiveText(JSON.stringify({ type: "ready" }));
+    await p;
+
+    await src.beginListening();
+    const startMsg = ws.sent.find(
+      (m): m is string => typeof m === "string" && m.includes("audio.start"),
+    );
+    expect(startMsg).toBeTruthy();
+    expect(onFrame).toBeTruthy();
+
+    onFrame!(new Int16Array([1, 2, 3]));
+    const binSent = ws.sent.find((m) => m instanceof ArrayBuffer);
+    expect(binSent).toBeTruthy();
+
+    src.endListening();
+    const endMsg = ws.sent.find(
+      (m): m is string => typeof m === "string" && m.includes("audio.end"),
+    );
+    expect(endMsg).toBeTruthy();
+    expect(onFrame).toBeNull();
+  });
+
   it("stop() closes the socket and prevents reconnect", () => {
     const { src } = freshSrc();
     void src.start();
