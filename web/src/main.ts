@@ -24,9 +24,9 @@ import { Centerpiece } from "@/ui/Centerpiece";
 import { Controls } from "@/ui/Controls";
 import { attachKeyboard } from "@/ui/keyboard";
 
-import { TODAY } from "@/data/calendar";
 import { connect } from "@/events/connect";
 import { createMicCapture, probeMicSupport } from "@/audio/micCapture";
+import { analyserDb } from "@/audio/analyzer";
 
 interface PanelData {
   system: PanelDataSystem | null;
@@ -36,6 +36,8 @@ interface PanelData {
   calendar: { entries: PanelDataCalendarEntry[]; syncing: boolean };
 }
 
+type WsState = "live" | "demo" | "reconnecting";
+
 interface AppState {
   state: ConvState;
   micAmplitude: number;
@@ -43,6 +45,7 @@ interface AppState {
   telemetry: TelemetryEvent[];
   centerTitle: string;
   panelData: PanelData;
+  wsState: WsState;
 }
 
 const start = Date.now();
@@ -62,6 +65,7 @@ const store = createStore<AppState>({
     tasks: null,
     calendar: { entries: [], syncing: false },
   },
+  wsState: "live",
 });
 
 const log = (level: TelemetryEvent["level"], message: string): void => {
@@ -279,9 +283,16 @@ function maybeFinishSpeaking(): void {
   }, 200);
 }
 events.on("error", (e) => log("error", `${e.code}: ${e.message}`));
-events.on("telemetry", (t) =>
-  store.update((d) => ({ telemetry: [t, ...d.telemetry].slice(0, 14) })),
-);
+events.on("telemetry", (t) => {
+  store.update((d) => ({ telemetry: [t, ...d.telemetry].slice(0, 14) }));
+  if (mode === "live") {
+    if (t.message.startsWith("reconnecting")) {
+      store.update(() => ({ wsState: "reconnecting" }));
+    } else if (t.message === "reconnected") {
+      store.update(() => ({ wsState: "live" }));
+    }
+  }
+});
 events.on("state.snapshot", (snap) =>
   store.update((d) => ({
     panelData: {
@@ -300,6 +311,7 @@ events.on("calendar.update", ({ entries }) =>
 );
 
 // Boot — connect() already awaited events.start() for both live and demo modes.
+store.update(() => ({ wsState: mode === "demo" ? "demo" : "live" }));
 log("ok", `session ready (${mode})`);
 if (mode === "demo") {
   log("warn", "backend offline — demo mode");
@@ -312,26 +324,37 @@ function tick(): void {
   const u = Date.now() - start;
 
   const pd = s.panelData;
-  header.render({ uptimeMs: u });
+  header.render({ uptimeMs: u, wsState: s.wsState });
   system.render({
     uptimeMs: u,
     load: pd.system?.load ?? 0,
     tokensPerMin: pd.system?.tokensPerMin ?? 0,
     sessionId: pd.system?.sessionId ?? "----",
+    modelName: pd.system?.modelName ?? "—",
   });
   memory.render({
     contextUsed: pd.memory?.contextUsed ?? 0,
     contextMax: pd.memory?.contextMax ?? 200000,
-    recallPct: 98.2,
   });
-  calendar.render({ entries: pd.calendar.entries.length > 0 ? pd.calendar.entries : TODAY });
+  calendar.render({
+    entries: pd.calendar.entries,
+    syncing: pd.calendar.syncing,
+    onSync: () => {
+      store.update((d) => ({
+        panelData: {
+          ...d.panelData,
+          calendar: { ...d.panelData.calendar, syncing: true },
+        },
+      }));
+      events.syncCalendar();
+    },
+  });
   network.render({
     endpoint: pd.network?.endpoint ?? (mode === "demo" ? "demo" : "local"),
-    latencyMs: pd.network?.latencyMs ?? 0,
+    latencyMs: pd.network?.latencyMs ?? null,
     packets: pd.network?.packets ?? 0,
-    busyPct: pd.network
-      ? Math.round((pd.network.sendQueueDepth / pd.network.sendQueueMax) * 100)
-      : 0,
+    sendQueueDepth: pd.network?.sendQueueDepth ?? 0,
+    sendQueueMax: pd.network?.sendQueueMax ?? 256,
   });
   tasks.render({
     queued: pd.tasks?.queued ?? 0,
@@ -347,9 +370,18 @@ function tick(): void {
       : s.state === "speaking"
         ? 60 + Math.random() * 30
         : 5 + Math.random() * 5;
+  // outputDb: real RMS of the playback analyser when in live mode + speaking;
+  // synthetic fallback otherwise (silence/idle reports the analyser noise floor as -∞).
+  let outputDb: number;
+  if (mode === "live" && liveAnalyser && s.state === "speaking") {
+    const db = analyserDb(liveAnalyser);
+    outputDb = db === -Infinity ? -80 : db;
+  } else {
+    outputDb = -60 + meter * 0.4;
+  }
   audioPanel.render({
     inputDb: -80 + (s.state === "listening" ? s.micAmplitude * 60 : Math.random() * 4),
-    outputDb: -60 + meter * 0.4,
+    outputDb,
     inputBarPct: meter,
     mic: s.micStatus,
   });

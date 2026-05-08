@@ -22,12 +22,11 @@ const ctx2dStub = {
 
 // Stub ResizeObserver (not available in JSDOM by default)
 if (typeof ResizeObserver === "undefined") {
-  // @ts-expect-error — JSDOM shim
   globalThis.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver;
 }
 
 describe("Centerpiece", () => {
