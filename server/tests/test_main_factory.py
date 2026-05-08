@@ -169,3 +169,8 @@ class TestBuildTTS:
         )
         with pytest.raises(ImportError, match="torch is not installed"):
             _build_tts()
+
+    def test_unknown_engine_raises(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.tts_engine", "espeak")
+        with pytest.raises(ValueError, match="JARVIS_TTS_ENGINE"):
+            _build_tts()
