@@ -17,9 +17,11 @@ class Settings(BaseSettings):
 
     # Memory settings — aliases match the spec's env-var table.
     # JARVIS_MEMORY=off disables all memory; JARVIS_MEMORY_DB overrides the DB path.
+    # Default is cwd-relative: launched per docs as `cd server && uvicorn server.main:app`,
+    # this lands at <repo>/server/data/memory.db, which the repo .gitignore covers.
     memory_enabled: bool = Field(default=True, validation_alias="JARVIS_MEMORY")
     memory_db_path: str = Field(
-        default="server/data/memory.db", validation_alias="JARVIS_MEMORY_DB"
+        default="data/memory.db", validation_alias="JARVIS_MEMORY_DB"
     )
     memory_resume_minutes: int = Field(default=30, validation_alias="JARVIS_MEMORY_RESUME_MIN")
     memory_refresh_turns: int = Field(default=5, validation_alias="JARVIS_MEMORY_REFRESH_TURNS")
