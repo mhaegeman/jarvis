@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import logging
 from collections.abc import AsyncIterator, MutableMapping
 from pathlib import Path
@@ -15,7 +16,7 @@ from .config import settings
 from .memory.store import MemoryStore
 from .memory.summarizer import ClaudeSummarizer, Summarizer
 from .pipelines.claude_llm import ClaudeLLM
-from .pipelines.interfaces import LLM
+from .pipelines.interfaces import LLM, STT
 from .pipelines.mock_llm import MockLLM
 from .pipelines.mock_stt import MockSTT
 from .pipelines.mock_tts import MockTTS
@@ -63,6 +64,60 @@ def _build_summarizer() -> Summarizer | None:
     return ClaudeSummarizer(client=client, model=settings.memory_model)
 
 
+def _resolve_device() -> str:
+    """Return the torch device string for STT/TTS pipelines.
+
+    Honors `JARVIS_DEVICE` when set to a concrete value; with `auto`,
+    probes torch (cuda → mps → cpu) and falls back to `cpu` when torch
+    is not importable.
+    """
+    explicit = settings.device
+    if explicit in ("cuda", "mps", "cpu"):
+        return explicit
+    try:
+        import torch  # type: ignore[import-not-found]
+    except ImportError:
+        return "cpu"
+    if torch.cuda.is_available():
+        return "cuda"
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+def _build_stt() -> STT:
+    """Construct the STT pipeline based on `JARVIS_STT_ENGINE`.
+
+    `auto` (default) returns `WhisperSTT` when faster-whisper is importable,
+    otherwise logs a warning and returns `MockSTT`. Setting the engine
+    explicitly to `whisper` makes a missing dep a hard `ImportError`.
+
+    Raises:
+        ImportError: when `engine="whisper"` and faster-whisper is not installed.
+        ValueError: when `engine` is not one of {auto, mock, whisper}.
+    """
+    engine = settings.stt_engine
+    if engine == "mock":
+        return MockSTT()
+    if engine in ("auto", "whisper"):
+        if importlib.util.find_spec("faster_whisper") is None:
+            if engine == "whisper":
+                raise ImportError(
+                    "faster-whisper is not installed; run `pip install -e .[stt]`."
+                )
+            log.warning(
+                "STT auto: faster-whisper not installed; using MockSTT. "
+                "Install with `pip install -e .[stt]`."
+            )
+            return MockSTT()
+        from .pipelines.whisper_stt import WhisperSTT
+        return WhisperSTT(
+            model=settings.whisper_model,
+            device=_resolve_device(),
+        )
+    raise ValueError(f"unknown JARVIS_STT_ENGINE: {engine!r}")
+
+
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global _memory_store, _summarizer
@@ -108,9 +163,12 @@ class _StarletteWSAdapter:
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
     await ws.accept()
+    # Per-connection pipeline instances. Construction is cheap — heavy
+    # state (Whisper model, Anthropic client) lives in module-level
+    # singletons inside the wrappers.
     session = Session(
         ws=_StarletteWSAdapter(ws),
-        stt=MockSTT(),
+        stt=_build_stt(),
         llm=_build_llm(),
         tts=MockTTS(),
         memory=_memory_store,

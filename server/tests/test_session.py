@@ -354,3 +354,42 @@ async def test_partials_emitted_during_listening_not_after_audio_end(
     await _drain_until(fake_ws, "llm.end")
     await fake_ws.close_inbound()
     await task
+
+
+@pytest.mark.asyncio
+async def test_empty_stt_final_skips_llm_and_tts(fake_ws: FakeWS) -> None:
+    """Regression: an empty stt.final (sub-200ms audio, accidental tap)
+    must not trigger an LLM turn — that would charge tokens and emit
+    irrelevant TTS for a blank prompt."""
+
+    class _CountingLLM(MockLLM):
+        def __init__(self) -> None:
+            super().__init__(token_delay_ms=0)
+            self.stream_calls = 0
+
+        def stream(self, history, user_text):  # type: ignore[override]
+            self.stream_calls += 1
+            return super().stream(history, user_text)
+
+    counting_llm = _CountingLLM()
+    sess = Session(
+        ws=fake_ws,
+        stt=MockSTT(canned_final=""),
+        llm=counting_llm,
+        tts=MockTTS(),
+    )
+    task = asyncio.create_task(sess.run())
+    await fake_ws.feed_text({"type": "audio.start", "sampleRate": 16000, "format": "pcm_s16le"})
+    await fake_ws.feed_text({"type": "audio.end"})
+    # Wait for stt.final to appear, then a small grace window for any
+    # stray llm.token to arrive (it shouldn't).
+    await _drain_until(fake_ws, "stt.final")
+    await asyncio.sleep(0.1)
+    await fake_ws.close_inbound()
+    await task
+
+    types_seen = [json.loads(t)["type"] for t in fake_ws.sent_text]
+    assert "stt.final" in types_seen
+    assert "llm.token" not in types_seen
+    assert "llm.end" not in types_seen
+    assert counting_llm.stream_calls == 0

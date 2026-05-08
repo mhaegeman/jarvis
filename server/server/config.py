@@ -35,5 +35,10 @@ class Settings(BaseSettings):
         default=None, validation_alias="ANTHROPIC_API_KEY"
     )
 
+    # STT pipeline selection.
+    stt_engine: str = "auto"  # auto | mock | whisper
+    whisper_model: str = "base.en"
+    device: str = "auto"  # auto | cuda | mps | cpu
+
 
 settings = Settings()
