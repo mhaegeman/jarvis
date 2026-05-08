@@ -148,6 +148,8 @@ class Session:
                 t.cancel()
                 with contextlib.suppress(asyncio.CancelledError, Exception):
                     await t
+        await self._consolidate_memory()  # NEW
+
         if self._sender_task and not self._sender_task.done():
             # If the queue is saturated the sentinel is dropped; cancel the
             # sender so cleanup cannot hang forever waiting on get().
@@ -476,3 +478,20 @@ class Session:
                 await self._memory.write_recent_summary(summary, latest[-1].id)
         except Exception:
             log.exception("recent_summary refresh failed")
+
+    async def _consolidate_memory(self) -> None:
+        if self._memory is None or self._summarizer is None:
+            return
+        try:
+            turns = await self._memory.load_session_turns(self.session_id, cap=200)
+            if len(turns) >= 2:
+                summary = await self._summarizer.summarize_session(turns)
+                if summary:
+                    await self._memory.write_session_summary(self.session_id, summary)
+                facts = await self._summarizer.extract_facts(turns)
+                if facts:
+                    await self._memory.upsert_facts(facts, source_session_id=self.session_id)
+                    await self._memory.evict_facts_to_cap(self._facts_cap)
+            await self._memory.end_session(self.session_id)
+        except Exception:
+            log.exception("memory consolidation failed")

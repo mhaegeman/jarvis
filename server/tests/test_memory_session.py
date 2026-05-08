@@ -191,3 +191,45 @@ async def test_session_refreshes_recent_summary_after_threshold(store: MemorySto
     )
     await _drive_session(sess, ws, "turn 0", "turn 1", "turn 2")
     assert "refresh" in fake.calls
+
+
+async def test_cleanup_consolidates_when_session_has_turns(store: MemoryStore) -> None:
+    ws = _FakeWS()
+    fake = FakeSummarizer()
+    sess = Session(
+        ws=ws, stt=MockSTT(), llm=_RecordingLLM(), tts=MockTTS(),
+        memory=store, summarizer=fake,
+    )
+    await _drive_session(sess, ws, "hi")  # cleanup runs in run()'s finally
+
+    summaries = await store.list_recent_summaries(limit=5)
+    assert len(summaries) == 1
+    facts = await store.get_facts()
+    assert "turns_seen" in facts
+
+
+async def test_cleanup_skips_consolidation_for_empty_session(store: MemoryStore) -> None:
+    ws = _FakeWS()
+    fake = FakeSummarizer()
+    sess = Session(
+        ws=ws, stt=MockSTT(), llm=_RecordingLLM(), tts=MockTTS(),
+        memory=store, summarizer=fake,
+    )
+    ws.queue_disconnect()
+    await sess.run()
+
+    assert "session" not in fake.calls  # no summarize_session
+    assert await store.list_recent_summaries(limit=5) == []
+
+
+async def test_cleanup_swallows_summarizer_exceptions(store: MemoryStore) -> None:
+    class _Bomb(FakeSummarizer):
+        async def summarize_session(self, turns):
+            raise RuntimeError("boom")
+
+    ws = _FakeWS()
+    sess = Session(
+        ws=ws, stt=MockSTT(), llm=_RecordingLLM(), tts=MockTTS(),
+        memory=store, summarizer=_Bomb(),
+    )
+    await _drive_session(sess, ws, "hi")  # MUST NOT raise
