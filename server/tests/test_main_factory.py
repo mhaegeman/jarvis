@@ -123,3 +123,30 @@ class TestBuildTTS:
         monkeypatch.setattr("server.main.settings.tts_engine", "mock")
         tts = _build_tts()
         assert isinstance(tts, MockTTS)
+
+    def test_auto_with_torch_returns_openvoice_tts(self, monkeypatch):
+        from server.pipelines.openvoice_tts import OpenVoiceTTS
+        monkeypatch.setattr("server.main.settings.tts_engine", "auto")
+        monkeypatch.setattr("server.main.settings.openvoice_path", "~/OpenVoice")
+        monkeypatch.setattr("server.main.settings.speaker_wav", None)
+        monkeypatch.setattr("server.main.settings.device", "cpu")
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec",
+            lambda name: object() if name == "torch" else None,
+        )
+        tts = _build_tts()
+        assert isinstance(tts, OpenVoiceTTS)
+
+    def test_explicit_openvoice_returns_openvoice_tts(self, monkeypatch):
+        from server.pipelines.openvoice_tts import OpenVoiceTTS
+        monkeypatch.setattr("server.main.settings.tts_engine", "openvoice")
+        monkeypatch.setattr("server.main.settings.openvoice_path", "~/OpenVoice")
+        monkeypatch.setattr("server.main.settings.speaker_wav", "/tmp/voice.wav")
+        monkeypatch.setattr("server.main.settings.device", "cpu")
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec",
+            lambda name: object() if name == "torch" else None,
+        )
+        tts = _build_tts()
+        assert isinstance(tts, OpenVoiceTTS)
+        assert tts._speaker_wav == "/tmp/voice.wav"

@@ -118,6 +118,24 @@ def _build_tts() -> TTS:
     engine = settings.tts_engine
     if engine == "mock":
         return MockTTS()
+    if engine in ("auto", "openvoice"):
+        if importlib.util.find_spec("torch") is None:
+            if engine == "openvoice":
+                raise ImportError(
+                    "torch is not installed; run `pip install -e .[tts]` "
+                    "and clone OpenVoice into JARVIS_OPENVOICE_PATH."
+                )
+            log.warning(
+                "TTS auto: torch not installed; using MockTTS. "
+                "Install with `pip install -e .[tts]`."
+            )
+            return MockTTS()
+        from .pipelines.openvoice_tts import OpenVoiceTTS
+        return OpenVoiceTTS(
+            openvoice_path=settings.openvoice_path,
+            device=_resolve_device(),
+            speaker_wav=settings.speaker_wav,
+        )
     raise ValueError(f"unknown JARVIS_TTS_ENGINE: {engine!r}")
 
 
