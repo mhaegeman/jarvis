@@ -29,11 +29,8 @@ class FakeWhisperModel:
 
 def make_loader(fake: FakeWhisperModel) -> Any:
     """Loader that always returns the same fake."""
-    counter = {"calls": 0}
     def _load(name: str, device: str) -> FakeWhisperModel:
-        counter["calls"] += 1
         return fake
-    _load.counter = counter  # type: ignore[attr-defined]
     return _load
 
 
@@ -132,7 +129,8 @@ class TestTranscribeArgsAndOutput:
         ])
         stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
         result = await stt.final(_audio_iter(payload))
-        # Segments joined by single space, then stripped.
+        # Join inserts one space between segments; the segments already carry
+        # trailing whitespace, so the result has double-spaces internally.
         assert result == "hello  there,  Max."
 
     async def test_strips_outer_whitespace(self):
@@ -148,6 +146,45 @@ class TestTranscribeArgsAndOutput:
         stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
         result = await stt.final(_audio_iter(payload))
         assert result == ""
+
+
+class TestDefaultLoaderCache:
+    """Spec §4.4: the module-level singleton must construct each
+    (model_name, device) WhisperModel exactly once across the process.
+    Tested by patching `faster_whisper.WhisperModel` and counting
+    constructions across repeated `_default_loader` calls."""
+
+    def test_default_loader_caches_per_model_and_device(self, monkeypatch):
+        import sys
+        import types
+
+        from server.pipelines import whisper_stt
+
+        constructions: list[tuple[str, str, str]] = []
+
+        class FakeWhisperModel:
+            def __init__(self, name: str, device: str, compute_type: str) -> None:
+                constructions.append((name, device, compute_type))
+
+        fake_module = types.ModuleType("faster_whisper")
+        fake_module.WhisperModel = FakeWhisperModel  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "faster_whisper", fake_module)
+        monkeypatch.setattr(whisper_stt, "_model_cache", {})
+
+        m1 = whisper_stt._default_loader("base.en", "cpu")
+        m2 = whisper_stt._default_loader("base.en", "cpu")
+        assert m1 is m2
+        assert len(constructions) == 1
+        assert constructions[0] == ("base.en", "cpu", "int8")
+
+        # Different (name, device) → fresh construction.
+        m3 = whisper_stt._default_loader("small.en", "cpu")
+        assert m3 is not m1
+        assert len(constructions) == 2
+
+        # cuda → float16 compute type.
+        whisper_stt._default_loader("base.en", "cuda")
+        assert constructions[-1] == ("base.en", "cuda", "float16")
 
 
 class TestPartials:
