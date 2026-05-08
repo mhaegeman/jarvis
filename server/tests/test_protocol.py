@@ -89,6 +89,11 @@ def test_decode_client_pong() -> None:
     assert msg.seq == 7
 
 
+def test_decode_client_calendar_sync() -> None:
+    msg = decode_client('{"type": "calendar.sync"}')
+    assert msg.type == "calendar.sync"
+
+
 def test_decode_client_pong_rejects_negative_seq() -> None:
     with pytest.raises(ValueError):
         decode_client('{"type": "pong", "seq": -1}')

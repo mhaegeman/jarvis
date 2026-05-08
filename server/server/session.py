@@ -13,12 +13,14 @@ from collections.abc import AsyncIterator, MutableMapping
 from typing import Any, Protocol
 
 from .audio import KIND_CLIENT_MIC, decode_audio_frame, encode_tts_chunk
+from .calendar_client import CalendarClient
 from .heartbeat import Heartbeat
 from .pipelines.interfaces import LLM, STT, TTS
 from .pipelines.sentence_split import split_sentences_stream
 from .protocol import (
     AudioEnd,
     AudioStart,
+    CalendarSync,
     Hello,
     Interrupt,
     Pong,
@@ -80,6 +82,8 @@ class Session:
         self.endpoint = "ws://localhost:8000/ws"
         self.emitter = StateEmitter(self)
         self._state_task: asyncio.Task[None] | None = None
+        self.calendar = CalendarClient()
+        self._calendar_sync_task: asyncio.Task[None] | None = None
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
@@ -88,6 +92,8 @@ class Session:
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self._state_task = asyncio.create_task(self.emitter.run())
         await self._enqueue_json(ServerMessage.ready(session_id=self.session_id))
+        # Calendar starts empty; the client requests a sync via calendar.sync.
+        await self._enqueue_json(ServerMessage.calendar_update(entries=[]))
         try:
             while not self._closing:
                 ev = await self._ws.receive()
@@ -110,6 +116,7 @@ class Session:
             self._turn_task,
             self._heartbeat_task,
             self._state_task,
+            self._calendar_sync_task,
         ):
             if t and not t.done():
                 t.cancel()
@@ -157,6 +164,9 @@ class Session:
             return
         if isinstance(msg, Pong):
             self.heartbeat.record_pong(msg.seq)
+            return
+        if isinstance(msg, CalendarSync):
+            await self._do_calendar_sync()
             return
 
     async def _handle_binary(self, payload: bytes) -> None:
@@ -369,6 +379,24 @@ class Session:
             except Exception:  # noqa: BLE001
                 log.exception("send failed")
                 return
+
+    async def _do_calendar_sync(self) -> None:
+        """Fetch today's calendar on demand. Concurrent syncs coalesce."""
+        if self._calendar_sync_task and not self._calendar_sync_task.done():
+            return
+        self._calendar_sync_task = asyncio.create_task(self._run_calendar_sync())
+
+    async def _run_calendar_sync(self) -> None:
+        try:
+            entries = await self.calendar.fetch_today()
+            await self._enqueue_json(ServerMessage.calendar_update(entries=entries))
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001
+            log.exception("calendar sync failed")
+            await self._enqueue_json(
+                ServerMessage.error("calendar.fetch_failed", "calendar fetch failed")
+            )
 
     async def _heartbeat_loop(self) -> None:
         try:

@@ -45,8 +45,12 @@ class Pong(_Base):
     seq: NonNegativeInt
 
 
+class CalendarSync(_Base):
+    type: Literal["calendar.sync"]
+
+
 ClientMessage = Annotated[
-    Hello | AudioStart | AudioEnd | TextIn | Interrupt | Pong,
+    Hello | AudioStart | AudioEnd | TextIn | Interrupt | Pong | CalendarSync,
     Field(discriminator="type"),
 ]
 

@@ -18,7 +18,7 @@ Replace placeholder data on the nine HUD panels with real, live information. Lan
 | Centerpiece | analyser-driven waveform | unchanged (already real) |
 | System | uptime real, rest fake | real load (`psutil`), tokens/min (rolling 60 s), session id, model name |
 | Memory | all fake | real context-used (token count) vs context-max (model window) |
-| Calendar | hard-coded | today's entries from Google Calendar (refreshed every 30 min) |
+| Calendar | hard-coded | today's entries from Google Calendar; refresh on user-triggered Sync only (no automatic polling) |
 | Network | all fake | endpoint, RTT (heartbeat ping/pong), packet count, server queue depth |
 | Tasks | all fake | counts from server-side queue (second-brain ingestion + scheduled prompts) |
 | Telemetry | real | unchanged |
@@ -158,7 +158,7 @@ class CalendarClient:
         ...
 ```
 
-Started by `Session` on `run()`: emits one `calendar_update` immediately, then every 30 min via background task. If the credentials file is missing, logs a warning and never emits — frontend keeps showing the placeholder.
+**Manual-sync only** (Architect direction, 2026-05-08): the calendar is fetched on demand, not on a timer. On `Session.run()` the server emits one `calendar.update` with `entries: []` (empty placeholder). The client sends `{type: "calendar.sync"}` when the user clicks the Sync button on the Calendar panel; the server fetches and emits a fresh `calendar.update`. Concurrent syncs coalesce. If credentials are missing, the fetch returns `[]` and the server emits an `error` event so the panel can surface it; otherwise the sync is silent on success beyond the `calendar.update`.
 
 ### 5.5 Heartbeat refactor
 
@@ -214,12 +214,13 @@ Each section is the contract a Phase-C subagent receives. Format is identical: s
 
 ### 6.5 Calendar
 
-- **State:** `{ entries: { time: string, title: string, durationMin: number }[] }`
-- **Source:** `calendar.update` event payload routed into store
-- **File:** `web/src/ui/panels/CalendarPanel.ts` (small change), `web/src/data/calendar.ts` (drop the hard-coded TODAY constant)
-- **Render:** rows show `HH:MM  Title (Nm)` where `(Nm)` is duration if known
-- **Empty state:** "No events" placeholder when `entries.length === 0`
-- **Test:** unit test renders 0, 1, 5 entries
+- **State:** `{ entries: { time: string, title: string, durationMin: number }[], syncing: boolean }`
+- **Source:** `calendar.update` event payload routed into store; `syncing` flips true on user click and false when the next `calendar.update` arrives
+- **Sync trigger:** new "Sync" button in the panel. On click, the panel emits `events.syncCalendar()` (new method on `EventSource`) which sends `{type: "calendar.sync"}` over the wire. The button is disabled while `syncing === true`.
+- **File:** `web/src/ui/panels/CalendarPanel.ts`, `web/src/data/calendar.ts` (drop the hard-coded TODAY constant), `web/src/events/eventSource.ts` (add `syncCalendar()`), `web/src/events/wsEventSource.ts` + `web/src/events/mockEventSource.ts` (implement)
+- **Render:** rows show `HH:MM  Title (Nm)` where `(Nm)` is duration if known; header has a `[Sync]` button
+- **Empty state:** "Click Sync to load today's calendar" when `entries.length === 0`
+- **Test:** unit test renders 0/1/5 entries, button click invokes `syncCalendar`, button disables during `syncing`
 
 ### 6.6 Network
 
@@ -296,7 +297,7 @@ Three phases. Phases A and B are orchestrator-driven (sequential, touches shared
 - With backend running (`uvicorn server.main:app`), the deployed site shows live values on every panel within 2 s of connect:
   - System: load, tokens/min, session id, model name update
   - Memory: bar fills proportional to a recent turn's history token count
-  - Calendar: today's actual events from the connected Google account
+  - Calendar: empty by default; clicking Sync fetches today's actual events from the connected Google account
   - Network: latency reflects real RTT (`< 50 ms` on localhost), packet count climbs with messages, busy bar reflects send queue depth
   - Tasks: counts reflect anything enqueued via `tasks.enqueue` from a `python -m server.cli_test` test path
   - Header: badge shows `live`; toggling backend off → `reconnecting` → on → `live`
