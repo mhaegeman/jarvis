@@ -84,3 +84,31 @@ async def test_find_resumable_skips_stale(store: MemoryStore) -> None:
     )
     await store._conn.commit()
     assert await store.find_resumable(within_minutes=30) is None
+
+
+async def test_recent_summary_empty_initially(store: MemoryStore) -> None:
+    assert await store.get_recent_summary() == ""
+
+
+async def test_write_and_read_recent_summary(store: MemoryStore) -> None:
+    await store.write_recent_summary("recently we shipped α", last_turn_id=10)
+    assert await store.get_recent_summary() == "recently we shipped α"
+    meta = await store.get_recent_summary_meta()
+    assert meta.summary == "recently we shipped α"
+    assert meta.last_turn_id == 10
+
+
+async def test_write_recent_summary_overwrites(store: MemoryStore) -> None:
+    await store.write_recent_summary("first", last_turn_id=1)
+    await store.write_recent_summary("second", last_turn_id=2)
+    meta = await store.get_recent_summary_meta()
+    assert meta.summary == "second"
+    assert meta.last_turn_id == 2
+
+
+async def test_turns_since_counts_correctly(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    t1 = await store.append_turn(sid, "user", "u1")
+    await store.append_turn(sid, "assistant", "a1")
+    await store.append_turn(sid, "user", "u2")
+    assert await store.turns_since(t1) == 2

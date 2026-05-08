@@ -13,7 +13,7 @@ from typing import Self
 
 import aiosqlite
 
-from .types import Fact, RecentSummaryMeta, SessionSummary, Turn  # noqa: F401
+from .types import Fact, RecentSummaryMeta, SessionSummary, Turn
 
 log = logging.getLogger(__name__)
 
@@ -143,3 +143,40 @@ class MemoryStore:
         rows = await cur.fetchall()
         rows = list(reversed(rows))
         return [Turn(id=r[0], session_id=r[1], ts=r[2], role=r[3], content=r[4]) for r in rows]
+
+    # ─── recent_summary (single-row table) ────────────────────────────
+
+    async def get_recent_summary(self) -> str:
+        cur = await self._conn.execute("SELECT summary FROM recent_summary WHERE id=1")
+        row = await cur.fetchone()
+        return row[0] if row else ""
+
+    async def get_recent_summary_meta(self) -> RecentSummaryMeta:
+        cur = await self._conn.execute(
+            "SELECT summary, refreshed_at, last_turn_id FROM recent_summary WHERE id=1"
+        )
+        row = await cur.fetchone()
+        if row is None:
+            return RecentSummaryMeta(summary="", refreshed_at="", last_turn_id=0)
+        return RecentSummaryMeta(summary=row[0], refreshed_at=row[1], last_turn_id=row[2])
+
+    async def write_recent_summary(self, summary: str, last_turn_id: int) -> None:
+        await self._conn.execute(
+            """
+            INSERT INTO recent_summary(id, summary, refreshed_at, last_turn_id)
+            VALUES (1, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              summary = excluded.summary,
+              refreshed_at = excluded.refreshed_at,
+              last_turn_id = excluded.last_turn_id
+            """,
+            (summary, _utcnow_iso(), last_turn_id),
+        )
+        await self._conn.commit()
+
+    async def turns_since(self, last_turn_id: int) -> int:
+        cur = await self._conn.execute(
+            "SELECT COUNT(*) FROM turns WHERE id > ?", (last_turn_id,)
+        )
+        row = await cur.fetchone()
+        return int(row[0]) if row else 0
