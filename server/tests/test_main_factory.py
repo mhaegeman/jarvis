@@ -150,3 +150,22 @@ class TestBuildTTS:
         tts = _build_tts()
         assert isinstance(tts, OpenVoiceTTS)
         assert tts._speaker_wav == "/tmp/voice.wav"
+
+    def test_auto_without_torch_logs_and_returns_mock(self, monkeypatch, caplog):
+        import logging
+        monkeypatch.setattr("server.main.settings.tts_engine", "auto")
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec", lambda name: None
+        )
+        with caplog.at_level(logging.WARNING, logger="server.main"):
+            tts = _build_tts()
+        assert isinstance(tts, MockTTS)
+        assert any("torch not installed" in rec.message for rec in caplog.records)
+
+    def test_explicit_openvoice_without_torch_raises(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.tts_engine", "openvoice")
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec", lambda name: None
+        )
+        with pytest.raises(ImportError, match="torch is not installed"):
+            _build_tts()
