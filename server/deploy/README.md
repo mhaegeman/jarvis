@@ -138,4 +138,37 @@ server logs a `WARNING` and falls back to `MockSTT`. Set the engine to
 
 ### TTS — OpenVoice
 
-(Coming in the next release — see `docs/superpowers/specs/2026-05-08-real-stt-tts-design.md`.)
+OpenVoice is not a pip package. Clone the upstream repo and the Hugging Face
+checkpoints into one directory:
+
+```bash
+git clone https://github.com/myshell-ai/OpenVoice ~/OpenVoice
+cd ~/OpenVoice
+git clone https://huggingface.co/myshell-ai/OpenVoice
+cp -r OpenVoice/* .
+```
+
+Then install torch and the [tts] extras (CPU example; replace the torch
+index URL for CUDA):
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -e .[tts]
+```
+
+Set the engine and (optionally) the cloning reference WAV:
+
+```bash
+export JARVIS_TTS_ENGINE=openvoice                  # or leave =auto (default)
+export JARVIS_OPENVOICE_PATH=~/OpenVoice            # default; override if cloned elsewhere
+# Optional: 10–30 s of clean speech to clone the user's voice. Without it,
+# OpenVoice uses its default English speaker.
+export JARVIS_SPEAKER_WAV=/path/to/voice-sample.wav
+```
+
+The first synthesize call loads the OpenVoice models and (if cloning) runs
+`se_extractor` once. Subsequent turns reuse the cached singletons.
+
+If `JARVIS_TTS_ENGINE=auto` and torch isn't installed, the server logs a
+`WARNING` and falls back to `MockTTS`. Set the engine to `openvoice` to make
+a missing dep a hard failure.
