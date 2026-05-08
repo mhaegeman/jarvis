@@ -1,6 +1,7 @@
 raw/
 .obsidian/
 .worktrees/
+server/data/
 worktrees/
 node_modules/
 package*

@@ -19,7 +19,10 @@ class MockLLM(LLM):
         self,
         history: list[dict[str, str]],
         user_text: str,
+        *,
+        extra_context: str = "",
     ) -> AsyncIterator[str]:
+        del extra_context  # mock ignores
         scenario = pick_scenario(user_text)
         reply = scenario.reply if scenario else DEFAULT_REPLY
         i = 0

@@ -15,6 +15,8 @@ from typing import Any, Protocol
 from .audio import KIND_CLIENT_MIC, decode_audio_frame, encode_tts_chunk
 from .calendar_client import CalendarClient
 from .heartbeat import Heartbeat
+from .memory.store import MemoryStore
+from .memory.summarizer import Summarizer
 from .pipelines.interfaces import LLM, STT, TTS
 from .pipelines.sentence_split import split_sentences_stream
 from .protocol import (
@@ -58,6 +60,13 @@ class Session:
         llm: LLM,
         tts: TTS,
         history_cap: int = 20,
+        *,
+        memory: MemoryStore | None = None,
+        summarizer: Summarizer | None = None,
+        resume_window_minutes: int = 30,
+        recent_summary_refresh_turns: int = 5,
+        recent_summary_window: int = 20,
+        facts_cap: int = 50,
     ) -> None:
         self._ws = ws
         self._stt = stt
@@ -84,6 +93,16 @@ class Session:
         self._state_task: asyncio.Task[None] | None = None
         self.calendar = CalendarClient()
         self._calendar_sync_task: asyncio.Task[None] | None = None
+        self._memory = memory
+        self._summarizer = summarizer
+        self._resume_window_minutes = resume_window_minutes
+        self._refresh_turns = recent_summary_refresh_turns
+        self._recent_window = recent_summary_window
+        self._facts_cap = facts_cap
+        # Guards against duplicate consolidation: Session.run()'s finally and
+        # the ws_endpoint's finally both call cleanup(), and consolidation is
+        # non-deterministic + bills the Anthropic API.
+        self._consolidated = False
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
@@ -91,6 +110,17 @@ class Session:
         self._sender_task = asyncio.create_task(self._sender_loop())
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self._state_task = asyncio.create_task(self.emitter.run())
+        # ── memory: resume or start a new session ──────────────────
+        if self._memory is not None:
+            resumable = await self._memory.find_resumable(
+                within_minutes=self._resume_window_minutes
+            )
+            if resumable is not None:
+                self.session_id = resumable
+                turns = await self._memory.load_session_turns(resumable, cap=self._history_cap)
+                self._history = [{"role": t.role, "content": t.content} for t in turns]
+            else:
+                self.session_id = await self._memory.start_session()
         await self._enqueue_json(ServerMessage.ready(session_id=self.session_id))
         # Calendar starts empty; the client requests a sync via calendar.sync.
         await self._enqueue_json(ServerMessage.calendar_update(entries=[]))
@@ -122,6 +152,8 @@ class Session:
                 t.cancel()
                 with contextlib.suppress(asyncio.CancelledError, Exception):
                     await t
+        await self._consolidate_memory()  # NEW
+
         if self._sender_task and not self._sender_task.done():
             # If the queue is saturated the sentinel is dropped; cancel the
             # sender so cleanup cannot hang forever waiting on get().
@@ -275,9 +307,24 @@ class Session:
         return final
 
     async def _do_llm_and_tts(self, user_text: str) -> None:
+        from .memory.context import MemoryContext
+        from .memory.triggers import is_memory_query
+
         self._history.append({"role": "user", "content": user_text})
 
-        llm_iter = self._llm.stream(self._history, user_text)
+        # Build context BEFORE persisting the current user turn so search_turns
+        # (newest-first) can't echo it back as a "past exchange".
+        extra = ""
+        if self._memory is not None:
+            if is_memory_query(user_text):
+                extra = await MemoryContext.full(self._memory, user_text)
+            else:
+                extra = await MemoryContext.default(self._memory)
+
+        if self._memory is not None:
+            await self._memory.append_turn(self.session_id, "user", user_text)
+
+        llm_iter = self._llm.stream(self._history, user_text, extra_context=extra)
         token_q: asyncio.Queue[str | None] = asyncio.Queue()
         sentence_q: asyncio.Queue[str | None] = asyncio.Queue()
         assistant_buf: list[str] = []
@@ -330,6 +377,8 @@ class Session:
         full = "".join(assistant_buf)
         if full:
             self._history.append({"role": "assistant", "content": full})
+            if self._memory is not None:
+                await self._memory.append_turn(self.session_id, "assistant", full)
         if len(self._history) > self._history_cap:
             self._history = self._history[-self._history_cap :]
         # Approximate token budget tracking: ~4 chars per token. Cheap and
@@ -337,6 +386,8 @@ class Session:
         # tokenizer when the LLM client lands.
         total_chars = sum(len(m["content"]) for m in self._history)
         self.emitter.record_token_budget(total_chars // 4)
+
+        await self._maybe_refresh_recent_summary()
 
     async def _do_interrupt(self) -> None:
         if self._turn_task and not self._turn_task.done():
@@ -412,3 +463,50 @@ class Session:
                 await self._enqueue_json(ServerMessage.ping(seq=seq))
         except asyncio.CancelledError:
             raise
+
+    async def _maybe_refresh_recent_summary(self) -> None:
+        if self._memory is None or self._summarizer is None:
+            return
+        meta = await self._memory.get_recent_summary_meta()
+        delta = await self._memory.turns_since(meta.last_turn_id)
+        if delta < self._refresh_turns:
+            return
+        # Pull the latest N turns across all sessions for the summary.
+        # We access _conn directly because we need a cross-session SELECT;
+        # the public API doesn't expose a "latest N turns globally" method.
+        cur = await self._memory._conn.execute(
+            "SELECT id, session_id, ts, role, content FROM turns ORDER BY id DESC LIMIT ?",
+            (self._recent_window,),
+        )
+        rows = list(await cur.fetchall())
+        rows.reverse()
+        from .memory.types import Turn
+        latest = [Turn(id=r[0], session_id=r[1], ts=r[2], role=r[3], content=r[4]) for r in rows]
+        if not latest:
+            return
+        try:
+            summary = await self._summarizer.refresh_recent_summary(latest)
+            if summary:
+                await self._memory.write_recent_summary(summary, latest[-1].id)
+        except Exception:
+            log.exception("recent_summary refresh failed")
+
+    async def _consolidate_memory(self) -> None:
+        if self._consolidated:
+            return
+        self._consolidated = True
+        if self._memory is None or self._summarizer is None:
+            return
+        try:
+            turns = await self._memory.load_session_turns(self.session_id, cap=200)
+            if len(turns) >= 2:
+                summary = await self._summarizer.summarize_session(turns)
+                if summary:
+                    await self._memory.write_session_summary(self.session_id, summary)
+                facts = await self._summarizer.extract_facts(turns)
+                if facts:
+                    await self._memory.upsert_facts(facts, source_session_id=self.session_id)
+                    await self._memory.evict_facts_to_cap(self._facts_cap)
+            await self._memory.end_session(self.session_id)
+        except Exception:
+            log.exception("memory consolidation failed")

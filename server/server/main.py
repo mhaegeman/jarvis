@@ -6,12 +6,15 @@ import contextlib
 import importlib.util
 import logging
 from collections.abc import AsyncIterator, MutableMapping
+from pathlib import Path
 from typing import Any
 
 import anthropic
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from .config import settings
+from .memory.store import MemoryStore
+from .memory.summarizer import ClaudeSummarizer, Summarizer
 from .pipelines.claude_llm import ClaudeLLM
 from .pipelines.interfaces import LLM, STT
 from .pipelines.mock_llm import MockLLM
@@ -21,6 +24,9 @@ from .session import Session
 
 logging.basicConfig(level=settings.log_level)
 log = logging.getLogger(__name__)
+
+_memory_store: MemoryStore | None = None
+_summarizer: Summarizer | None = None
 
 
 def _build_llm() -> LLM:
@@ -48,6 +54,14 @@ def _build_llm() -> LLM:
             client=client,
         )
     raise ValueError(f"unknown JARVIS_MODEL_NAME: {name!r}")
+
+
+def _build_summarizer() -> Summarizer | None:
+    if settings.anthropic_api_key is None:
+        log.warning("memory: ANTHROPIC_API_KEY unset; summarization disabled")
+        return None
+    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key.get_secret_value())
+    return ClaudeSummarizer(client=client, model=settings.memory_model)
 
 
 def _resolve_device() -> str:
@@ -106,8 +120,20 @@ def _build_stt() -> STT:
 
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    global _memory_store, _summarizer
     log.info("lifespan: Phase 1 mock pipelines (no model loading)")
-    yield
+    if settings.memory_enabled:
+        Path(settings.memory_db_path).parent.mkdir(parents=True, exist_ok=True)
+        _memory_store = await MemoryStore.open(settings.memory_db_path)
+        _summarizer = _build_summarizer()
+        log.info("memory: enabled at %s", settings.memory_db_path)
+    else:
+        log.info("memory: disabled")
+    try:
+        yield
+    finally:
+        if _memory_store is not None:
+            await _memory_store.close()
 
 
 app = FastAPI(lifespan=lifespan, title="Jarvis backend (spec-02 Phase 1)")
@@ -145,6 +171,12 @@ async def ws_endpoint(ws: WebSocket) -> None:
         stt=_build_stt(),
         llm=_build_llm(),
         tts=MockTTS(),
+        memory=_memory_store,
+        summarizer=_summarizer,
+        resume_window_minutes=settings.memory_resume_minutes,
+        recent_summary_refresh_turns=settings.memory_refresh_turns,
+        recent_summary_window=settings.memory_recent_window,
+        facts_cap=settings.memory_facts_cap,
     )
     try:
         await session.run()
