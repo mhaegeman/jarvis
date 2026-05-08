@@ -19,18 +19,22 @@ python3.12 -m venv .venv
 
 ## Install
 
-```bash
-mkdir -p ~/.config/systemd/user
-cp server/deploy/jarvis-backend.service ~/.config/systemd/user/
+Run from anywhere inside the cloned `jarvis` repository:
 
-# If `jarvis/` lives somewhere other than ~/jarvis, rewrite the absolute paths
-# in the unit (the template uses %h/jarvis throughout).
-JARVIS_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+```bash
+JARVIS_ROOT="$(git rev-parse --show-toplevel)"
+
+mkdir -p ~/.config/systemd/user
+cp "$JARVIS_ROOT/server/deploy/jarvis-backend.service" ~/.config/systemd/user/
+
+# Rewrite the `%h/jarvis` placeholder to the actual repo path.
 sed -i "s|%h/jarvis|$JARVIS_ROOT|g" ~/.config/systemd/user/jarvis-backend.service
 
 systemctl --user daemon-reload
 systemctl --user enable --now jarvis-backend.service
 ```
+
+If you don't have `git` available, replace the first line with the absolute path to the repo, e.g. `JARVIS_ROOT="$HOME/jarvis"`.
 
 ## Verify
 
