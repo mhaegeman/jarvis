@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Self
 
 import aiosqlite
@@ -77,3 +77,69 @@ class MemoryStore:
 
     async def close(self) -> None:
         await self._conn.close()
+
+    # ─── sessions ─────────────────────────────────────────────────────
+
+    async def start_session(self) -> str:
+        import secrets
+
+        session_id = secrets.token_hex(8)
+        await self._conn.execute(
+            "INSERT INTO sessions(session_id, started_at, ended_at) VALUES (?, ?, NULL)",
+            (session_id, _utcnow_iso()),
+        )
+        await self._conn.commit()
+        return session_id
+
+    async def end_session(self, session_id: str) -> None:
+        await self._conn.execute(
+            "UPDATE sessions SET ended_at=? WHERE session_id=? AND ended_at IS NULL",
+            (_utcnow_iso(), session_id),
+        )
+        await self._conn.commit()
+
+    async def find_resumable(self, within_minutes: int) -> str | None:
+        """Return the most recently-active session if its last turn is within the window."""
+        cur = await self._conn.execute(
+            """
+            SELECT s.session_id, MAX(t.ts) AS last_ts
+              FROM sessions s
+              JOIN turns t ON t.session_id = s.session_id
+             GROUP BY s.session_id
+             ORDER BY last_ts DESC
+             LIMIT 1
+            """
+        )
+        row = await cur.fetchone()
+        if row is None or row[1] is None:
+            return None
+        last_ts = datetime.strptime(row[1], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+        if datetime.now(UTC) - last_ts > timedelta(minutes=within_minutes):
+            return None
+        return row[0]
+
+    # ─── turns ────────────────────────────────────────────────────────
+
+    async def append_turn(self, session_id: str, role: str, content: str) -> int:
+        cur = await self._conn.execute(
+            "INSERT INTO turns(session_id, ts, role, content) VALUES (?, ?, ?, ?)",
+            (session_id, _utcnow_iso(), role, content),
+        )
+        await self._conn.commit()
+        return cur.lastrowid or 0
+
+    async def load_session_turns(self, session_id: str, cap: int) -> list[Turn]:
+        """Return the LAST `cap` turns of the session, in chronological order."""
+        cur = await self._conn.execute(
+            """
+            SELECT id, session_id, ts, role, content
+              FROM turns
+             WHERE session_id = ?
+             ORDER BY id DESC
+             LIMIT ?
+            """,
+            (session_id, cap),
+        )
+        rows = await cur.fetchall()
+        rows = list(reversed(rows))
+        return [Turn(id=r[0], session_id=r[1], ts=r[2], role=r[3], content=r[4]) for r in rows]

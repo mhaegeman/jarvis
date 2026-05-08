@@ -28,3 +28,59 @@ async def test_open_is_idempotent(tmp_path) -> None:
     await s1.close()
     s2 = await MemoryStore.open(path)
     await s2.close()  # no exception
+
+
+async def test_start_and_end_session(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    assert isinstance(sid, str) and sid
+    cur = await store._conn.execute("SELECT ended_at FROM sessions WHERE session_id=?", (sid,))
+    row = await cur.fetchone()
+    assert row is not None and row[0] is None
+    await store.end_session(sid)
+    cur = await store._conn.execute("SELECT ended_at FROM sessions WHERE session_id=?", (sid,))
+    row = await cur.fetchone()
+    assert row is not None and row[0] is not None
+
+
+async def test_append_and_load_turns(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    tid1 = await store.append_turn(sid, "user", "hello")
+    tid2 = await store.append_turn(sid, "assistant", "hi back")
+    assert tid2 > tid1
+    turns = await store.load_session_turns(sid, cap=10)
+    assert [t.role for t in turns] == ["user", "assistant"]
+    assert [t.content for t in turns] == ["hello", "hi back"]
+
+
+async def test_load_session_turns_caps_to_latest(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    for i in range(5):
+        await store.append_turn(sid, "user", f"u{i}")
+        await store.append_turn(sid, "assistant", f"a{i}")
+    turns = await store.load_session_turns(sid, cap=3)
+    assert len(turns) == 3
+    # Last 3 rows from a 10-turn series in chronological order: a3, u4, a4.
+    assert [t.content for t in turns] == ["a3", "u4", "a4"]
+
+
+async def test_find_resumable_uses_last_turn_ts(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    await store.append_turn(sid, "user", "u1")
+    found = await store.find_resumable(within_minutes=30)
+    assert found == sid
+
+
+async def test_find_resumable_returns_none_when_no_recent(store: MemoryStore) -> None:
+    # No sessions at all.
+    assert await store.find_resumable(within_minutes=30) is None
+
+
+async def test_find_resumable_skips_stale(store: MemoryStore) -> None:
+    sid = await store.start_session()
+    # Backdate the only turn to be outside the window.
+    await store._conn.execute(
+        "INSERT INTO turns(session_id, ts, role, content) VALUES (?, ?, ?, ?)",
+        (sid, "2000-01-01T00:00:00Z", "user", "ancient"),
+    )
+    await store._conn.commit()
+    assert await store.find_resumable(within_minutes=30) is None
