@@ -5,6 +5,8 @@ import type {
   EventMap,
   TelemetryEvent,
 } from "@/types";
+import { decodeAudioFrame, KIND_SERVER_TTS } from "@/audio/wsCodec";
+import { PlaybackQueue } from "@/audio/playbackQueue";
 
 export interface WSEventSourceOpts {
   url: string;
@@ -21,8 +23,15 @@ export class WSEventSource implements IEventSource {
   private readyReject: ((err: Error) => void) | null = null;
   private readyPromise: Promise<void> | null = null;
   private closedByUser = false;
+  private playback: PlaybackQueue | null = null;
 
-  constructor(private opts: WSEventSourceOpts) {}
+  constructor(private opts: WSEventSourceOpts) {
+    if (opts.audioCtx) this.playback = new PlaybackQueue(opts.audioCtx);
+  }
+
+  get analyser(): AnalyserNode | null {
+    return this.playback?.analyser ?? null;
+  }
 
   on<E extends EventName>(event: E, handler: EventHandler<E>): () => void {
     const set = (this.handlers[event] ??= new Set()) as Set<EventHandler<E>>;
@@ -161,7 +170,25 @@ export class WSEventSource implements IEventSource {
     }
   }
 
-  private handleBinary(_buf: ArrayBuffer): void {
-    /* implemented in Task 6 */
+  private handleBinary(buf: ArrayBuffer): void {
+    let frame;
+    try {
+      frame = decodeAudioFrame(buf);
+    } catch (e) {
+      this.emit("error", { code: "client.bad_frame", message: String(e) });
+      return;
+    }
+    if (frame.kind !== KIND_SERVER_TTS) {
+      this.emit("error", {
+        code: "client.bad_frame",
+        message: `unexpected kind ${frame.kind}`,
+      });
+      return;
+    }
+    const f32 = new Float32Array(frame.samples.length);
+    for (let i = 0; i < frame.samples.length; i++)
+      f32[i] = frame.samples[i] / 32768;
+    this.emit("tts.audioChunk", { audioId: frame.audioId, samples: f32 });
+    this.playback?.enqueue(frame.audioId, frame.samples);
   }
 }
