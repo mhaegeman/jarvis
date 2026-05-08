@@ -220,3 +220,41 @@ class TestChunking:
         )
         chunks = [c async for c in tts.synthesize("", "id1")]
         assert chunks == []
+
+
+class TestTextPreprocessing:
+    async def test_lower_to_upper_boundary_inserts_space(self):
+        # Mirrors speech_text_speech.py: re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
+        # so "iAmJarvis" → "i Am Jarvis" before the [mark] wrap.
+        fake_tts = FakeBaseSpeakerTTS(return_audio=np.zeros(0, dtype=np.float32))
+        loaded = LoadedOpenVoice(
+            tts_model=fake_tts,
+            tone_color_converter=FakeToneColorConverter(),
+            en_source_se=object(),
+            target_se=None,
+            sample_rate=24000,
+        )
+        tts = OpenVoiceTTS(
+            openvoice_path="~/OpenVoice", device="cpu", speaker_wav=None,
+            loader=make_loader(loaded),
+        )
+        async for _ in tts.synthesize("iAmJarvis", "id1"):
+            pass
+        assert fake_tts.get_text_calls == ["[EN]i Am Jarvis[EN]"]
+
+    async def test_text_without_case_boundaries_unchanged(self):
+        fake_tts = FakeBaseSpeakerTTS(return_audio=np.zeros(0, dtype=np.float32))
+        loaded = LoadedOpenVoice(
+            tts_model=fake_tts,
+            tone_color_converter=FakeToneColorConverter(),
+            en_source_se=object(),
+            target_se=None,
+            sample_rate=24000,
+        )
+        tts = OpenVoiceTTS(
+            openvoice_path="~/OpenVoice", device="cpu", speaker_wav=None,
+            loader=make_loader(loaded),
+        )
+        async for _ in tts.synthesize("hello there", "id1"):
+            pass
+        assert fake_tts.get_text_calls == ["[EN]hello there[EN]"]
