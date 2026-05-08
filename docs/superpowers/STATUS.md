@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-03 implementation complete on branch)
+**Last updated:** 2026-05-08 (spec-03 merged to main)
 
 ---
 
 ## Current Phase
-**spec-03-integration · pending PR review (browser ↔ backend WebSocket wired, manual e2e pending)**
+**spec-03 merged · spec-04 (staticrypt + GH Pages deploy) brainstorm pending architect kickoff**
 
 ## Macro Progress
 
@@ -17,7 +17,7 @@
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
 | 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + Codex P1/P2 | ✅ 58/58 tests | ✅ merged 6efecde + 95e6eee |
-| 3 | spec-03-integration | ✅ committed (dc84817) | ✅ committed (c1f6041) | ✅ 13/13 tasks | ⏳ pending PR | ✅ 57/57 vitest, lint+tsc+build clean | ⏳ branch pushed |
+| 3 | spec-03-integration | ✅ committed (dc84817) | ✅ committed (c1f6041) | ✅ 13/13 tasks | ✅ Codex P1/P1 (5cfb2dc) | ✅ 60/60 vitest, lint+tsc+build clean | ✅ merged ab7cb7c |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 Legend: ⬜ not started · ⏳ in progress · ✅ done
@@ -59,23 +59,40 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Branch `spec-03-integration` pushed to GitHub with 13 implementation commits.
-Architect (Maxime) opens PR, reviews, and walks the manual e2e checklist
-documented in `web/README.md` against a real `uvicorn server.main:app`
-instance. After merge, begin spec-04 (staticrypt + GitHub Pages deploy)
-brainstorm.
+Spec-03 merged to `main` (commit `ab7cb7c`). PR #5 also picked up two P1
+fixes from Codex review (audio.start ordering, listening-transition race);
+both addressed in `5cfb2dc` before merge.
+
+Three of four sub-specs are now on `main`. Remaining: spec-04
+(staticrypt + GitHub Pages deploy + CI workflow). Brainstorm awaits
+Architect go-ahead. The deployed site will run against a Maxime-laptop
+backend at `ws://localhost:8000/ws`; auto-fallback to demo mode means
+the page is still useful when offline.
 
 ### Spec-03 implementation summary
-**13 task commits on branch `spec-03-integration`.** All quality gates green:
-- 57/57 vitest tests passing (27 new for spec-03)
+**14 commits on `spec-03-integration` + Codex review fix, merged via PR #5.** All quality gates green at merge:
+- 60/60 vitest tests passing (30 new for spec-03 — 27 from initial impl, 3 regression for Codex P1s)
 - `tsc --noEmit` clean
 - `eslint .` clean
-- `vite build` succeeds, JS bundle 9.11 KB gzip (under 30 KB target)
+- `vite build` succeeds, JS bundle 9.23 KB gzip (under 30 KB target)
 - New modules: `audio/wsCodec.ts`, `audio/playbackQueue.ts`,
   `audio/micWorklet.ts`, `public/mic-processor.js`,
   `events/wsEventSource.ts`, `events/connect.ts`
 - Vite/esbuild target bumped to es2022 for top-level await in `main.ts`
 - ESLint configured with AudioWorklet globals for `public/*.js`
+
+### Codex review fixes (commit `5cfb2dc`)
+- **P1-A** — `wsEventSource.beginListening()` was emitting `audio.start`
+  before awaiting mic setup. Mic failure left the server stuck in
+  recording mode. Fix: defer `audio.start` until the mic handle resolves;
+  track `audioStartSent` so `endListening` only sends `audio.end` when a
+  start was actually emitted.
+- **P1-B** — `main.onMicDown` awaited `beginListening` before transitioning
+  to `listening`, so a quick Space release was ignored by `onMicUp`'s
+  state guard. Fix: transition first, then await; rollback on failure.
+- Race coverage: `endListening` now aborts an in-flight `beginListening`,
+  discarding the mic handle when it eventually resolves so no spurious
+  protocol messages hit the wire.
 
 ### Acceptance gating
 Manual e2e checklist in `web/README.md` covers: live boot + telemetry
