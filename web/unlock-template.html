@@ -184,10 +184,26 @@
     const isRememberEnabled = /*[|is_remember_enabled|]*/ 0;
     const templateError = "/*[|template_error|]*/0";
 
+    const statusEl = document.getElementById("jarvis-status");
+    const panelEl = document.getElementById("jarvis-panel");
+
+    const setStatus = (text, mode) => {
+      statusEl.textContent = `STATUS: ${text}`;
+      statusEl.className = `jarvis-status jarvis-status--${mode}`;
+    };
+
     const staticrypt = staticryptInitiator.init(staticryptConfig, {
       rememberExpirationKey: "staticrypt_expiration",
       rememberPassphraseKey: "staticrypt_passphrase",
-      replaceHtmlCallback: null,
+      // 600 ms fade before the page is replaced by the decrypted bundle.
+      replaceHtmlCallback: (decryptedHtml) => {
+        document.body.classList.add("granted");
+        setTimeout(() => {
+          document.open();
+          document.write(decryptedHtml);
+          document.close();
+        }, 600);
+      },
       clearLocalStorageCallback: null,
     });
 
@@ -202,9 +218,18 @@
 
     document.getElementById("staticrypt-form").addEventListener("submit", async (e) => {
       e.preventDefault();
+      setStatus("DECRYPTING…", "working");
       const password = document.getElementById("staticrypt-password").value;
       const { isSuccessful } = await staticrypt.handleDecryptionOfPage(password, false);
-      if (!isSuccessful) alert(templateError);
+      if (!isSuccessful) {
+        setStatus("ACCESS DENIED.", "denied");
+        panelEl.classList.add("panel--shake");
+        setTimeout(() => {
+          panelEl.classList.remove("panel--shake");
+          setStatus("STANDING BY.", "idle");
+        }, 1200);
+      }
+      // On success, replaceHtmlCallback runs — no extra branch needed.
     });
   </script>
 </body>
