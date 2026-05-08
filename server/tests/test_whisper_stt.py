@@ -6,6 +6,8 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
+
 from server.pipelines.whisper_stt import WhisperSTT
 
 
@@ -72,3 +74,39 @@ class TestThreshold:
         result = await stt.final(_audio_iter(at_threshold))
         assert result == "ok"
         assert len(fake.transcribe_calls) == 1
+
+
+class TestNormalization:
+    async def test_int16_pcm_normalized_to_float32(self):
+        # Construct a known Int16 LE payload covering the full range.
+        samples = np.array([0, 16384, -16384, 32767, -32768], dtype=np.int16)
+        # Pad to threshold so we don't short-circuit.
+        pad = np.zeros(3200, dtype=np.int16)
+        payload = np.concatenate([samples, pad]).tobytes()
+
+        fake = FakeWhisperModel(return_segments=[FakeSegment(text="x")])
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        await stt.final(_audio_iter(payload))
+
+        arr, _kwargs = fake.transcribe_calls[0]
+        assert arr.dtype == np.float32
+        assert -1.0 <= arr.min() <= arr.max() <= 1.0
+        # Spot-check the boundary samples (within float rounding tolerance).
+        np.testing.assert_allclose(arr[0], 0.0, atol=1e-6)
+        np.testing.assert_allclose(arr[1], 16384 / 32768.0, atol=1e-6)
+        np.testing.assert_allclose(arr[3], 32767 / 32768.0, atol=1e-6)
+        np.testing.assert_allclose(arr[4], -1.0, atol=1e-6)
+
+    async def test_multi_chunk_audio_concatenated(self):
+        # Two 3300-byte chunks — together cross the 6400-byte threshold.
+        chunk_a = b"\x01\x00" * 1650  # 3300 bytes
+        chunk_b = b"\x02\x00" * 1650  # 3300 bytes
+        fake = FakeWhisperModel(return_segments=[FakeSegment(text="hello")])
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        result = await stt.final(_audio_iter(chunk_a, chunk_b))
+
+        assert result == "hello"
+        assert len(fake.transcribe_calls) == 1
+        arr, _ = fake.transcribe_calls[0]
+        # 3300 + 3300 = 6600 bytes → 3300 Int16 samples.
+        assert arr.shape == (3300,)
