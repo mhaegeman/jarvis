@@ -6,7 +6,7 @@ import json
 import time
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, NonNegativeInt, ValidationError
 
 # ─── Client → Server ──────────────────────────────────────────────────────
 
@@ -40,8 +40,13 @@ class Interrupt(_Base):
     type: Literal["interrupt"]
 
 
+class Pong(_Base):
+    type: Literal["pong"]
+    seq: NonNegativeInt
+
+
 ClientMessage = Annotated[
-    Hello | AudioStart | AudioEnd | TextIn | Interrupt,
+    Hello | AudioStart | AudioEnd | TextIn | Interrupt | Pong,
     Field(discriminator="type"),
 ]
 
@@ -73,8 +78,11 @@ class ServerMessage:
     """Factory class — methods return JSON-serializable dicts."""
 
     @staticmethod
-    def ready() -> dict[str, Any]:
-        return {"type": "ready"}
+    def ready(*, session_id: str | None = None) -> dict[str, Any]:
+        out: dict[str, Any] = {"type": "ready"}
+        if session_id is not None:
+            out["sessionId"] = session_id
+        return out
 
     @staticmethod
     def stt_partial(text: str) -> dict[str, Any]:
@@ -116,6 +124,30 @@ class ServerMessage:
             "level": level,
             "message": message,
         }
+
+    @staticmethod
+    def state_snapshot(
+        *,
+        system: dict[str, Any],
+        memory: dict[str, Any],
+        network: dict[str, Any],
+        tasks: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "type": "state.snapshot",
+            "system": system,
+            "memory": memory,
+            "network": network,
+            "tasks": tasks,
+        }
+
+    @staticmethod
+    def calendar_update(*, entries: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"type": "calendar.update", "entries": entries}
+
+    @staticmethod
+    def ping(*, seq: int) -> dict[str, Any]:
+        return {"type": "ping", "seq": seq}
 
 
 def encode_server(msg: dict[str, Any]) -> str:
