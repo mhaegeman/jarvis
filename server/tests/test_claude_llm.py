@@ -171,6 +171,10 @@ class TestSystemPrompt:
 
 
 class TestStream:
+    # Per the LLM ABC contract, Session appends the current user turn to
+    # history before calling stream(); these tests construct history the same
+    # way Session would, so stream() sees what the real caller passes.
+
     async def test_yields_text_deltas_in_order(self):
         client = FakeAnthropic(events=[
             text_delta("Hello "),
@@ -178,8 +182,9 @@ class TestStream:
             text_delta("Max."),
         ])
         llm = ClaudeLLM(default_model=HAIKU, client=client)
+        history = [{"role": "user", "content": "hi"}]
 
-        chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
+        chunks = [chunk async for chunk in llm.stream(history=history, user_text="hi")]
 
         assert chunks == ["Hello ", "there, ", "Max."]
 
@@ -190,8 +195,9 @@ class TestStream:
             non_text_event(),
         ])
         llm = ClaudeLLM(default_model=HAIKU, client=client)
+        history = [{"role": "user", "content": "hi"}]
 
-        chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
+        chunks = [chunk async for chunk in llm.stream(history=history, user_text="hi")]
 
         assert chunks == ["hi"]
 
@@ -202,6 +208,7 @@ class TestStream:
         history = [
             {"role": "user", "content": "earlier"},
             {"role": "assistant", "content": "reply"},
+            {"role": "user", "content": "now"},
         ]
         async for _ in llm.stream(history=history, user_text="now"):
             pass
@@ -216,17 +223,43 @@ class TestStream:
             {"role": "user", "content": "now"},
         ]
 
-    async def test_prefix_routes_to_sonnet_with_doubled_max_tokens(self):
+    async def test_does_not_duplicate_current_user_turn(self):
+        """Regression: stream() must not re-append user_text — Session
+        already did so, and a duplicate would send the turn twice."""
+        client = FakeAnthropic(events=[text_delta("ok")])
+        llm = ClaudeLLM(default_model=HAIKU, client=client)
+        history = [{"role": "user", "content": "hi"}]
+
+        async for _ in llm.stream(history=history, user_text="hi"):
+            pass
+
+        messages = client.messages.captured_kwargs["messages"]
+        assert messages == [{"role": "user", "content": "hi"}]
+        assert len(messages) == 1
+
+    async def test_prefix_strips_from_last_history_entry(self):
+        """For /sonnet etc. turns, Session has appended the raw text (with
+        prefix) to history; stream() must replace that last entry with the
+        stripped content, not append a second turn alongside it."""
         client = FakeAnthropic(events=[text_delta("ok")])
         llm = ClaudeLLM(default_model=HAIKU, client=client, max_tokens=1024)
+        history = [
+            {"role": "user", "content": "earlier"},
+            {"role": "assistant", "content": "reply"},
+            {"role": "user", "content": "/sonnet Explain"},
+        ]
 
-        async for _ in llm.stream(history=[], user_text="/sonnet Explain"):
+        async for _ in llm.stream(history=history, user_text="/sonnet Explain"):
             pass
 
         kwargs = client.messages.captured_kwargs
         assert kwargs["model"] == SONNET
         assert kwargs["max_tokens"] == 2048
-        assert kwargs["messages"] == [{"role": "user", "content": "Explain"}]
+        assert kwargs["messages"] == [
+            {"role": "user", "content": "earlier"},
+            {"role": "assistant", "content": "reply"},
+            {"role": "user", "content": "Explain"},
+        ]
 
     async def test_cancellation_calls_aexit(self):
         """Cancelling the consumer mid-stream invokes the SDK's __aexit__."""
@@ -236,8 +269,9 @@ class TestStream:
             text_delta("third"),
         ])
         llm = ClaudeLLM(default_model=HAIKU, client=client)
+        history = [{"role": "user", "content": "hi"}]
 
-        gen = llm.stream(history=[], user_text="hi")
+        gen = llm.stream(history=history, user_text="hi")
         first = await anext(gen)
         assert first == "first "
 
@@ -252,8 +286,9 @@ class TestStream:
         rate_limit = _make_status_error(anthropic.RateLimitError, 429)
         client = FakeAnthropic(raise_on_stream=rate_limit)
         llm = ClaudeLLM(default_model=HAIKU, client=client)
+        history = [{"role": "user", "content": "hi"}]
 
-        chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
+        chunks = [chunk async for chunk in llm.stream(history=history, user_text="hi")]
 
         assert chunks == ["Rate limit. Try again shortly."]
 
@@ -262,8 +297,9 @@ class TestStream:
         conn_err = anthropic.APIConnectionError(message="boom", request=request)
         client = FakeAnthropic(raise_on_stream=conn_err)
         llm = ClaudeLLM(default_model=HAIKU, client=client)
+        history = [{"role": "user", "content": "hi"}]
 
-        chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
+        chunks = [chunk async for chunk in llm.stream(history=history, user_text="hi")]
 
         assert chunks == ["Network error reaching Anthropic."]
 

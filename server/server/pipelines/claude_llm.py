@@ -105,8 +105,14 @@ class ClaudeLLM(LLM):
         history: list[dict[str, str]],
         user_text: str,
     ) -> AsyncIterator[str]:
+        # Per the LLM ABC contract, Session has already appended the current user
+        # turn (with the raw slash prefix, if any) as the last entry in history.
+        # We send history[:-1] plus a freshly-built last turn whose content has
+        # the prefix stripped — never re-append user_text, which would duplicate
+        # the turn and, for prefixed messages, send both the raw and stripped
+        # versions back-to-back.
         model, content = parse_prefix(user_text, self._default_model)
-        messages = [*history, {"role": "user", "content": content}]
+        messages = [*history[:-1], {"role": "user", "content": content}]
         try:
             async with self._client.messages.stream(
                 model=model,

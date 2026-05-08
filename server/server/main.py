@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import contextlib
 import logging
-import os
 from collections.abc import AsyncIterator, MutableMapping
 from typing import Any
 
+import anthropic
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from .config import settings
@@ -26,18 +26,26 @@ def _build_llm() -> LLM:
     """Construct the LLM pipeline based on `JARVIS_MODEL_NAME`.
 
     Raises:
-        RuntimeError: when a Claude model is selected but `ANTHROPIC_API_KEY` is unset.
+        RuntimeError: when a Claude model is selected but `ANTHROPIC_API_KEY` is unset
+            (in either the process environment or `.env`).
         ValueError: when `model_name` is not 'mock' and does not start with 'claude-'.
     """
     name = settings.model_name
     if name == "mock":
         return MockLLM()
     if name.startswith("claude-"):
-        if not os.environ.get("ANTHROPIC_API_KEY"):
+        if settings.anthropic_api_key is None:
             raise RuntimeError(
                 "JARVIS_MODEL_NAME selects a Claude model but ANTHROPIC_API_KEY is unset."
             )
-        return ClaudeLLM(default_model=name, max_tokens=settings.llm_max_tokens)
+        client = anthropic.AsyncAnthropic(
+            api_key=settings.anthropic_api_key.get_secret_value()
+        )
+        return ClaudeLLM(
+            default_model=name,
+            max_tokens=settings.llm_max_tokens,
+            client=client,
+        )
     raise ValueError(f"unknown JARVIS_MODEL_NAME: {name!r}")
 
 
