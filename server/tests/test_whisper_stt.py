@@ -148,3 +148,22 @@ class TestTranscribeArgsAndOutput:
         stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
         result = await stt.final(_audio_iter(payload))
         assert result == ""
+
+
+class TestPartials:
+    async def test_partials_drains_iterator_and_yields_nothing(self):
+        consumed: list[bytes] = []
+
+        async def producer() -> AsyncIterator[bytes]:
+            for c in (b"a", b"b", b"c"):
+                consumed.append(c)
+                yield c
+
+        fake = FakeWhisperModel()
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        emitted = [p async for p in stt.partials(producer())]
+
+        assert emitted == []
+        assert consumed == [b"a", b"b", b"c"]
+        # partials must not call the model.
+        assert fake.transcribe_calls == []
