@@ -10,7 +10,6 @@ import anthropic
 
 from .interfaces import LLM
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -116,9 +115,12 @@ class ClaudeLLM(LLM):
                 messages=messages,
             ) as stream:
                 async for event in stream:
-                    if event.type == "content_block_delta" and event.delta is not None:
-                        if event.delta.type == "text_delta":
-                            yield event.delta.text
+                    if (
+                        event.type == "content_block_delta"
+                        and event.delta is not None
+                        and event.delta.type == "text_delta"
+                    ):
+                        yield event.delta.text
         except anthropic.APIError as exc:
             logger.exception("Anthropic API error")
             yield _spoken_error_for(exc)

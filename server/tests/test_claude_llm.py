@@ -2,15 +2,106 @@
 
 from __future__ import annotations
 
-import pytest
+from dataclasses import dataclass, field
+from typing import Any
+
+import anthropic
 import httpx
 
-from server.pipelines.claude_llm import PREFIX_MAP, parse_prefix
-
+from server.pipelines.claude_llm import (
+    JARVIS_SYSTEM_PROMPT,
+    PREFIX_MAP,
+    ClaudeLLM,
+    _spoken_error_for,
+    max_tokens_for,
+    parse_prefix,
+)
 
 HAIKU = "claude-haiku-4-5"
 SONNET = "claude-sonnet-4-6"
 OPUS = "claude-opus-4-7"
+
+
+def _http_response(status: int) -> httpx.Response:
+    return httpx.Response(
+        status,
+        request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"),
+    )
+
+
+def _make_status_error(cls: type, status: int) -> anthropic.APIStatusError:
+    return cls(message="test", response=_http_response(status), body=None)
+
+
+@dataclass
+class _FakeDelta:
+    type: str
+    text: str = ""
+
+
+@dataclass
+class _FakeEvent:
+    type: str
+    delta: _FakeDelta | None = None
+
+
+def text_delta(text: str) -> _FakeEvent:
+    """Build a content_block_delta event with a text payload."""
+    return _FakeEvent(type="content_block_delta", delta=_FakeDelta(type="text_delta", text=text))
+
+
+def non_text_event() -> _FakeEvent:
+    """Build a content_block_start event the consumer should skip."""
+    return _FakeEvent(type="content_block_start", delta=None)
+
+
+@dataclass
+class _FakeStream:
+    events: list[_FakeEvent]
+    aexit_called: bool = False
+
+    async def __aenter__(self) -> _FakeStream:
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> bool:
+        self.aexit_called = True
+        return False  # do not suppress
+
+    def __aiter__(self) -> _FakeStream:
+        return self
+
+    async def __anext__(self) -> _FakeEvent:
+        if not self.events:
+            raise StopAsyncIteration
+        return self.events.pop(0)
+
+
+@dataclass
+class _FakeMessages:
+    events: list[_FakeEvent] = field(default_factory=list)
+    raise_on_stream: BaseException | None = None
+    captured_kwargs: dict[str, Any] = field(default_factory=dict)
+    last_stream: _FakeStream | None = None
+
+    def stream(self, **kwargs: Any) -> _FakeStream:
+        self.captured_kwargs = kwargs
+        if self.raise_on_stream is not None:
+            raise self.raise_on_stream
+        self.last_stream = _FakeStream(events=list(self.events))
+        return self.last_stream
+
+
+@dataclass
+class FakeAnthropic:
+    """Minimal fake of `anthropic.AsyncAnthropic` for unit tests."""
+
+    events: list[_FakeEvent] = field(default_factory=list)
+    raise_on_stream: BaseException | None = None
+
+    def __post_init__(self) -> None:
+        self.messages = _FakeMessages(
+            events=self.events, raise_on_stream=self.raise_on_stream
+        )
 
 
 class TestParsePrefix:
@@ -48,9 +139,6 @@ class TestParsePrefix:
         assert set(PREFIX_MAP.keys()) == {"/haiku", "/sonnet", "/opus"}
 
 
-from server.pipelines.claude_llm import JARVIS_SYSTEM_PROMPT, max_tokens_for
-
-
 class TestMaxTokensFor:
     def test_haiku_uses_base(self):
         assert max_tokens_for(HAIKU, base=1024) == 1024
@@ -77,86 +165,9 @@ class TestSystemPrompt:
 
     def test_voice_friendly_rules_present(self):
         # Spec §6 requires voice-friendly guidance.
+        prompt_lower = JARVIS_SYSTEM_PROMPT.lower()
         assert "spoken aloud" in JARVIS_SYSTEM_PROMPT
-        assert "no markdown" in JARVIS_SYSTEM_PROMPT.lower() or "plain prose" in JARVIS_SYSTEM_PROMPT.lower()
-
-
-from dataclasses import dataclass, field
-from typing import Any
-
-
-@dataclass
-class _FakeDelta:
-    type: str
-    text: str = ""
-
-
-@dataclass
-class _FakeEvent:
-    type: str
-    delta: _FakeDelta | None = None
-
-
-def text_delta(text: str) -> _FakeEvent:
-    """Build a content_block_delta event with a text payload."""
-    return _FakeEvent(type="content_block_delta", delta=_FakeDelta(type="text_delta", text=text))
-
-
-def non_text_event() -> _FakeEvent:
-    """Build a content_block_start event the consumer should skip."""
-    return _FakeEvent(type="content_block_start", delta=None)
-
-
-@dataclass
-class _FakeStream:
-    events: list[_FakeEvent]
-    aexit_called: bool = False
-
-    async def __aenter__(self) -> "_FakeStream":
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb) -> bool:
-        self.aexit_called = True
-        return False  # do not suppress
-
-    def __aiter__(self) -> "_FakeStream":
-        return self
-
-    async def __anext__(self) -> _FakeEvent:
-        if not self.events:
-            raise StopAsyncIteration
-        return self.events.pop(0)
-
-
-@dataclass
-class _FakeMessages:
-    events: list[_FakeEvent] = field(default_factory=list)
-    raise_on_stream: BaseException | None = None
-    captured_kwargs: dict[str, Any] = field(default_factory=dict)
-    last_stream: _FakeStream | None = None
-
-    def stream(self, **kwargs: Any) -> _FakeStream:
-        self.captured_kwargs = kwargs
-        if self.raise_on_stream is not None:
-            raise self.raise_on_stream
-        self.last_stream = _FakeStream(events=list(self.events))
-        return self.last_stream
-
-
-@dataclass
-class FakeAnthropic:
-    """Minimal fake of `anthropic.AsyncAnthropic` for unit tests."""
-
-    events: list[_FakeEvent] = field(default_factory=list)
-    raise_on_stream: BaseException | None = None
-
-    def __post_init__(self) -> None:
-        self.messages = _FakeMessages(
-            events=self.events, raise_on_stream=self.raise_on_stream
-        )
-
-
-from server.pipelines.claude_llm import ClaudeLLM
+        assert "no markdown" in prompt_lower or "plain prose" in prompt_lower
 
 
 class TestStream:
@@ -188,7 +199,10 @@ class TestStream:
         client = FakeAnthropic(events=[text_delta("ok")])
         llm = ClaudeLLM(default_model=HAIKU, client=client, max_tokens=1024)
 
-        history = [{"role": "user", "content": "earlier"}, {"role": "assistant", "content": "reply"}]
+        history = [
+            {"role": "user", "content": "earlier"},
+            {"role": "assistant", "content": "reply"},
+        ]
         async for _ in llm.stream(history=history, user_text="now"):
             pass
 
@@ -252,22 +266,6 @@ class TestStream:
         chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
 
         assert chunks == ["Network error reaching Anthropic."]
-
-
-import anthropic
-
-from server.pipelines.claude_llm import _spoken_error_for
-
-
-def _http_response(status: int) -> httpx.Response:
-    return httpx.Response(
-        status,
-        request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"),
-    )
-
-
-def _make_status_error(cls, status: int) -> anthropic.APIStatusError:
-    return cls(message="test", response=_http_response(status), body=None)
 
 
 class TestSpokenErrorFor:
