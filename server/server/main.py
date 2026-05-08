@@ -122,8 +122,7 @@ def _build_tts() -> TTS:
         if importlib.util.find_spec("torch") is None:
             if engine == "openvoice":
                 raise ImportError(
-                    "torch is not installed; run `pip install -e .[tts]` "
-                    "and clone OpenVoice into JARVIS_OPENVOICE_PATH."
+                    "torch is not installed; run `pip install -e .[tts]`."
                 )
             log.warning(
                 "TTS auto: torch not installed; using MockTTS. "
