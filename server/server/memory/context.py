@@ -18,30 +18,11 @@ DIGEST_SESSIONS_DEFAULT = 10
 SEARCH_CAP_DEFAULT = 5
 
 
-def _simple_stem(word: str) -> str:
-    """Crude stemming: remove common suffixes."""
-    word = word.lower()
-    # Remove common plural/verb suffixes
-    if word.endswith("ies"):
-        return word[:-3] + "y"
-    elif word.endswith("s"):
-        return word[:-1]
-    return word
-
-
 def _query_tokens(user_text: str) -> list[str]:
     s = re.sub(r"[^\w\s]", " ", user_text.lower())
-    # Extract all tokens, prioritizing longer ones for better specificity
-    tokens = [t for t in s.split() if t]
+    tokens = [t for t in s.split() if len(t) > 3]
     tokens.sort(key=len, reverse=True)
-    # For each token, try both the original and the stemmed version
-    result = []
-    for t in tokens:
-        result.append(t)
-        stemmed = _simple_stem(t)
-        if stemmed != t:
-            result.append(stemmed)
-    return result
+    return tokens[:3]
 
 
 class MemoryContext:

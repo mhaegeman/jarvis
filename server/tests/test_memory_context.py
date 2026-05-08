@@ -34,7 +34,7 @@ async def test_full_includes_all_sections_when_populated(store: MemoryStore) -> 
     await store.write_recent_summary("we set a Friday deploy rule", last_turn_id=2)
     await store.write_session_summary(sid, "agreed Fridays for deploys")
     await store.upsert_facts([Fact("deploy_day", "Friday")], sid)
-    blob = await MemoryContext.full(store, "did we discuss deploys")
+    blob = await MemoryContext.full(store, "did we discuss deploy")
     assert "Background" in blob
     assert "What I know about you" in blob
     assert "deploy_day: Friday" in blob
