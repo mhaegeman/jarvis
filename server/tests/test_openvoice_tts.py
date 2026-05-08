@@ -177,3 +177,46 @@ class TestSynthesizeInfer:
             pass
 
         assert fake_conv.convert_calls == []  # no tone-color conversion when target_se is None
+
+
+class TestChunking:
+    async def test_chunks_into_100ms_windows_at_24khz(self):
+        # 250 ms at 24 kHz mono = 6000 samples → 12000 bytes.
+        # 100 ms chunk at 24 kHz = 2400 samples = 4800 bytes.
+        # Expect 3 chunks: 4800 + 4800 + 2400 bytes (last partial).
+        fake_tts = FakeBaseSpeakerTTS(
+            return_audio=np.full(6000, 0.5, dtype=np.float32),
+        )
+        loaded = LoadedOpenVoice(
+            tts_model=fake_tts,
+            tone_color_converter=FakeToneColorConverter(),
+            en_source_se=object(),
+            target_se=None,
+            sample_rate=24000,
+        )
+        tts = OpenVoiceTTS(
+            openvoice_path="~/OpenVoice", device="cpu", speaker_wav=None,
+            loader=make_loader(loaded),
+        )
+        chunks = [c async for c in tts.synthesize("hi", "id1")]
+
+        chunk_sizes = [len(c) for c in chunks]
+        assert chunk_sizes == [4800, 4800, 2400]
+        # Total bytes match 6000 Int16 LE samples.
+        assert sum(chunk_sizes) == 6000 * 2
+
+    async def test_empty_audio_yields_nothing(self):
+        fake_tts = FakeBaseSpeakerTTS(return_audio=np.zeros(0, dtype=np.float32))
+        loaded = LoadedOpenVoice(
+            tts_model=fake_tts,
+            tone_color_converter=FakeToneColorConverter(),
+            en_source_se=object(),
+            target_se=None,
+            sample_rate=24000,
+        )
+        tts = OpenVoiceTTS(
+            openvoice_path="~/OpenVoice", device="cpu", speaker_wav=None,
+            loader=make_loader(loaded),
+        )
+        chunks = [c async for c in tts.synthesize("", "id1")]
+        assert chunks == []

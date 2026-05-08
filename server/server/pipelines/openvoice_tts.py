@@ -81,8 +81,9 @@ class OpenVoiceTTS(TTS):
         pcm = await asyncio.to_thread(self._synth_one, loaded, text)
         if not pcm:
             return
-        # Chunking is added in Task 4.
-        yield pcm
+        chunk_bytes = int(loaded.sample_rate * 0.1) * 2  # 100 ms of Int16 LE mono
+        for i in range(0, len(pcm), chunk_bytes):
+            yield pcm[i : i + chunk_bytes]
 
     def _synth_one(self, loaded: LoadedOpenVoice, text: str) -> bytes:
         import torch  # type: ignore[import-not-found]
