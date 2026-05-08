@@ -172,8 +172,8 @@
     }
 
     @keyframes jarvis-scan {
-      from { transform: translateY(0); }
-      to   { transform: translateY(calc(100% + 200px)); }
+      from { top: 0; }
+      to   { top: 100%; }
     }
 
     /* Denied: one-shot horizontal shake. */
@@ -209,6 +209,7 @@
       .panel::after,
       .panel--shake,
       .jarvis-status--working::after,
+      .submit,
       body { animation: none !important; transition: none !important; }
     }
   </style>
