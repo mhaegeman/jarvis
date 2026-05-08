@@ -186,6 +186,39 @@ class TestDefaultLoaderCache:
         whisper_stt._default_loader("base.en", "cuda")
         assert constructions[-1] == ("base.en", "cuda", "float16")
 
+    def test_default_loader_normalizes_mps_to_cpu_with_warning(
+        self, monkeypatch, caplog
+    ):
+        # faster-whisper's CTranslate2 backend doesn't accept "mps".
+        # _resolve_device may return "mps" on Apple Silicon when
+        # JARVIS_DEVICE=auto, so the loader silently downgrades it to
+        # "cpu" and logs a warning. Without this normalization, every
+        # turn on a Mac would crash with ValueError: unsupported device.
+        import logging
+        import sys
+        import types
+
+        from server.pipelines import whisper_stt
+
+        constructions: list[tuple[str, str, str]] = []
+
+        class FakeWhisperModel:
+            def __init__(self, name: str, device: str, compute_type: str) -> None:
+                constructions.append((name, device, compute_type))
+
+        fake_module = types.ModuleType("faster_whisper")
+        fake_module.WhisperModel = FakeWhisperModel  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "faster_whisper", fake_module)
+        monkeypatch.setattr(whisper_stt, "_model_cache", {})
+
+        with caplog.at_level(
+            logging.WARNING, logger="server.pipelines.whisper_stt"
+        ):
+            whisper_stt._default_loader("base.en", "mps")
+
+        assert constructions == [("base.en", "cpu", "int8")]
+        assert any("does not support MPS" in r.message for r in caplog.records)
+
 
 class TestPartials:
     async def test_partials_drains_iterator_and_yields_nothing(self):

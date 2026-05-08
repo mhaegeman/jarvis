@@ -248,6 +248,11 @@ class Session:
     async def _run_turn(self, *, text: str | None, audio: bool) -> None:
         try:
             user_text = await self._do_stt(text=text, audio=audio)
+            if not user_text:
+                # Empty transcript (sub-threshold audio, accidental tap, blank
+                # text input). The stt.final has already been emitted; ending
+                # here avoids spending an LLM turn on a blank prompt.
+                return
             await self._do_llm_and_tts(user_text)
         except asyncio.CancelledError:
             raise
