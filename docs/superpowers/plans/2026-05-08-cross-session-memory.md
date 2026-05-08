@@ -65,10 +65,10 @@
 - [ ] **Step 1: Confirm baseline tests pass**
 
 ```bash
-cd server && uv sync && uv run pytest -q
+cd server && uv sync --extra dev && uv run pytest -q
 ```
 
-Expected: all existing tests pass. If anything fails, stop and investigate before adding new deps.
+Expected: all existing tests pass (one timing-flaky test in `test_state_snapshot.py` may fail in a single run; pass on rerun is acceptable). If structural failures appear, stop and investigate before adding new deps.
 
 - [ ] **Step 2: Add `aiosqlite` to dependencies**
 
@@ -89,10 +89,10 @@ server/data/
 - [ ] **Step 4: Sync and re-run tests**
 
 ```bash
-cd server && uv sync && uv run pytest -q
+cd server && uv sync --extra dev && uv run pytest -q
 ```
 
-Expected: dep installed, all existing tests still pass.
+Expected: `aiosqlite` installed, all existing tests still pass (timing-flake on `test_run_emits_periodic_snapshots` allowed if the rerun passes).
 
 - [ ] **Step 5: Commit**
 
