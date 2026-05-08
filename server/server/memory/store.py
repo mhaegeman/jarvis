@@ -239,7 +239,7 @@ class MemoryStore:
             SELECT s.session_id, s.started_at, s.ended_at, ss.summary
               FROM session_summaries ss
               JOIN sessions s ON s.session_id = ss.session_id
-             ORDER BY ss.rowid DESC
+             ORDER BY ss.created_at DESC, ss.rowid DESC
              LIMIT ?
             """,
             (limit,),
