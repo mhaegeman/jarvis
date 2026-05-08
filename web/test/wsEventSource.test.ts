@@ -12,6 +12,85 @@ function freshSrc(): { src: WSEventSource; ctx: FakeAudioContext } {
   return { src, ctx };
 }
 
+describe("WSEventSource — reconnect", () => {
+  let restore: () => void;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    ({ restore } = FakeWebSocket.install());
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    restore();
+  });
+
+  it("walks backoff [1,2,4] on repeated failures and emits telemetry", async () => {
+    const tele = vi.fn();
+    const ctx = new FakeAudioContext();
+    const src = new WSEventSource({
+      url: "ws://x",
+      audioCtx: ctx as unknown as AudioContext,
+    });
+    src.on("telemetry", tele);
+    void src.start();
+    FakeWebSocket.instances[0].open();
+    FakeWebSocket.instances[0].receiveText(JSON.stringify({ type: "ready" }));
+    await Promise.resolve();
+
+    FakeWebSocket.instances[0].close();
+    expect(tele).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("reconnecting"),
+      }),
+    );
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(FakeWebSocket.instances.length).toBe(2);
+    FakeWebSocket.instances[1].close();
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(FakeWebSocket.instances.length).toBe(3);
+    FakeWebSocket.instances[2].close();
+
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(FakeWebSocket.instances.length).toBe(4);
+  });
+
+  it("emits 'reconnected' telemetry on successful reconnect", async () => {
+    const tele = vi.fn();
+    const ctx = new FakeAudioContext();
+    const src = new WSEventSource({
+      url: "ws://x",
+      audioCtx: ctx as unknown as AudioContext,
+    });
+    src.on("telemetry", tele);
+    void src.start();
+    FakeWebSocket.instances[0].open();
+    FakeWebSocket.instances[0].receiveText(JSON.stringify({ type: "ready" }));
+    await Promise.resolve();
+    FakeWebSocket.instances[0].close();
+
+    await vi.advanceTimersByTimeAsync(1000);
+    FakeWebSocket.instances[1].open();
+    expect(tele).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "reconnected" }),
+    );
+  });
+
+  it("stop() cancels pending reconnect", async () => {
+    const ctx = new FakeAudioContext();
+    const src = new WSEventSource({
+      url: "ws://x",
+      audioCtx: ctx as unknown as AudioContext,
+    });
+    void src.start();
+    FakeWebSocket.instances[0].open();
+    FakeWebSocket.instances[0].close();
+    src.stop();
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(FakeWebSocket.instances.length).toBe(1);
+  });
+});
+
 describe("WSEventSource — handshake + dispatch", () => {
   let restore: () => void;
   beforeEach(() => {

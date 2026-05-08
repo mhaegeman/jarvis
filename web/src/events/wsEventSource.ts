@@ -38,6 +38,9 @@ export class WSEventSource implements IEventSource {
   private closedByUser = false;
   private playback: PlaybackQueue | null = null;
   private mic: MicWorkletHandle | null = null;
+  private reconnectAttempt = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private static BACKOFF_S = [1, 2, 4, 8, 16, 30];
 
   constructor(private opts: WSEventSourceOpts) {
     if (opts.audioCtx) this.playback = new PlaybackQueue(opts.audioCtx);
@@ -73,6 +76,10 @@ export class WSEventSource implements IEventSource {
 
   stop(): void {
     this.closedByUser = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     this.ws?.close();
     this.ws = null;
   }
@@ -134,6 +141,14 @@ export class WSEventSource implements IEventSource {
           clientVersion: this.opts.clientVersion ?? "spec-03",
         }),
       );
+      if (this.reconnectAttempt > 0) {
+        this.emit("telemetry", {
+          ts: Date.now(),
+          level: "ok",
+          message: "reconnected",
+        });
+        this.reconnectAttempt = 0;
+      }
     });
     ws.addEventListener("message", (ev) => {
       const data = (ev as MessageEvent).data;
@@ -141,7 +156,11 @@ export class WSEventSource implements IEventSource {
       else this.handleBinary(data as ArrayBuffer);
     });
     ws.addEventListener("close", () => {
-      /* reconnect added in Task 9 */
+      if (this.closedByUser) return;
+      this.playback?.interrupt();
+      this.mic?.stop();
+      this.mic = null;
+      this.scheduleReconnect();
     });
     ws.addEventListener("error", () => {
       if (this.readyReject && !this.closedByUser) {
@@ -150,6 +169,26 @@ export class WSEventSource implements IEventSource {
         this.readyResolve = null;
       }
     });
+  }
+
+  private scheduleReconnect(): void {
+    if (this.closedByUser) return;
+    if (this.reconnectTimer) return;
+    const idx = Math.min(
+      this.reconnectAttempt,
+      WSEventSource.BACKOFF_S.length - 1,
+    );
+    const delayMs = WSEventSource.BACKOFF_S[idx] * 1000;
+    this.reconnectAttempt++;
+    this.emit("telemetry", {
+      ts: Date.now(),
+      level: "warn",
+      message: `reconnecting (attempt ${this.reconnectAttempt})…`,
+    });
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.openSocket();
+    }, delayMs);
   }
 
   private handleJson(raw: string): void {
