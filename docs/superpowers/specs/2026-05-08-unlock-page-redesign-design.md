@@ -145,10 +145,12 @@ Background: same `radial-gradient` + dual `linear-gradient` grid pattern as `web
 
 | State | Status line text | Color | Animation |
 |---|---|---|---|
-| idle | `STATUS: STANDING BY.` | `--accent` (cyan) | input caret blink only |
-| submitting | `STATUS: DECRYPTING…` | `--accent` | three-dot ellipsis cycle, 600 ms loop |
+| idle | `STATUS: STANDING BY.` | `--fg-dim` (dim white) | input caret blink only |
+| submitting | `STATUS: DECRYPTING…` | `--accent` (cyan) | three-dot ellipsis cycle, 600 ms loop |
 | denied | `STATUS: ACCESS DENIED.` | `--deny` (red) | one-shot panel shake (200 ms, 3 cycles), held 1 s, then back to idle |
 | granted | (page replaced by `replaceHtmlCallback`) | — | `body.granted` adds a 600 ms opacity fade before the swap |
+
+Idle uses `--fg-dim` rather than `--accent` to give the active states (`submitting` cyan, `denied` red) more visual hierarchy — without it, idle and submitting would be the same cyan and the state transition would be too subtle.
 
 **State transitions are driven by our own form submit handler**, which calls staticrypt's exposed `handleDecryptionOfPage` directly and branches on the returned `isSuccessful` flag. This is cleaner than monkey-patching the default handler — we initialise the engine the same way, then attach our handler instead of the default one.
 
