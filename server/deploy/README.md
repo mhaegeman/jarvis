@@ -124,8 +124,8 @@ Then either leave `JARVIS_STT_ENGINE=auto` (default) or set it explicitly:
 
 ```bash
 export JARVIS_STT_ENGINE=whisper
-export JARVIS_WHISPER_MODEL=base.en   # or small.en, tiny.en, medium.en
-export JARVIS_DEVICE=auto              # auto | cuda | mps | cpu
+export JARVIS_WHISPER_MODEL=base.en    # or small.en, tiny.en, medium.en
+# JARVIS_DEVICE defaults to auto; set to cuda | mps | cpu only to override.
 ```
 
 Restart the server. The first WS connection downloads the model (~140 MB

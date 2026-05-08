@@ -137,7 +137,9 @@ class _StarletteWSAdapter:
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
     await ws.accept()
-    # Per-connection pipelines (stateless; cheap to allocate).
+    # Per-connection pipeline instances. Construction is cheap — heavy
+    # state (Whisper model, Anthropic client) lives in module-level
+    # singletons inside the wrappers.
     session = Session(
         ws=_StarletteWSAdapter(ws),
         stt=_build_stt(),
