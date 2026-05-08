@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-02 merged; spec-03 brainstorm starting)
+**Last updated:** 2026-05-08 (spec-03 implementation complete on branch)
 
 ---
 
 ## Current Phase
-**spec-03-integration · brainstorm (browser ↔ backend WebSocket wiring)**
+**spec-03-integration · pending PR review (browser ↔ backend WebSocket wired, manual e2e pending)**
 
 ## Macro Progress
 
@@ -17,7 +17,7 @@
 | 0 | Umbrella architecture | ✅ committed | n/a | n/a | n/a | n/a | ✅ on main |
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
 | 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + Codex P1/P2 | ✅ 58/58 tests | ✅ merged 6efecde + 95e6eee |
-| 3 | spec-03-integration | ⏳ in progress | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 3 | spec-03-integration | ✅ committed (dc84817) | ✅ committed (c1f6041) | ✅ 13/13 tasks | ⏳ pending PR | ✅ 57/57 vitest, lint+tsc+build clean | ⏳ branch pushed |
 | 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
 Legend: ⬜ not started · ⏳ in progress · ✅ done
@@ -59,15 +59,30 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Spec-03 brainstorm in progress. Goals:
-- Replace `MockEventSource` in `web/src/main.ts:50` with a real `WebSocketEventSource`
-- Add AudioWorklet-based mic capture (16 kHz PCM int16le → binary `client.mic` frames)
-- Add Web Audio playback queue for streamed `tts.audioChunk` frames (per `audioId`)
-- Wire barge-in: `interrupt` cancels local playback + sends `{type:"interrupt"}`
-- Decide demo/mock fallback policy and reconnect strategy
-- Manual e2e checklist (mic perms, full conversation, barge-in, recovery)
+Branch `spec-03-integration` pushed to GitHub with 13 implementation commits.
+Architect (Maxime) opens PR, reviews, and walks the manual e2e checklist
+documented in `web/README.md` against a real `uvicorn server.main:app`
+instance. After merge, begin spec-04 (staticrypt + GitHub Pages deploy)
+brainstorm.
 
-Backend protocol from spec-02 is the binding contract — spec-03 must consume it as-is.
+### Spec-03 implementation summary
+**13 task commits on branch `spec-03-integration`.** All quality gates green:
+- 57/57 vitest tests passing (27 new for spec-03)
+- `tsc --noEmit` clean
+- `eslint .` clean
+- `vite build` succeeds, JS bundle 9.11 KB gzip (under 30 KB target)
+- New modules: `audio/wsCodec.ts`, `audio/playbackQueue.ts`,
+  `audio/micWorklet.ts`, `public/mic-processor.js`,
+  `events/wsEventSource.ts`, `events/connect.ts`
+- Vite/esbuild target bumped to es2022 for top-level await in `main.ts`
+- ESLint configured with AudioWorklet globals for `public/*.js`
+
+### Acceptance gating
+Manual e2e checklist in `web/README.md` covers: live boot + telemetry
+heartbeats, text path, audio path, barge-in, reconnect with backoff,
+demo fallback when backend offline, mic-denied path, analyser-driven
+centerpiece reactivity. Spec doc:
+`docs/superpowers/specs/2026-05-08-integration-design.md`.
 
 ### Spec-02 Phase 1 implementation summary
 **13 commits on branch `spec-02-backend-streaming`.** All quality gates green:
