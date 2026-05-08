@@ -52,3 +52,23 @@ class TestEmptyAudio:
         stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
         await stt.final(_audio_iter())
         assert fake.transcribe_calls == []
+
+
+class TestThreshold:
+    async def test_one_chunk_under_200ms_returns_empty(self):
+        # 100 ms @ 16 kHz mono Int16 = 3200 bytes — below the 6400-byte floor.
+        short = b"\x00" * 3200
+        fake = FakeWhisperModel()
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        result = await stt.final(_audio_iter(short))
+        assert result == ""
+        assert fake.transcribe_calls == []
+
+    async def test_exactly_threshold_calls_model(self):
+        # 6400 bytes hits the threshold exactly.
+        at_threshold = b"\x00" * 6400
+        fake = FakeWhisperModel(return_segments=[FakeSegment(text="ok")])
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        result = await stt.final(_audio_iter(at_threshold))
+        assert result == "ok"
+        assert len(fake.transcribe_calls) == 1
