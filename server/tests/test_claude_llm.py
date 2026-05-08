@@ -212,3 +212,22 @@ class TestStream:
         assert kwargs["model"] == SONNET
         assert kwargs["max_tokens"] == 2048
         assert kwargs["messages"] == [{"role": "user", "content": "Explain"}]
+
+    async def test_cancellation_calls_aexit(self):
+        """Cancelling the consumer mid-stream invokes the SDK's __aexit__."""
+        client = FakeAnthropic(events=[
+            text_delta("first "),
+            text_delta("second "),
+            text_delta("third"),
+        ])
+        llm = ClaudeLLM(default_model=HAIKU, client=client)
+
+        gen = llm.stream(history=[], user_text="hi")
+        first = await anext(gen)
+        assert first == "first "
+
+        # Tear down the generator before exhausting events.
+        await gen.aclose()
+
+        assert client.messages.last_stream is not None
+        assert client.messages.last_stream.aexit_called is True
