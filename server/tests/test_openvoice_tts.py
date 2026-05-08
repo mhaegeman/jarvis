@@ -295,7 +295,10 @@ class TestVoiceCloning:
 class TestPCMConversion:
     async def test_float32_clipped_to_int16_range(self):
         # Out-of-range floats must clip to ±32767 / -32768, not wrap.
-        # Construct: -2.0, -0.5, 0.0, 0.5, 2.0 → -32768, -16384, 0, 16384, 32767.
+        # Inputs -2.0 and 2.0 hit the clamp; ±0.5 lands at ±0.5 * 32767 =
+        # ±16383.5, which float32 → int16 truncation rounds to either
+        # ±16383 or ±16384 depending on platform/numpy version. We allow
+        # both so the test pins clipping behavior, not rounding direction.
         # Pad with zeros so chunking yields a single chunk.
         edges = np.array([-2.0, -0.5, 0.0, 0.5, 2.0], dtype=np.float32)
         pad = np.zeros(2395, dtype=np.float32)  # total 2400 samples = 100 ms

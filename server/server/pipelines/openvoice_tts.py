@@ -81,7 +81,8 @@ class OpenVoiceTTS(TTS):
         pcm = await asyncio.to_thread(self._synth_one, loaded, text)
         if not pcm:
             return
-        chunk_bytes = int(loaded.sample_rate * 0.1) * 2  # 100 ms of Int16 LE mono
+        # 100 ms window × 2 bytes per Int16 sample = the chunk size in bytes.
+        chunk_bytes = int(loaded.sample_rate * 0.1) * 2
         for i in range(0, len(pcm), chunk_bytes):
             yield pcm[i : i + chunk_bytes]
 
@@ -98,6 +99,9 @@ class OpenVoiceTTS(TTS):
             sid = torch.LongTensor(
                 [loaded.tts_model.hps.speakers["default"]]
             ).to(loaded.tts_model.device)
+            # OpenVoice infer() returns (audio_tensor, ...) where audio_tensor
+            # has shape [1, 1, T]; [0][0, 0] extracts the waveform per the
+            # upstream speech_text_speech.py example.
             audio = loaded.tts_model.model.infer(
                 x, x_len, sid=sid, noise_scale=0.667, noise_scale_w=0.6
             )[0][0, 0].data.cpu().float().numpy()
