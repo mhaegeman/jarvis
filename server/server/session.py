@@ -99,6 +99,10 @@ class Session:
         self._refresh_turns = recent_summary_refresh_turns
         self._recent_window = recent_summary_window
         self._facts_cap = facts_cap
+        # Guards against duplicate consolidation: Session.run()'s finally and
+        # the ws_endpoint's finally both call cleanup(), and consolidation is
+        # non-deterministic + bills the Anthropic API.
+        self._consolidated = False
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
@@ -303,15 +307,17 @@ class Session:
 
         self._history.append({"role": "user", "content": user_text})
 
-        if self._memory is not None:
-            await self._memory.append_turn(self.session_id, "user", user_text)
-
+        # Build context BEFORE persisting the current user turn so search_turns
+        # (newest-first) can't echo it back as a "past exchange".
         extra = ""
         if self._memory is not None:
             if is_memory_query(user_text):
                 extra = await MemoryContext.full(self._memory, user_text)
             else:
                 extra = await MemoryContext.default(self._memory)
+
+        if self._memory is not None:
+            await self._memory.append_turn(self.session_id, "user", user_text)
 
         llm_iter = self._llm.stream(self._history, user_text, extra_context=extra)
         token_q: asyncio.Queue[str | None] = asyncio.Queue()
@@ -481,6 +487,9 @@ class Session:
             log.exception("recent_summary refresh failed")
 
     async def _consolidate_memory(self) -> None:
+        if self._consolidated:
+            return
+        self._consolidated = True
         if self._memory is None or self._summarizer is None:
             return
         try:

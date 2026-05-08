@@ -233,3 +233,44 @@ async def test_cleanup_swallows_summarizer_exceptions(store: MemoryStore) -> Non
         memory=store, summarizer=_Bomb(),
     )
     await _drive_session(sess, ws, "hi")  # MUST NOT raise
+
+
+async def test_cleanup_consolidation_runs_once_across_repeated_cleanups(
+    store: MemoryStore,
+) -> None:
+    """Session.run()'s finally and ws_endpoint's finally both call cleanup().
+    Consolidation must be idempotent so we don't double-bill the summarizer
+    or overwrite the first summary with a second non-deterministic pass."""
+    ws = _FakeWS()
+    fake = FakeSummarizer()
+    sess = Session(
+        ws=ws, stt=MockSTT(), llm=_RecordingLLM(), tts=MockTTS(),
+        memory=store, summarizer=fake,
+    )
+    await _drive_session(sess, ws, "hi")  # cleanup runs once via run()'s finally
+    # Second cleanup, as ws_endpoint would call it after run() returns.
+    await sess.cleanup()
+
+    assert fake.calls.count("session") == 1
+    assert fake.calls.count("facts") == 1
+    summaries = await store.list_recent_summaries(limit=5)
+    assert len(summaries) == 1
+
+
+async def test_full_context_does_not_echo_current_user_turn(store: MemoryStore) -> None:
+    """search_turns is newest-first; the just-submitted user turn must not
+    leak into the 'Possibly relevant past exchanges' section."""
+    ws = _FakeWS()
+    rec = _RecordingLLM()
+    sess = Session(
+        ws=ws, stt=MockSTT(), llm=rec, tts=MockTTS(),
+        memory=store, summarizer=FakeSummarizer(),
+    )
+    # Trigger phrase + a unique token that has no prior occurrence in the DB.
+    await _drive_session(sess, ws, "do you remember purplezebra")
+
+    assert "purplezebra" not in rec.last_extra
+    assert "Possibly relevant past exchanges" not in rec.last_extra
+    # Sanity: the turn was still persisted for future sessions.
+    turns = await store.load_session_turns(sess.session_id, cap=10)
+    assert any("purplezebra" in t.content for t in turns)
