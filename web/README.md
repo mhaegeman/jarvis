@@ -34,6 +34,25 @@ sudo npx playwright install-deps chromium
 
 Without those libraries the test will fail with `libnspr4.so: cannot open shared object file`.
 
+## Live deployment
+
+Deployed at: **https://mhaegeman.github.io/jarvis/** (password-gated via [staticrypt](https://github.com/robinmoisson/staticrypt)).
+
+Deploy is automatic: every push to `main` rebuilds the site, encrypts
+`index.html` with the `STATICRYPT_PASSWORD` repo secret, and publishes to
+GitHub Pages via `actions/deploy-pages`.
+
+### Rotate the password
+
+1. Settings → Secrets and variables → Actions → `STATICRYPT_PASSWORD` → Update.
+2. Re-run the **Deploy** workflow from the Actions tab (or push any commit to `main`).
+
+### Backend autostart
+
+The deployed site connects to `ws://localhost:8000/ws`, so a backend must
+be running on the laptop. See `../server/deploy/README.md` for a
+`systemd --user` unit that keeps `uvicorn` alive across reboots and login.
+
 ## Architecture
 
 See `docs/superpowers/specs/2026-05-07-frontend-shell-design.md` (this
