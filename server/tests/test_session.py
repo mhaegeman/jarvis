@@ -255,6 +255,76 @@ async def test_llm_end_fires_before_tts_completes(session: Session, fake_ws: Fak
 
 
 @pytest.mark.asyncio
+async def test_duplicate_audio_start_errors_and_does_not_leak_task(
+    fake_ws: FakeWS,
+) -> None:
+    """Regression: a second `audio.start` while already recording must be
+    rejected with a protocol error and must NOT replace `_partials_task` /
+    `_mic_q` (which would leak the previous task waiting on an abandoned queue).
+    """
+    sess = Session(
+        ws=fake_ws,
+        stt=MockSTT(canned_final="hi."),
+        llm=MockLLM(token_delay_ms=0),
+        tts=MockTTS(),
+    )
+    task = asyncio.create_task(sess.run())
+    await fake_ws.feed_text({"type": "audio.start", "sampleRate": 16000, "format": "pcm_s16le"})
+    await asyncio.sleep(0.05)
+    first_task = sess._partials_task  # noqa: SLF001
+    first_q = sess._mic_q  # noqa: SLF001
+    assert first_task is not None and first_q is not None
+    await fake_ws.feed_text({"type": "audio.start", "sampleRate": 16000, "format": "pcm_s16le"})
+    await _drain_until(fake_ws, "error")
+    # Same task / queue references — duplicate start must not replace state.
+    assert sess._partials_task is first_task  # noqa: SLF001
+    assert sess._mic_q is first_q  # noqa: SLF001
+    errors = [json.loads(t) for t in fake_ws.sent_text if json.loads(t)["type"] == "error"]
+    assert any(e["code"] == "protocol.audio_unframed" for e in errors)
+    # Finish cleanly so the original partials task drains.
+    await fake_ws.feed_text({"type": "audio.end"})
+    await _drain_until(fake_ws, "llm.end")
+    await fake_ws.close_inbound()
+    await task
+
+
+@pytest.mark.asyncio
+async def test_cleanup_does_not_hang_when_send_queue_is_saturated(
+    fake_ws: FakeWS,
+) -> None:
+    """Regression: if the outbound queue is full when cleanup runs, the
+    `__stop__` sentinel cannot be enqueued. Cleanup must still terminate
+    instead of awaiting the sender forever.
+    """
+    sess = Session(
+        ws=fake_ws,
+        stt=MockSTT(),
+        llm=MockLLM(token_delay_ms=0),
+        tts=MockTTS(),
+    )
+    # Start the sender/heartbeat tasks without entering the receive loop.
+    sess._sender_task = asyncio.create_task(sess._sender_loop())  # noqa: SLF001
+    # Fill the outbound queue so the sender is parked on send_text and
+    # subsequent put_nowait calls (including the sentinel) raise QueueFull.
+
+    blocked = asyncio.Event()
+
+    async def blocking_send_text(_: str) -> None:
+        blocked.set()
+        await asyncio.Future()  # never completes
+
+    fake_ws.send_text = blocking_send_text  # type: ignore[method-assign]
+
+    sess._send_q.put_nowait(("text", "first"))  # noqa: SLF001
+    await blocked.wait()  # sender is now stuck in send_text
+    while not sess._send_q.full():  # noqa: SLF001
+        sess._send_q.put_nowait(("text", "x"))  # noqa: SLF001
+
+    await asyncio.wait_for(sess.cleanup(), timeout=2.0)
+    assert sess._sender_task.done()  # noqa: SLF001
+
+
+@pytest.mark.asyncio
 async def test_partials_emitted_during_listening_not_after_audio_end(
     fake_ws: FakeWS,
 ) -> None:
