@@ -124,10 +124,23 @@ class TestBuildTTS:
         tts = _build_tts()
         assert isinstance(tts, MockTTS)
 
-    def test_auto_with_torch_returns_openvoice_tts(self, monkeypatch):
+    @staticmethod
+    def _make_openvoice_tree(tmp_path):
+        """Build a fake OpenVoice clone directory tree that satisfies
+        `_openvoice_assets_present`."""
+        ov = tmp_path / "OpenVoice"
+        (ov / "checkpoints" / "base_speakers" / "EN").mkdir(parents=True)
+        (ov / "checkpoints" / "converter").mkdir(parents=True)
+        (ov / "api.py").touch()
+        (ov / "checkpoints" / "base_speakers" / "EN" / "checkpoint.pth").touch()
+        (ov / "checkpoints" / "converter" / "checkpoint.pth").touch()
+        return ov
+
+    def test_auto_with_torch_returns_openvoice_tts(self, monkeypatch, tmp_path):
         from server.pipelines.openvoice_tts import OpenVoiceTTS
+        ov = self._make_openvoice_tree(tmp_path)
         monkeypatch.setattr("server.main.settings.tts_engine", "auto")
-        monkeypatch.setattr("server.main.settings.openvoice_path", "~/OpenVoice")
+        monkeypatch.setattr("server.main.settings.openvoice_path", str(ov))
         monkeypatch.setattr("server.main.settings.speaker_wav", None)
         monkeypatch.setattr("server.main.settings.device", "cpu")
         monkeypatch.setattr(
@@ -137,10 +150,11 @@ class TestBuildTTS:
         tts = _build_tts()
         assert isinstance(tts, OpenVoiceTTS)
 
-    def test_explicit_openvoice_returns_openvoice_tts(self, monkeypatch):
+    def test_explicit_openvoice_returns_openvoice_tts(self, monkeypatch, tmp_path):
         from server.pipelines.openvoice_tts import OpenVoiceTTS
+        ov = self._make_openvoice_tree(tmp_path)
         monkeypatch.setattr("server.main.settings.tts_engine", "openvoice")
-        monkeypatch.setattr("server.main.settings.openvoice_path", "~/OpenVoice")
+        monkeypatch.setattr("server.main.settings.openvoice_path", str(ov))
         monkeypatch.setattr("server.main.settings.speaker_wav", "/tmp/voice.wav")
         monkeypatch.setattr("server.main.settings.device", "cpu")
         monkeypatch.setattr(
@@ -168,6 +182,34 @@ class TestBuildTTS:
             "server.main.importlib.util.find_spec", lambda name: None
         )
         with pytest.raises(ImportError, match="torch is not installed"):
+            _build_tts()
+
+    def test_auto_with_torch_but_no_openvoice_clone_logs_and_returns_mock(
+        self, monkeypatch, caplog, tmp_path
+    ):
+        # Codex P1: torch installed but OpenVoice clone missing → factory
+        # must mock-fallback (not return OpenVoiceTTS that would crash on
+        # first synth).
+        import logging
+        monkeypatch.setattr("server.main.settings.tts_engine", "auto")
+        monkeypatch.setattr("server.main.settings.openvoice_path", str(tmp_path / "missing"))
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec",
+            lambda name: object() if name == "torch" else None,
+        )
+        with caplog.at_level(logging.WARNING, logger="server.main"):
+            tts = _build_tts()
+        assert isinstance(tts, MockTTS)
+        assert any("OpenVoice clone missing" in rec.message for rec in caplog.records)
+
+    def test_explicit_openvoice_without_clone_raises(self, monkeypatch, tmp_path):
+        monkeypatch.setattr("server.main.settings.tts_engine", "openvoice")
+        monkeypatch.setattr("server.main.settings.openvoice_path", str(tmp_path / "missing"))
+        monkeypatch.setattr(
+            "server.main.importlib.util.find_spec",
+            lambda name: object() if name == "torch" else None,
+        )
+        with pytest.raises(FileNotFoundError, match="OpenVoice assets not found"):
             _build_tts()
 
     def test_unknown_engine_raises(self, monkeypatch):

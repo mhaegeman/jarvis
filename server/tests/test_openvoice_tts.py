@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import importlib.machinery
 import sys
 import types
 
+# Install a process-global fake `torch` so OpenVoiceTTS._synth_one's lazy
+# `import torch` resolves without bringing in real PyTorch (~700 MB).
+# A valid __spec__ is required so unrelated tests calling
+# `importlib.util.find_spec("torch")` get a non-None result instead of
+# `ValueError: torch.__spec__ is None`.
 if "torch" not in sys.modules:
     fake_torch = types.ModuleType("torch")
+    fake_torch.__spec__ = importlib.machinery.ModuleSpec("torch", loader=None)
 
     class _NoOpCM:
         def __enter__(self): return self
