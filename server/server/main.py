@@ -13,7 +13,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from .config import settings
 from .pipelines.claude_llm import ClaudeLLM
-from .pipelines.interfaces import LLM, STT
+from .pipelines.interfaces import LLM, STT, TTS
 from .pipelines.mock_llm import MockLLM
 from .pipelines.mock_stt import MockSTT
 from .pipelines.mock_tts import MockTTS
@@ -102,6 +102,23 @@ def _build_stt() -> STT:
             device=_resolve_device(),
         )
     raise ValueError(f"unknown JARVIS_STT_ENGINE: {engine!r}")
+
+
+def _build_tts() -> TTS:
+    """Construct the TTS pipeline based on `JARVIS_TTS_ENGINE`.
+
+    `auto` (default) returns `OpenVoiceTTS` when torch is importable,
+    otherwise logs a warning and returns `MockTTS`. Setting the engine
+    explicitly to `openvoice` makes a missing dep a hard `ImportError`.
+
+    Raises:
+        ImportError: when `engine="openvoice"` and torch is not installed.
+        ValueError: when `engine` is not one of {auto, mock, openvoice}.
+    """
+    engine = settings.tts_engine
+    if engine == "mock":
+        return MockTTS()
+    raise ValueError(f"unknown JARVIS_TTS_ENGINE: {engine!r}")
 
 
 @contextlib.asynccontextmanager

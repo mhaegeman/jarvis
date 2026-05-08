@@ -5,10 +5,11 @@ from __future__ import annotations
 import pytest
 from pydantic import SecretStr
 
-from server.main import _build_llm, _build_stt, _resolve_device
+from server.main import _build_llm, _build_stt, _build_tts, _resolve_device
 from server.pipelines.claude_llm import ClaudeLLM
 from server.pipelines.mock_llm import MockLLM
 from server.pipelines.mock_stt import MockSTT
+from server.pipelines.mock_tts import MockTTS
 
 
 class TestBuildLLM:
@@ -115,3 +116,10 @@ class TestBuildSTT:
         monkeypatch.setattr("server.main.settings.stt_engine", "vosk")
         with pytest.raises(ValueError, match="JARVIS_STT_ENGINE"):
             _build_stt()
+
+
+class TestBuildTTS:
+    def test_mock_engine_returns_mock_tts(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.tts_engine", "mock")
+        tts = _build_tts()
+        assert isinstance(tts, MockTTS)
