@@ -28,15 +28,25 @@ class LoadedOpenVoice:
     sample_rate: int
 
 
-# Module-level cache keyed by the resolved (path, device, speaker_wav) tuple.
+# Module-level singleton shared across WebSocket connections; populated by
+# `_default_loader` (the production code path) and bypassed by tests that
+# inject their own `loader` callable into `OpenVoiceTTS`.
 _loaded_cache: dict[tuple[str, str, str | None], LoadedOpenVoice] = {}
 
 
 def _default_loader(
     openvoice_path: str, device: str, speaker_wav: str | None
 ) -> LoadedOpenVoice:
-    """Lazy import + cached construction of OpenVoice models. See Task 8."""
-    raise NotImplementedError("populated in Task 8")
+    """Lazy import + cached construction of OpenVoice models.
+
+    Not yet implemented — tests pass an injected `loader` instead. The
+    production body (sys.path injection + checkpoint loading + cache
+    write) lands in a follow-up commit.
+    """
+    raise NotImplementedError(
+        "Real OpenVoice model loading is not yet implemented. "
+        "Pass the `loader` keyword to OpenVoiceTTS for unit tests."
+    )
 
 
 class OpenVoiceTTS(TTS):
