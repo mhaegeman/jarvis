@@ -15,6 +15,8 @@ from typing import Any, Protocol
 from .audio import KIND_CLIENT_MIC, decode_audio_frame, encode_tts_chunk
 from .calendar_client import CalendarClient
 from .heartbeat import Heartbeat
+from .memory.store import MemoryStore
+from .memory.summarizer import Summarizer
 from .pipelines.interfaces import LLM, STT, TTS
 from .pipelines.sentence_split import split_sentences_stream
 from .protocol import (
@@ -58,6 +60,13 @@ class Session:
         llm: LLM,
         tts: TTS,
         history_cap: int = 20,
+        *,
+        memory: MemoryStore | None = None,
+        summarizer: Summarizer | None = None,
+        resume_window_minutes: int = 30,
+        recent_summary_refresh_turns: int = 5,
+        recent_summary_window: int = 20,
+        facts_cap: int = 50,
     ) -> None:
         self._ws = ws
         self._stt = stt
@@ -84,6 +93,12 @@ class Session:
         self._state_task: asyncio.Task[None] | None = None
         self.calendar = CalendarClient()
         self._calendar_sync_task: asyncio.Task[None] | None = None
+        self._memory = memory
+        self._summarizer = summarizer
+        self._resume_window_minutes = resume_window_minutes
+        self._refresh_turns = recent_summary_refresh_turns
+        self._recent_window = recent_summary_window
+        self._facts_cap = facts_cap
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
@@ -91,6 +106,17 @@ class Session:
         self._sender_task = asyncio.create_task(self._sender_loop())
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self._state_task = asyncio.create_task(self.emitter.run())
+        # ── memory: resume or start a new session ──────────────────
+        if self._memory is not None:
+            resumable = await self._memory.find_resumable(
+                within_minutes=self._resume_window_minutes
+            )
+            if resumable is not None:
+                self.session_id = resumable
+                turns = await self._memory.load_session_turns(resumable, cap=self._history_cap)
+                self._history = [{"role": t.role, "content": t.content} for t in turns]
+            else:
+                self.session_id = await self._memory.start_session()
         await self._enqueue_json(ServerMessage.ready(session_id=self.session_id))
         # Calendar starts empty; the client requests a sync via calendar.sync.
         await self._enqueue_json(ServerMessage.calendar_update(entries=[]))
