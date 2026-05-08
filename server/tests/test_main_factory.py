@@ -89,3 +89,24 @@ class TestBuildSTT:
         )
         stt = _build_stt()
         assert isinstance(stt, WhisperSTT)
+
+    def test_auto_without_faster_whisper_logs_and_returns_mock(self, monkeypatch, caplog):
+        import logging
+        monkeypatch.setattr("server.main.settings.stt_engine", "auto")
+        monkeypatch.setattr(
+            "importlib.util.find_spec", lambda name: None
+        )
+        with caplog.at_level(logging.WARNING, logger="server.main"):
+            stt = _build_stt()
+        assert isinstance(stt, MockSTT)
+        assert any(
+            "faster-whisper not installed" in rec.message for rec in caplog.records
+        )
+
+    def test_explicit_whisper_without_faster_whisper_raises(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.stt_engine", "whisper")
+        monkeypatch.setattr(
+            "importlib.util.find_spec", lambda name: None
+        )
+        with pytest.raises(ImportError, match="faster-whisper is not installed"):
+            _build_stt()
