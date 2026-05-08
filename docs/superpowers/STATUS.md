@@ -3,12 +3,12 @@
 > **Single source of truth.** Updated at every phase boundary and committed.
 > Any agent resuming this project should read this file first.
 
-**Last updated:** 2026-05-08 (spec-03 merged to main)
+**Last updated:** 2026-05-08 (spec-04 implementation complete on branch)
 
 ---
 
 ## Current Phase
-**spec-03 merged · spec-04 (staticrypt + GH Pages deploy) brainstorm pending architect kickoff**
+**spec-04-deploy-and-gate · pending PR + Architect manual setup (Pages source, secret, branch protection)**
 
 ## Macro Progress
 
@@ -18,7 +18,7 @@
 | 1 | spec-01-frontend-shell | ✅ committed | ✅ committed | ✅ 22/22 | ✅ subagent | ✅ 30/30 tests | ✅ merged 7a6abe1 |
 | 2 | spec-02-backend-streaming | ✅ committed (5d4f31f) | ✅ committed (639f631) | ✅ 19/19 (Phase 1) | ✅ subagent + Codex P1/P2 | ✅ 58/58 tests | ✅ merged 6efecde + 95e6eee |
 | 3 | spec-03-integration | ✅ committed (dc84817) | ✅ committed (c1f6041) | ✅ 13/13 tasks | ✅ Codex P1/P1 (5cfb2dc) | ✅ 60/60 vitest, lint+tsc+build clean | ✅ merged ab7cb7c |
-| 4 | spec-04-deploy-and-gate | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| 4 | spec-04-deploy-and-gate | ✅ committed (f80d562) | ✅ committed (84da47e) | ✅ 5/5 tasks | ⏳ pending PR | ⏳ CI runs against PR | ⏳ branch pushed |
 
 Legend: ⬜ not started · ⏳ in progress · ✅ done
 
@@ -59,15 +59,35 @@ Quality safeguards retained:
 - After Task 22: full verification + final code review
 
 ## Next action
-Spec-03 merged to `main` (commit `ab7cb7c`). PR #5 also picked up two P1
-fixes from Codex review (audio.start ordering, listening-transition race);
-both addressed in `5cfb2dc` before merge.
+Spec-04 implementation complete on branch `spec-04-deploy-and-gate`
+(7 commits). Architect to:
 
-Three of four sub-specs are now on `main`. Remaining: spec-04
-(staticrypt + GitHub Pages deploy + CI workflow). Brainstorm awaits
-Architect go-ahead. The deployed site will run against a Maxime-laptop
-backend at `ws://localhost:8000/ws`; auto-fallback to demo mode means
-the page is still useful when offline.
+1. Open PR — CI workflow self-tests by running on this PR
+2. Set repo secret `STATICRYPT_PASSWORD`
+3. Settings → Pages → Source: "GitHub Actions"
+4. Settings → Branches → main → require `web` and `server` checks
+5. Merge PR — first deploy lands at `https://mhaegeman.github.io/jarvis/`
+6. Install systemd unit on the laptop per `server/deploy/README.md`
+
+After merge, v1 ships. Future scope (out of v1): spec-02 Phase 2 (real
+Whisper / LLM / OpenVoice), HTTPS for backend (Cloudflare tunnel),
+custom domain.
+
+### Spec-04 implementation summary
+**7 commits on branch `spec-04-deploy-and-gate`.** No application-code
+changes; pure infra:
+- `web/vite.config.ts` — `base: process.env.VITE_BASE ?? "/"` (one line)
+- `.github/workflows/ci.yml` — web (npm ci → tsc → eslint → vitest →
+  vite build) + server (pip install → ruff → mypy → pytest), parallel
+- `.github/workflows/deploy.yml` — push-to-main trigger, vite build with
+  `VITE_BASE=/jarvis/`, staticrypt encrypt, `actions/deploy-pages@v4`
+- `server/deploy/jarvis-backend.service` — systemd `--user` unit
+  (Restart=on-failure, RestartSec=2, journal logging, default.target)
+- `server/deploy/README.md` — install + verify + lingering procedure
+- `web/README.md` — Live URL + password-rotation + autostart pointers
+
+Local verification passing: 60/60 vitest, 58/58 pytest, both default
+and `VITE_BASE=/jarvis/` builds produce correct asset paths.
 
 ### Spec-03 implementation summary
 **14 commits on `spec-03-integration` + Codex review fix, merged via PR #5.** All quality gates green at merge:

@@ -1,0 +1,16 @@
+[Unit]
+Description=Jarvis backend (FastAPI WebSocket, spec-02)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/jarvis/server
+ExecStart=%h/jarvis/server/.venv/bin/uvicorn server.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
