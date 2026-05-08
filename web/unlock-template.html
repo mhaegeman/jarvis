@@ -153,6 +153,64 @@
     .jarvis-status--idle { color: var(--fg-dim); }
     .jarvis-status--working { color: var(--accent); }
     .jarvis-status--denied { color: var(--deny); }
+
+    /* Slow scan bar travelling vertically across the panel. */
+    .panel::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 2px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        var(--accent) 50%,
+        transparent 100%
+      );
+      opacity: 0.5;
+      animation: jarvis-scan 4s linear infinite;
+    }
+
+    @keyframes jarvis-scan {
+      from { transform: translateY(0); }
+      to   { transform: translateY(calc(100% + 200px)); }
+    }
+
+    /* Denied: one-shot horizontal shake. */
+    .panel--shake { animation: jarvis-shake 200ms ease-in-out 3; }
+
+    @keyframes jarvis-shake {
+      0%, 100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
+
+    /* Submitting: animated dots on the status line. */
+    .jarvis-status--working::after {
+      content: "";
+      display: inline-block;
+      width: 1.2em;
+      text-align: left;
+      animation: jarvis-dots 600ms steps(4, end) infinite;
+    }
+
+    @keyframes jarvis-dots {
+      0%   { content: "";   }
+      25%  { content: ".";  }
+      50%  { content: ".."; }
+      75%  { content: "..."; }
+    }
+
+    /* Granted: 600 ms opacity fade before page swap. */
+    body { transition: opacity 600ms ease-out; }
+    body.granted { opacity: 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel::after,
+      .panel--shake,
+      .jarvis-status--working::after,
+      body { animation: none !important; transition: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -197,6 +255,7 @@
       rememberPassphraseKey: "staticrypt_passphrase",
       // 600 ms fade before the page is replaced by the decrypted bundle.
       replaceHtmlCallback: (decryptedHtml) => {
+        document.getElementById("staticrypt-form").inert = true;
         document.body.classList.add("granted");
         setTimeout(() => {
           document.open();
@@ -218,7 +277,7 @@
 
     document.getElementById("staticrypt-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      setStatus("DECRYPTING…", "working");
+      setStatus("DECRYPTING", "working");
       const password = document.getElementById("staticrypt-password").value;
       const { isSuccessful } = await staticrypt.handleDecryptionOfPage(password, false);
       if (!isSuccessful) {
