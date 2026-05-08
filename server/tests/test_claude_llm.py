@@ -343,3 +343,33 @@ class TestSpokenErrorFor:
         request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
         exc = anthropic.APIError(message="weird", request=request, body=None)
         assert _spoken_error_for(exc) == "API error. Check the logs."
+
+
+async def test_extra_context_appended_to_system_prompt() -> None:
+    """ClaudeLLM.stream concatenates extra_context after the base system prompt."""
+    from unittest.mock import AsyncMock, MagicMock
+    from server.pipelines.claude_llm import ClaudeLLM, JARVIS_SYSTEM_PROMPT
+
+    class _NoopStream:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return None
+        def __aiter__(self): return self
+        async def __anext__(self): raise StopAsyncIteration
+
+    captured: dict = {}
+
+    def _stream(**kwargs):
+        captured.update(kwargs)
+        return _NoopStream()
+
+    client = MagicMock()
+    client.messages.stream = MagicMock(side_effect=_stream)
+    llm = ClaudeLLM(default_model="claude-haiku-4-5", client=client)
+    async for _ in llm.stream(
+        history=[{"role": "user", "content": "hi"}],
+        user_text="hi",
+        extra_context="Background: weather is nice.",
+    ):
+        pass
+    assert captured["system"].startswith(JARVIS_SYSTEM_PROMPT)
+    assert "Background: weather is nice." in captured["system"]
