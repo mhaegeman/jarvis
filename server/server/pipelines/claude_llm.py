@@ -104,6 +104,8 @@ class ClaudeLLM(LLM):
         self,
         history: list[dict[str, str]],
         user_text: str,
+        *,
+        extra_context: str = "",
     ) -> AsyncIterator[str]:
         # Per the LLM ABC contract, Session has already appended the current user
         # turn (with the raw slash prefix, if any) as the last entry in history.
@@ -113,11 +115,14 @@ class ClaudeLLM(LLM):
         # versions back-to-back.
         model, content = parse_prefix(user_text, self._default_model)
         messages = [*history[:-1], {"role": "user", "content": content}]
+        system = self._system_prompt
+        if extra_context:
+            system = f"{system}\n\n{extra_context}"
         try:
             async with self._client.messages.stream(
                 model=model,
                 max_tokens=max_tokens_for(model, self._max_tokens),
-                system=self._system_prompt,
+                system=system,
                 messages=messages,
             ) as stream:
                 async for event in stream:

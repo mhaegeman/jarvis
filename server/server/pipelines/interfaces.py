@@ -26,8 +26,14 @@ class LLM(ABC):
         self,
         history: list[dict[str, str]],
         user_text: str,
+        *,
+        extra_context: str = "",
     ) -> AsyncIterator[str]:
-        """Yield token deltas. Caller appends user/assistant to history."""
+        """Yield token deltas. Caller appends user/assistant to history.
+
+        `extra_context` is concatenated onto the system prompt for this turn
+        only. Used by Session to inject memory blobs without touching `history`.
+        """
 
 
 class TTS(ABC):

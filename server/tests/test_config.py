@@ -55,3 +55,20 @@ class TestTTSSettings:
         assert s.tts_engine == "openvoice"
         assert s.openvoice_path == "/opt/OpenVoice"
         assert s.speaker_wav == "/tmp/voice.wav"
+
+
+class TestMemorySettings:
+    def test_memory_db_path_default_is_cwd_stable(self, monkeypatch):
+        """Default must land inside .gitignore-covered `server/data/` when
+        launched per the documented `cd server && uvicorn …` flow.
+        Prior default `server/data/memory.db` resolved to
+        `server/server/data/memory.db` (unignored) and risked accidental commit.
+        """
+        monkeypatch.delenv("JARVIS_MEMORY_DB", raising=False)
+        s = Settings()
+        assert s.memory_db_path == "data/memory.db"
+
+    def test_memory_db_path_env_override(self, monkeypatch):
+        monkeypatch.setenv("JARVIS_MEMORY_DB", "/tmp/jarvis.db")
+        s = Settings()
+        assert s.memory_db_path == "/tmp/jarvis.db"
