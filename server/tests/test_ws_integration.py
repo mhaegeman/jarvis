@@ -4,9 +4,19 @@ from __future__ import annotations
 
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from server.main import app
+
+
+@pytest.fixture(autouse=True)
+def _force_mock_pipelines(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin all three pipelines to mocks so this test exercises only the
+    protocol surface, not whichever engine `auto` happens to resolve to."""
+    monkeypatch.setattr("server.main.settings.model_name", "mock")
+    monkeypatch.setattr("server.main.settings.stt_engine", "mock")
+    monkeypatch.setattr("server.main.settings.tts_engine", "mock")
 
 
 def test_ws_text_flow_end_to_end() -> None:

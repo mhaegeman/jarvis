@@ -178,7 +178,7 @@ async def ws_endpoint(ws: WebSocket) -> None:
         ws=_StarletteWSAdapter(ws),
         stt=_build_stt(),
         llm=_build_llm(),
-        tts=MockTTS(),
+        tts=_build_tts(),
     )
     try:
         await session.run()
