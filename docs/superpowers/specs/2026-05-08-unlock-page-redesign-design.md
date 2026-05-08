@@ -69,26 +69,38 @@ A single self-contained HTML file. ~150–200 lines. No external CSS, no externa
 
 **Why self-contained:** staticrypt v3 produces one HTML file at the GH Pages root; any external reference would 404 (the Vite-built CSS is hashed, the unlock page does not go through Vite, and adding a build step for it adds complexity for ~5 KB of inline CSS).
 
-**Required staticrypt placeholders** (Mustache-style `{{ }}` tokens that staticrypt v3 substitutes at encrypt time):
+**Required staticrypt placeholders.** staticrypt v3 uses a comment-wrapped placeholder format `/*[|name|]*/0` (not Mustache). The format keeps the unfilled template valid JS — useful because some placeholders are interpolated directly into JS expressions (e.g. `const x = /*[|js_staticrypt|]*/ 0;`). Placeholders our template uses, verified against `node_modules/staticrypt/lib/password_template.html` in the installed `staticrypt@^3.3.x`:
 
-| Placeholder | Where it goes | Why |
+| Placeholder | Context | Required |
 |---|---|---|
-| `{{ staticrypt_config }}` | `<script>` tag in `<head>` | Carries the encrypted payload, salt, IV, iteration count. Required. |
-| `{{ js_staticrypt }}` | `<script>` tag at end of `<body>` | The vendored decrypt + form-handler bundle. Required. |
-| `{{ template_button }}`, `{{ template_error }}`, `{{ template_instructions }}`, `{{ template_placeholder }}`, `{{ template_title }}` | Filled into the visible UI | Optional — we hard-code English strings directly in the template instead, so these placeholders are not used. |
+| `/*[|staticrypt_config|]*/0` | RHS of `const staticryptConfig = …;` — the encrypted payload object | Yes |
+| `/*[|js_staticrypt|]*/0` | RHS of `const staticryptInitiator = …;` — the decryptor module | Yes |
+| `/*[|is_remember_enabled|]*/0` | RHS of `const isRememberEnabled = …;` — boolean, controls remember-me checkbox visibility | Yes (we expect `false` by default — not adding `--remember`) |
+| `/*[|template_error|]*/0` | String literal, default-template `alert()`s this on failure | Yes — but we override the submit handler so the value is never user-visible (we drive our own status line) |
 
-**Note on placeholder names.** The exact placeholder identifiers used by `staticrypt@^3` are taken from the package's bundled default template (`node_modules/@staticrypt/staticrypt/lib/password_template.html` after `npm i staticrypt@^3`). The implementation plan begins with verifying these names against the installed version — if any drift, the template is updated 1-for-1. The set above is the contract we design against; verification is a 5-minute step, not a research project.
+We deliberately do **not** use `template_title`, `template_instructions`, `template_placeholder`, `template_button`, `template_color_primary`, `template_color_secondary`, `template_remember`, `template_toggle_show`, `template_toggle_hide` — all visible strings are hard-coded in English (`PASSWORD`, `AUTHENTICATE`, `STANDING BY.`, etc.) and all colors come from inlined HUD tokens.
 
-**Form interception contract.** The template must include:
+**Element contract.** staticrypt's bundled JS (`js_staticrypt`) is initialised in our template via `staticryptInitiator.init(staticryptConfig, templateConfig)` and exposes `handleDecryptOnLoad()` and `handleDecryptionOfPage(password, isRememberChecked)`. The default template attaches the standard form submit handler that calls `handleDecryptionOfPage` and `alert()`s on failure. **We replace that submit handler entirely** so we can drive our own status line on success/failure.
+
+The DOM elements staticrypt's engine references (and we therefore must include — though we may freely restyle them):
 
 ```html
-<form id="staticrypt-form" action="#" method="post">
-  <input id="staticrypt-password" type="password" autocomplete="current-password" />
-  <button type="submit">AUTHENTICATE</button>
-</form>
+<!-- Loading spinner: shown while handleDecryptOnLoad() runs (instant if no remembered password). -->
+<div id="staticrypt_loading">…</div>
+
+<!-- Main content: form lives here, hidden until handleDecryptOnLoad reports failure. -->
+<div id="staticrypt_content" class="hidden">
+  <form id="staticrypt-form" action="#" method="post">
+    <input id="staticrypt-password" type="password" name="password" autofocus />
+    <!-- Hidden: not user-visible, but the default-handler reads it. We keep it
+         as a hidden input to prevent runtime errors if our override breaks. -->
+    <input id="staticrypt-remember" type="checkbox" name="remember" hidden />
+    <button type="submit">AUTHENTICATE</button>
+  </form>
+</div>
 ```
 
-The `id="staticrypt-form"` and `id="staticrypt-password"` selectors are the contract `js_staticrypt` reads. We may freely restyle, reposition, or wrap these elements, but we may not rename or remove them.
+The IDs `staticrypt_loading`, `staticrypt_content`, `staticrypt-form`, `staticrypt-password`, `staticrypt-remember` are read by staticrypt's bundled JS. Renaming any of them breaks the engine.
 
 **Visual layout:**
 
@@ -136,40 +148,64 @@ Background: same `radial-gradient` + dual `linear-gradient` grid pattern as `web
 | idle | `STATUS: STANDING BY.` | `--accent` (cyan) | input caret blink only |
 | submitting | `STATUS: DECRYPTING…` | `--accent` | three-dot ellipsis cycle, 600 ms loop |
 | denied | `STATUS: ACCESS DENIED.` | `--deny` (red) | one-shot panel shake (200 ms, 3 cycles), held 1 s, then back to idle |
-| granted | (handled by staticrypt — page is replaced) | — | 600 ms opacity fade-out before document.write fires |
+| granted | (page replaced by `replaceHtmlCallback`) | — | `body.granted` adds a 600 ms opacity fade before the swap |
 
-Idle ↔ submitting ↔ denied transitions are driven by a small inline `<script>` (~25 lines) that wraps the existing form's submit handler:
+**State transitions are driven by our own form submit handler**, which calls staticrypt's exposed `handleDecryptionOfPage` directly and branches on the returned `isSuccessful` flag. This is cleaner than monkey-patching the default handler — we initialise the engine the same way, then attach our handler instead of the default one.
 
 ```js
-const form = document.getElementById('staticrypt-form');
-const status = document.getElementById('jarvis-status');
-const panel = document.getElementById('jarvis-panel');
-
-form.addEventListener('submit', () => {
-  status.textContent = 'STATUS: DECRYPTING…';
-  status.className = 'status status--working';
+const staticrypt = staticryptInitiator.init(staticryptConfig, {
+  rememberExpirationKey: 'staticrypt_expiration',
+  rememberPassphraseKey: 'staticrypt_passphrase',
+  // Hook the page replacement so we can fade out before the swap.
+  replaceHtmlCallback: (decryptedHtml) => {
+    document.body.classList.add('granted');  // triggers 600 ms fade-out
+    setTimeout(() => {
+      document.open();
+      document.write(decryptedHtml);
+      document.close();
+    }, 600);
+  },
+  clearLocalStorageCallback: null,
 });
 
-// staticrypt's bundled JS calls a global `staticryptInitiator` that, on auth
-// failure, surfaces an error via the {{ template_error }} placeholder element.
-// We listen for that element's text changes via a MutationObserver and flip
-// our status line accordingly. (Cleaner than monkey-patching staticrypt.)
-const errorEl = document.getElementById('staticrypt-error');
-new MutationObserver(() => {
-  if (errorEl.textContent.trim()) {
-    status.textContent = 'STATUS: ACCESS DENIED.';
-    status.className = 'status status--denied';
+window.addEventListener('load', async () => {
+  // Default template attempts auto-decrypt-on-load (for --remember). Since
+  // we don't use --remember, isSuccessful will be false; we just unhide the form.
+  const { isSuccessful } = await staticrypt.handleDecryptOnLoad();
+  if (!isSuccessful) {
+    document.getElementById('staticrypt_loading').classList.add('hidden');
+    document.getElementById('staticrypt_content').classList.remove('hidden');
+    document.getElementById('staticrypt-password').focus();
+  }
+});
+
+const form = document.getElementById('staticrypt-form');
+const statusEl = document.getElementById('jarvis-status');
+const panel = document.getElementById('jarvis-panel');
+
+const setStatus = (text, mode) => {
+  statusEl.textContent = `STATUS: ${text}`;
+  statusEl.className = `jarvis-status jarvis-status--${mode}`;
+};
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setStatus('DECRYPTING…', 'working');
+  const password = document.getElementById('staticrypt-password').value;
+  const { isSuccessful } = await staticrypt.handleDecryptionOfPage(password, false);
+  if (!isSuccessful) {
+    setStatus('ACCESS DENIED.', 'denied');
     panel.classList.add('panel--shake');
     setTimeout(() => {
       panel.classList.remove('panel--shake');
-      status.textContent = 'STATUS: STANDING BY.';
-      status.className = 'status status--idle';
+      setStatus('STANDING BY.', 'idle');
     }, 1200);
   }
-}).observe(errorEl, { childList: true, subtree: true, characterData: true });
+  // On success, replaceHtmlCallback runs — no extra branch needed.
+});
 ```
 
-The `staticrypt-error` element ID is the contract for surfacing decrypt failures and is part of staticrypt's standard template scaffolding. If verification (see §5.1 placeholder note) shows a different ID, the script updates.
+The full template script is ~50 lines including initialisation. No external dependencies.
 
 **Reduced-motion handling.** The `@media (prefers-reduced-motion: reduce)` block disables: scanline animation, scan bar, panel shake, and fade-out on grant. The status-line text changes still happen — they're informative, not decorative.
 
@@ -269,14 +305,15 @@ Total: ~5 files, ~200 LOC, mostly the template itself.
 
 | Risk | Mitigation |
 |---|---|
-| staticrypt v3 placeholder names drift in a minor release | CI smoke test (§5.3) catches it on the PR; we pin `staticrypt@^3` (already in `deploy.yml`); plan starts with verifying placeholder names against the installed package version. |
-| `id="staticrypt-form"` / `id="staticrypt-password"` change in a staticrypt minor | Same — smoke test checks both IDs; bumping major staticrypt versions requires re-reading the template contract. |
+| staticrypt v3 placeholder format / names drift in a minor release | CI smoke test (§5.3) catches it on the PR; we pin `staticrypt@^3` (already in `deploy.yml`); placeholder format `/*[|name|]*/0` is verified against the installed `staticrypt@^3.3.x`. |
+| Element-ID contract (`staticrypt_loading`, `staticrypt_content`, `staticrypt-form`, `staticrypt-password`, `staticrypt-remember`) changes in a staticrypt minor | Smoke test grep's the post-encryption output for these IDs. Bumping major staticrypt versions requires re-reading the template contract. |
+| `staticrypt.handleDecryptionOfPage` API renamed/removed in a minor | Smoke test catches it (would produce a runtime error on submit, but the simple smoke just tests the encrypt step succeeds). Manual smoke (§6) is the real backstop here. |
 | Inline CSS bloat balloons the unlock page | Cap is ~5 KB of inline CSS; the template ships as one HTML file — no bundle, no fetch-blocking. Fine. |
 | Asset 404s on slow networks before correct-password decrypt | Not introduced by this spec — staticrypt has always loaded the page first, then decrypted on submit. The unlock page itself loads no external assets. |
-| Browser blocks the "fade-out before document.write" handoff | If `document.write` after a CSS transition fails on a given browser, fall back to immediate replacement (no fade). Not worth feature-flagging; we test on Maxime's primary browser (Chrome) only. |
+| `replaceHtmlCallback` fade timing race | The `setTimeout(600)` runs in our own callback, which staticrypt invokes synchronously with the decrypted HTML. The 600 ms is purely cosmetic; if the timer is somehow cancelled, the page just doesn't fade — nothing is broken. |
 | Custom template is harder to update than the staticrypt default | Self-contained file with inline CSS = single point of edit. Annotated section headers in the file group title-bar / form / status / animations / states. |
 
-**Open questions:** none. All aesthetic decisions confirmed in brainstorming (status-line text `WELCOME, MAXIME.` not used because the page is replaced before anyone reads it; failure shake confirmed; no boot-sequence text).
+**Open questions:** none. All aesthetic decisions confirmed in brainstorming (no `WELCOME, MAXIME.` granted-state text — granted state is purely a fade; failure shake confirmed; no boot-sequence text).
 
 ## 10. Decisions deferred (logged for the next polish item)
 
