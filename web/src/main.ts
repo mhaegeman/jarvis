@@ -1,6 +1,14 @@
 import "./style.css";
 
-import type { ConvState, TelemetryEvent } from "@/types";
+import type {
+  ConvState,
+  TelemetryEvent,
+  PanelDataSystem,
+  PanelDataMemory,
+  PanelDataNetwork,
+  PanelDataTasks,
+  PanelDataCalendarEntry,
+} from "@/types";
 import { transition, canTransition } from "@/state/stateMachine";
 import { createStore } from "@/state/store";
 
@@ -20,12 +28,21 @@ import { TODAY } from "@/data/calendar";
 import { connect } from "@/events/connect";
 import { createMicCapture, probeMicSupport } from "@/audio/micCapture";
 
+interface PanelData {
+  system: PanelDataSystem | null;
+  memory: PanelDataMemory | null;
+  network: PanelDataNetwork | null;
+  tasks: PanelDataTasks | null;
+  calendar: { entries: PanelDataCalendarEntry[]; syncing: boolean };
+}
+
 interface AppState {
   state: ConvState;
   micAmplitude: number;
   micStatus: MicStatus;
   telemetry: TelemetryEvent[];
   centerTitle: string;
+  panelData: PanelData;
 }
 
 const start = Date.now();
@@ -38,6 +55,13 @@ const store = createStore<AppState>({
   micStatus: { kind: "unprompted" },
   telemetry: [],
   centerTitle: "Standing by.",
+  panelData: {
+    system: null,
+    memory: null,
+    network: null,
+    tasks: null,
+    calendar: { entries: [], syncing: false },
+  },
 });
 
 const log = (level: TelemetryEvent["level"], message: string): void => {
@@ -258,6 +282,22 @@ events.on("error", (e) => log("error", `${e.code}: ${e.message}`));
 events.on("telemetry", (t) =>
   store.update((d) => ({ telemetry: [t, ...d.telemetry].slice(0, 14) })),
 );
+events.on("state.snapshot", (snap) =>
+  store.update((d) => ({
+    panelData: {
+      ...d.panelData,
+      system: snap.system,
+      memory: snap.memory,
+      network: snap.network,
+      tasks: snap.tasks,
+    },
+  })),
+);
+events.on("calendar.update", ({ entries }) =>
+  store.update((d) => ({
+    panelData: { ...d.panelData, calendar: { entries, syncing: false } },
+  })),
+);
 
 // Boot — connect() already awaited events.start() for both live and demo modes.
 log("ok", `session ready (${mode})`);
@@ -271,12 +311,33 @@ function tick(): void {
   const s = store.get();
   const u = Date.now() - start;
 
+  const pd = s.panelData;
   header.render({ uptimeMs: u });
-  system.render({ uptimeMs: u, load: 0.42, tokensPerMin: 1284, sessionId: "A271" });
-  memory.render({ contextUsed: 62000, contextMax: 200000, recallPct: 98.2 });
-  calendar.render({ entries: TODAY });
-  network.render({ endpoint: "local", latencyMs: 12, packets: 0, busyPct: 18 });
-  tasks.render({ queued: 3, active: 1, done: 14 });
+  system.render({
+    uptimeMs: u,
+    load: pd.system?.load ?? 0,
+    tokensPerMin: pd.system?.tokensPerMin ?? 0,
+    sessionId: pd.system?.sessionId ?? "----",
+  });
+  memory.render({
+    contextUsed: pd.memory?.contextUsed ?? 0,
+    contextMax: pd.memory?.contextMax ?? 200000,
+    recallPct: 98.2,
+  });
+  calendar.render({ entries: pd.calendar.entries.length > 0 ? pd.calendar.entries : TODAY });
+  network.render({
+    endpoint: pd.network?.endpoint ?? (mode === "demo" ? "demo" : "local"),
+    latencyMs: pd.network?.latencyMs ?? 0,
+    packets: pd.network?.packets ?? 0,
+    busyPct: pd.network
+      ? Math.round((pd.network.sendQueueDepth / pd.network.sendQueueMax) * 100)
+      : 0,
+  });
+  tasks.render({
+    queued: pd.tasks?.queued ?? 0,
+    active: pd.tasks?.active ?? 0,
+    done: pd.tasks?.done ?? 0,
+  });
   telemetry.render({ events: s.telemetry });
 
   // Audio meter
