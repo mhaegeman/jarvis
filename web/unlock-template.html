@@ -254,15 +254,20 @@
     const staticrypt = staticryptInitiator.init(staticryptConfig, {
       rememberExpirationKey: "staticrypt_expiration",
       rememberPassphraseKey: "staticrypt_passphrase",
-      // 600 ms fade before the page is replaced by the decrypted bundle.
+      // 600 ms fade before the page is replaced; instant swap under reduced-motion.
       replaceHtmlCallback: (decryptedHtml) => {
         document.getElementById("staticrypt-form").inert = true;
-        document.body.classList.add("granted");
-        setTimeout(() => {
+        const swap = () => {
           document.open();
           document.write(decryptedHtml);
           document.close();
-        }, 600);
+        };
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          swap();
+          return;
+        }
+        document.body.classList.add("granted");
+        setTimeout(swap, 600);
       },
       clearLocalStorageCallback: null,
     });

@@ -75,7 +75,7 @@ A single self-contained HTML file. ~150–200 lines. No external CSS, no externa
 |---|---|---|
 | `/*[|staticrypt_config|]*/0` | RHS of `const staticryptConfig = …;` — the encrypted payload object | Yes |
 | `/*[|js_staticrypt|]*/0` | RHS of `const staticryptInitiator = …;` — the decryptor module | Yes |
-| `/*[|is_remember_enabled|]*/0` | RHS of `const isRememberEnabled = …;` — boolean, controls remember-me checkbox visibility | Yes (we expect `false` by default — not adding `--remember`) |
+| `/*[|is_remember_enabled|]*/0` | RHS of `const isRememberEnabled = …;` — boolean, controls the engine's remember-me checkbox visibility | Yes. staticrypt v3 defaults this to `true`; without `--remember-no-default-checked` the checkbox would render. We hide the checkbox in markup (`<input … hidden />`) and our submit handler always passes `isRememberChecked=false` to `handleDecryptionOfPage`, so no localStorage write occurs regardless of the engine's default. |
 | `/*[|template_error|]*/0` | String literal, default-template `alert()`s this on failure | Yes — but we override the submit handler so the value is never user-visible (we drive our own status line) |
 
 We deliberately do **not** use `template_title`, `template_instructions`, `template_placeholder`, `template_button`, `template_color_primary`, `template_color_secondary`, `template_remember`, `template_toggle_show`, `template_toggle_hide` — all visible strings are hard-coded in English (`PASSWORD`, `AUTHENTICATE`, `STANDING BY.`, etc.) and all colors come from inlined HUD tokens.
