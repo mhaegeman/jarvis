@@ -56,11 +56,9 @@ def test_encode_server_llm_token() -> None:
 
 
 def test_encode_server_tts_sentence_carries_audio_id() -> None:
-    out = encode_server(
-        ServerMessage.tts_sentence(text="ok.", audio_id="s0-abc12", sample_rate=24000)
-    )
+    out = encode_server(ServerMessage.tts_sentence(text="ok.", audio_id="s0-abc12"))
     assert '"audioId":"s0-abc12"' in out
-    assert '"sampleRate":24000' in out
+    assert '"text":"ok."' in out
 
 
 def test_encode_server_error() -> None:

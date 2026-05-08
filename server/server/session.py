@@ -28,6 +28,8 @@ from .protocol import (
 
 log = logging.getLogger(__name__)
 
+HEARTBEAT_INTERVAL_S = 5.0
+
 
 class _WS(Protocol):
     async def send_text(self, data: str) -> None: ...
@@ -60,17 +62,22 @@ class Session:
         self._history_cap = history_cap
         self._send_q: asyncio.Queue[tuple[str, str | bytes]] = asyncio.Queue(maxsize=256)
         self._sender_task: asyncio.Task[None] | None = None
+        self._heartbeat_task: asyncio.Task[None] | None = None
         self._turn_task: asyncio.Task[None] | None = None
+        self._partials_task: asyncio.Task[None] | None = None
         self._mic_buf: list[bytes] = []
+        self._mic_q: asyncio.Queue[bytes | None] | None = None
         self._mic_active = False
         self._closing = False
-        self._llm_ended = False
-        self._open_audio_ids: set[str] = set()
+        # llm_ended starts True so a stray `interrupt` while idle does not
+        # spuriously emit `llm.end`. Reset to False at the start of each turn.
+        self._llm_ended = True
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
     async def run(self) -> None:
         self._sender_task = asyncio.create_task(self._sender_loop())
+        self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         await self._enqueue_json(ServerMessage.ready())
         try:
             while not self._closing:
@@ -89,10 +96,11 @@ class Session:
 
     async def cleanup(self) -> None:
         self._closing = True
-        if self._turn_task and not self._turn_task.done():
-            self._turn_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await self._turn_task
+        for t in (self._partials_task, self._turn_task, self._heartbeat_task):
+            if t and not t.done():
+                t.cancel()
+                with contextlib.suppress(asyncio.CancelledError, Exception):
+                    await t
         if self._sender_task and not self._sender_task.done():
             with contextlib.suppress(asyncio.QueueFull):
                 self._send_q.put_nowait(("__stop__", ""))
@@ -108,10 +116,10 @@ class Session:
             await self._enqueue_json(ServerMessage.error("protocol.bad_message", str(e)))
             return
         if isinstance(msg, Hello):
+            log.info("hello: clientVersion=%s", msg.clientVersion)
             return
         if isinstance(msg, AudioStart):
-            self._mic_buf = []
-            self._mic_active = True
+            await self._begin_listening()
             return
         if isinstance(msg, AudioEnd):
             if not self._mic_active:
@@ -121,8 +129,7 @@ class Session:
                     )
                 )
                 return
-            self._mic_active = False
-            self._start_turn(audio=True)
+            await self._end_listening()
             return
         if isinstance(msg, TextIn):
             self._start_turn(text=msg.content)
@@ -150,6 +157,46 @@ class Session:
             )
             return
         self._mic_buf.append(frame.samples)
+        if self._mic_q is not None:
+            self._mic_q.put_nowait(frame.samples)
+
+    # ─── listening / partials ─────────────────────────────────────────
+
+    async def _begin_listening(self) -> None:
+        self._mic_buf = []
+        self._mic_q = asyncio.Queue()
+        self._mic_active = True
+        self._partials_task = asyncio.create_task(self._run_partials())
+
+    async def _end_listening(self) -> None:
+        self._mic_active = False
+        if self._mic_q is not None:
+            self._mic_q.put_nowait(None)
+        if self._partials_task and not self._partials_task.done():
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await self._partials_task
+        self._partials_task = None
+        self._mic_q = None
+        self._start_turn(audio=True)
+
+    async def _run_partials(self) -> None:
+        """Stream stt.partial events as mic chunks arrive."""
+        q = self._mic_q
+        if q is None:
+            return
+
+        async def _audio_iter() -> AsyncIterator[bytes]:
+            while True:
+                item = await q.get()
+                if item is None:
+                    return
+                yield item
+
+        try:
+            async for partial in self._stt.partials(_audio_iter()):
+                await self._enqueue_json(ServerMessage.stt_partial(partial))
+        except asyncio.CancelledError:
+            raise
 
     # ─── turn machinery ───────────────────────────────────────────────
 
@@ -157,7 +204,6 @@ class Session:
         if self._turn_task and not self._turn_task.done():
             self._turn_task.cancel()
         self._llm_ended = False
-        self._open_audio_ids.clear()
         self._turn_task = asyncio.create_task(self._run_turn(text=text, audio=audio))
 
     async def _run_turn(self, *, text: str | None, audio: bool) -> None:
@@ -171,7 +217,7 @@ class Session:
             await self._enqueue_json(ServerMessage.error("session.turn_failed", str(e)))
 
     async def _do_stt(self, *, text: str | None, audio: bool) -> str:
-        del audio  # signal only; mic_buf carries the data
+        del audio  # signal only; mic_buf carries the data, partials already streamed
         if text is not None:
             await self._enqueue_json(ServerMessage.stt_final(text))
             return text
@@ -180,8 +226,6 @@ class Session:
             for c in self._mic_buf:
                 yield c
 
-        async for partial in self._stt.partials(_audio_iter()):
-            await self._enqueue_json(ServerMessage.stt_partial(partial))
         final = await self._stt.final(_audio_iter())
         await self._enqueue_json(ServerMessage.stt_final(final))
         return final
@@ -201,6 +245,12 @@ class Session:
                     await self._enqueue_json(ServerMessage.llm_token(delta))
                     await token_q.put(delta)
             finally:
+                # Emit `llm.end` immediately when the LLM token stream ends —
+                # in parallel with the still-running TTS pipeline. (Issue #1
+                # from review: do not wait for tts.end to fire llm.end.)
+                if not self._llm_ended:
+                    self._llm_ended = True
+                    await self._enqueue_json(ServerMessage.llm_end())
                 await token_q.put(None)
 
         async def consume_tokens_to_sentences() -> None:
@@ -223,24 +273,14 @@ class Session:
                     return
                 aid = _audio_id(idx)
                 idx += 1
-                self._open_audio_ids.add(aid)
                 await self._enqueue_json(
-                    ServerMessage.tts_sentence(
-                        text=sent,
-                        audio_id=aid,
-                        sample_rate=self._tts.sample_rate(),
-                    )
+                    ServerMessage.tts_sentence(text=sent, audio_id=aid)
                 )
                 async for pcm in self._tts.synthesize(sent, aid):
                     await self._enqueue_bytes(encode_tts_chunk(aid, pcm))
                 await self._enqueue_json(ServerMessage.tts_end(aid))
-                self._open_audio_ids.discard(aid)
 
         await asyncio.gather(fanout(), consume_tokens_to_sentences(), speak_sentences())
-
-        if not self._llm_ended:
-            self._llm_ended = True
-            await self._enqueue_json(ServerMessage.llm_end())
 
         full = "".join(assistant_buf)
         if full:
@@ -256,9 +296,8 @@ class Session:
         if not self._llm_ended:
             self._llm_ended = True
             await self._enqueue_json(ServerMessage.llm_end())
-        self._open_audio_ids.clear()
 
-    # ─── outbound queue ───────────────────────────────────────────────
+    # ─── outbound queue / heartbeat ───────────────────────────────────
 
     async def _enqueue_json(self, msg: dict[str, Any]) -> None:
         try:
@@ -285,3 +324,13 @@ class Session:
             except Exception:  # noqa: BLE001
                 log.exception("send failed")
                 return
+
+    async def _heartbeat_loop(self) -> None:
+        try:
+            while not self._closing:
+                await asyncio.sleep(HEARTBEAT_INTERVAL_S)
+                await self._enqueue_json(
+                    ServerMessage.telemetry(level="info", message="heartbeat")
+                )
+        except asyncio.CancelledError:
+            raise

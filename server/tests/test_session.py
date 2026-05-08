@@ -225,5 +225,62 @@ async def test_interrupt_with_no_active_turn_is_noop(session: Session, fake_ws: 
     await asyncio.sleep(0.1)
     await fake_ws.close_inbound()
     await task
-    errors = [json.loads(t) for t in fake_ws.sent_text if json.loads(t)["type"] == "error"]
+    msgs = [json.loads(t) for t in fake_ws.sent_text]
+    errors = [m for m in msgs if m["type"] == "error"]
     assert errors == []
+    # Idle interrupt must not emit a spurious llm.end (regression for review #12).
+    types = [m["type"] for m in msgs]
+    assert "llm.end" not in types
+
+
+@pytest.mark.asyncio
+async def test_llm_end_fires_before_tts_completes(session: Session, fake_ws: FakeWS) -> None:
+    """Regression: llm.end must arrive in parallel with TTS, not after the
+    last tts.end. Frontend transitions out of `thinking` rely on llm.end.
+    """
+    task = asyncio.create_task(session.run())
+    await fake_ws.feed_text({"type": "text", "content": "Brief me on today"})
+    await _drain_until(fake_ws, "llm.end")
+    await fake_ws.close_inbound()
+    await task
+
+    types = [json.loads(t)["type"] for t in fake_ws.sent_text]
+    llm_end_idx = types.index("llm.end")
+    # At least one tts.end appears AFTER llm.end (proves they are concurrent
+    # and llm.end did not wait for the whole reply to be spoken).
+    later_tts_ends = [i for i, t in enumerate(types) if t == "tts.end" and i > llm_end_idx]
+    assert later_tts_ends, (
+        f"llm.end should fire before all tts.end events; got types={types}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_partials_emitted_during_listening_not_after_audio_end(
+    fake_ws: FakeWS,
+) -> None:
+    """Regression: stt.partial events must arrive WHILE mic chunks are
+    streaming in, not all at once after audio.end. Otherwise Phase 2 swap
+    (real Whisper) is non-mechanical.
+    """
+    sess = Session(
+        ws=fake_ws,
+        stt=MockSTT(canned_final="Brief me on today."),
+        llm=MockLLM(token_delay_ms=0),
+        tts=MockTTS(),
+    )
+    task = asyncio.create_task(sess.run())
+    await fake_ws.feed_text({"type": "audio.start", "sampleRate": 16000, "format": "pcm_s16le"})
+    # Feed two chunks then poll for partials BEFORE sending audio.end.
+    await fake_ws.feed_bytes(encode_mic_chunk(b"\x00\x00" * 320))
+    await fake_ws.feed_bytes(encode_mic_chunk(b"\x00\x00" * 320))
+    # Give the partials task a chance to drain the queue.
+    await asyncio.sleep(0.1)
+    types_before_end = [json.loads(t)["type"] for t in fake_ws.sent_text]
+    assert "stt.partial" in types_before_end, (
+        f"partials should fire during listening; saw only {types_before_end}"
+    )
+    # Now finish.
+    await fake_ws.feed_text({"type": "audio.end"})
+    await _drain_until(fake_ws, "llm.end")
+    await fake_ws.close_inbound()
+    await task

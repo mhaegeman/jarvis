@@ -93,12 +93,11 @@ class ServerMessage:
         return {"type": "llm.end"}
 
     @staticmethod
-    def tts_sentence(text: str, audio_id: str, sample_rate: int) -> dict[str, Any]:
+    def tts_sentence(text: str, audio_id: str) -> dict[str, Any]:
         return {
             "type": "tts.sentence",
             "text": text,
             "audioId": audio_id,
-            "sampleRate": sample_rate,
         }
 
     @staticmethod

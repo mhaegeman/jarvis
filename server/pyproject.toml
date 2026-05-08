@@ -9,7 +9,6 @@ dependencies = [
   "websockets>=13",
   "pydantic>=2.9",
   "pydantic-settings>=2.5",
-  "numpy>=1.26",
 ]
 
 [project.optional-dependencies]

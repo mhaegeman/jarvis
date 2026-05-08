@@ -103,7 +103,7 @@ async def _run(url: str, text: str | None, audio_fixture: str | None) -> int:
         if text is not None:
             await _drive_text(ws, text)
             return 0
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         while True:
             try:
                 line = await loop.run_in_executor(None, sys.stdin.readline)
