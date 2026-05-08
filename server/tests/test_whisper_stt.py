@@ -110,3 +110,41 @@ class TestNormalization:
         arr, _ = fake.transcribe_calls[0]
         # 3300 + 3300 = 6600 bytes → 3300 Int16 samples.
         assert arr.shape == (3300,)
+
+
+class TestTranscribeArgsAndOutput:
+    async def test_passes_language_en_and_beam_one(self):
+        payload = b"\x00" * 6400
+        fake = FakeWhisperModel(return_segments=[FakeSegment(text="x")])
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        await stt.final(_audio_iter(payload))
+
+        _arr, kwargs = fake.transcribe_calls[0]
+        assert kwargs["language"] == "en"
+        assert kwargs["beam_size"] == 1
+
+    async def test_joins_segment_texts_with_space(self):
+        payload = b"\x00" * 6400
+        fake = FakeWhisperModel(return_segments=[
+            FakeSegment(text="hello "),
+            FakeSegment(text="there, "),
+            FakeSegment(text="Max."),
+        ])
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        result = await stt.final(_audio_iter(payload))
+        # Segments joined by single space, then stripped.
+        assert result == "hello  there,  Max."
+
+    async def test_strips_outer_whitespace(self):
+        payload = b"\x00" * 6400
+        fake = FakeWhisperModel(return_segments=[FakeSegment(text="  spaced  ")])
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        result = await stt.final(_audio_iter(payload))
+        assert result == "spaced"
+
+    async def test_no_segments_returns_empty(self):
+        payload = b"\x00" * 6400
+        fake = FakeWhisperModel(return_segments=[])
+        stt = WhisperSTT(model="base.en", device="cpu", loader=make_loader(fake))
+        result = await stt.final(_audio_iter(payload))
+        assert result == ""
