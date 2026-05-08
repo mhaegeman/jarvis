@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JARVIS // OS</title>
+</head>
+<body>
+  <div id="staticrypt_loading">DECRYPTING…</div>
+  <div id="staticrypt_content" style="display:none">
+    <h1>JARVIS // OS</h1>
+    <form id="staticrypt-form" action="#" method="post">
+      <label for="staticrypt-password">PASSWORD</label>
+      <input id="staticrypt-password" type="password" name="password" autofocus />
+      <input id="staticrypt-remember" type="checkbox" name="remember" hidden />
+      <button type="submit">AUTHENTICATE</button>
+    </form>
+    <output id="jarvis-status" aria-live="polite">STATUS: STANDING BY.</output>
+  </div>
+  <script>
+    const staticryptInitiator = /*[|js_staticrypt|]*/ 0;
+    const staticryptConfig = /*[|staticrypt_config|]*/ 0;
+    const isRememberEnabled = /*[|is_remember_enabled|]*/ 0;
+    const templateError = "/*[|template_error|]*/0";
+
+    const staticrypt = staticryptInitiator.init(staticryptConfig, {
+      rememberExpirationKey: "staticrypt_expiration",
+      rememberPassphraseKey: "staticrypt_passphrase",
+      replaceHtmlCallback: null,
+      clearLocalStorageCallback: null,
+    });
+
+    window.addEventListener("load", async () => {
+      const { isSuccessful } = await staticrypt.handleDecryptOnLoad();
+      if (!isSuccessful) {
+        document.getElementById("staticrypt_loading").style.display = "none";
+        document.getElementById("staticrypt_content").style.display = "block";
+        document.getElementById("staticrypt-password").focus();
+      }
+    });
+
+    document.getElementById("staticrypt-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const password = document.getElementById("staticrypt-password").value;
+      const { isSuccessful } = await staticrypt.handleDecryptionOfPage(password, false);
+      if (!isSuccessful) alert(templateError);
+    });
+  </script>
+</body>
+</html>
