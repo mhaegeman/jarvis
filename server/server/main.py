@@ -49,6 +49,27 @@ def _build_llm() -> LLM:
     raise ValueError(f"unknown JARVIS_MODEL_NAME: {name!r}")
 
 
+def _resolve_device() -> str:
+    """Return the torch device string for STT/TTS pipelines.
+
+    Honors `JARVIS_DEVICE` when set to a concrete value; with `auto`,
+    probes torch (cuda → mps → cpu) and falls back to `cpu` when torch
+    is not importable.
+    """
+    explicit = settings.device
+    if explicit in ("cuda", "mps", "cpu"):
+        return explicit
+    try:
+        import torch
+    except ImportError:
+        return "cpu"
+    if torch.cuda.is_available():
+        return "cuda"
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     log.info("lifespan: Phase 1 mock pipelines (no model loading)")

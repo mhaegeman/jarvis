@@ -34,3 +34,29 @@ class TestBuildLLM:
         monkeypatch.setattr("server.main.settings.model_name", "gpt-99")
         with pytest.raises(ValueError, match="JARVIS_MODEL_NAME"):
             _build_llm()
+
+
+class TestResolveDevice:
+    def test_explicit_cpu(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.device", "cpu")
+        from server.main import _resolve_device
+        assert _resolve_device() == "cpu"
+
+    def test_explicit_cuda(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.device", "cuda")
+        from server.main import _resolve_device
+        assert _resolve_device() == "cuda"
+
+    def test_explicit_mps(self, monkeypatch):
+        monkeypatch.setattr("server.main.settings.device", "mps")
+        from server.main import _resolve_device
+        assert _resolve_device() == "mps"
+
+    def test_auto_without_torch_returns_cpu(self, monkeypatch):
+        """When torch is not importable, auto resolves to cpu."""
+        import sys
+        monkeypatch.setattr("server.main.settings.device", "auto")
+        # Block the import of torch within _resolve_device.
+        monkeypatch.setitem(sys.modules, "torch", None)
+        from server.main import _resolve_device
+        assert _resolve_device() == "cpu"
