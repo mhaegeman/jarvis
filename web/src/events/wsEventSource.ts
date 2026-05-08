@@ -51,10 +51,16 @@ export class WSEventSource implements IEventSource {
   }
 
   on<E extends EventName>(event: E, handler: EventHandler<E>): () => void {
-    const set = (this.handlers[event] ??= new Set()) as Set<EventHandler<E>>;
+    let set = this.handlers[event] as Set<EventHandler<E>> | undefined;
+    if (!set) {
+      set = new Set<EventHandler<E>>();
+      (this.handlers as Record<string, Set<EventHandler<EventName>>>)[event] =
+        set as unknown as Set<EventHandler<EventName>>;
+    }
     set.add(handler);
+    const target = set;
     return (): void => {
-      set.delete(handler);
+      target.delete(handler);
     };
   }
 

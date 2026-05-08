@@ -17,7 +17,7 @@ import { Controls } from "@/ui/Controls";
 import { attachKeyboard } from "@/ui/keyboard";
 
 import { TODAY } from "@/data/calendar";
-import { MockEventSource } from "@/events/mockEventSource";
+import { connect } from "@/events/connect";
 import { createMicCapture, probeMicSupport } from "@/audio/micCapture";
 
 interface AppState {
@@ -46,8 +46,37 @@ const log = (level: TelemetryEvent["level"], message: string): void => {
   }));
 };
 
-// EventSource (mock for spec-01)
-const events = new MockEventSource();
+// EventSource: try real WS, fall back to mock if backend is unreachable.
+const audioCtx = new AudioContext();
+let activeMicStream: MediaStream | null = null;
+const micSource = async (): Promise<MediaStreamAudioSourceNode> => {
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+  activeMicStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      sampleRate: 16000,
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
+  return audioCtx.createMediaStreamSource(activeMicStream);
+};
+const stopMicStream = (): void => {
+  activeMicStream?.getTracks().forEach((t) => t.stop());
+  activeMicStream = null;
+};
+const wsUrl =
+  (import.meta.env.VITE_WS_URL as string | undefined) ?? "ws://localhost:8000/ws";
+const { events, mode } = await connect({
+  url: wsUrl,
+  audioCtx,
+  openTimeoutMs: 1000,
+  micSource,
+});
+const liveAnalyser: AnalyserNode | null =
+  mode === "live"
+    ? ((events as unknown as { analyser?: AnalyserNode }).analyser ?? null)
+    : null;
 
 // Track open TTS sentences so we only return to idle after the last one and
 // after the LLM has signalled the end of generation.
@@ -124,7 +153,7 @@ const actions = {
     if (store.get().state !== "idle") return;
     const ok = await ensureMic();
     if (ok) {
-      events.beginListening();
+      await events.beginListening();
       tryTransition("startListening");
       store.update(() => ({ centerTitle: "Listening." }));
     }
@@ -133,12 +162,14 @@ const actions = {
     if (store.get().state !== "listening") return;
     events.endListening();
     mic.stop();
+    stopMicStream();
     tryTransition("stopListening");
     store.update(() => ({ centerTitle: "Thinking." }));
   },
   onInterrupt: (): void => {
     events.interrupt();
     mic.stop();
+    stopMicStream();
     center.interruptTranscript();
     tryTransition("interrupt");
     store.update(() => ({ centerTitle: "Standing by." }));
@@ -146,20 +177,22 @@ const actions = {
   onIdle: (): void => {
     events.interrupt();
     mic.stop();
+    stopMicStream();
     center.clearTranscript();
     tryTransition("interrupt");
     store.update(() => ({ centerTitle: "Standing by." }));
   },
   onRunScenario: (): void => {
     if (store.get().state !== "idle") return;
-    events.beginListening();
-    tryTransition("startListening");
-    store.update(() => ({ centerTitle: "Listening." }));
-    setTimeout(() => {
-      events.endListening();
-      tryTransition("stopListening");
-      store.update(() => ({ centerTitle: "Thinking." }));
-    }, 1500);
+    void Promise.resolve(events.beginListening()).then(() => {
+      tryTransition("startListening");
+      store.update(() => ({ centerTitle: "Listening." }));
+      setTimeout(() => {
+        events.endListening();
+        tryTransition("stopListening");
+        store.update(() => ({ centerTitle: "Thinking." }));
+      }, 1500);
+    });
   },
 };
 
@@ -217,12 +250,12 @@ events.on("telemetry", (t) =>
   store.update((d) => ({ telemetry: [t, ...d.telemetry].slice(0, 14) })),
 );
 
-// Boot
-void (async () => {
-  await events.start();
-  log("ok", "session ready");
-  document.body.dataset.ready = "true";
-})();
+// Boot — connect() already awaited events.start() for both live and demo modes.
+log("ok", `session ready (${mode})`);
+if (mode === "demo") {
+  log("warn", "backend offline — demo mode");
+}
+document.body.dataset.ready = "true";
 
 // Render loop
 function tick(): void {
@@ -255,12 +288,23 @@ function tick(): void {
   center.setStateClass(s.state);
   if (s.centerTitle) center.setTitle(s.centerTitle);
 
-  // Synthetic amplitude when not listening
+  // Centerpiece amplitude: prefer live signals (mic in, TTS analyser out) over synthetic.
   let amp: number;
-  if (s.state === "listening") amp = s.micAmplitude;
-  else if (s.state === "thinking") amp = 0.18 + Math.sin(u * 0.004) * 0.05;
-  else if (s.state === "speaking") amp = 0.45 + Math.random() * 0.35;
-  else amp = 0.08 + Math.sin(u * 0.001) * 0.02;
+  if (s.state === "listening") {
+    amp = s.micAmplitude;
+  } else if (s.state === "speaking" && liveAnalyser) {
+    const data = new Float32Array(liveAnalyser.fftSize);
+    liveAnalyser.getFloatTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+    amp = Math.min(1, Math.sqrt(sum / data.length) * 4);
+  } else if (s.state === "thinking") {
+    amp = 0.18 + Math.sin(u * 0.004) * 0.05;
+  } else if (s.state === "speaking") {
+    amp = 0.45 + Math.random() * 0.35;
+  } else {
+    amp = 0.08 + Math.sin(u * 0.001) * 0.02;
+  }
   center.renderFrame(amp, s.state);
 
   requestAnimationFrame(tick);

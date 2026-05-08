@@ -6,6 +6,7 @@ export interface ConnectOptions {
   url: string;
   audioCtx?: AudioContext;
   openTimeoutMs?: number;
+  micSource?: () => Promise<MediaStreamAudioSourceNode>;
 }
 
 export interface ConnectResult {
@@ -17,7 +18,8 @@ export async function connect(opts: ConnectOptions): Promise<ConnectResult> {
   const timeoutMs = opts.openTimeoutMs ?? 1000;
   const live = new WSEventSource({
     url: opts.url,
-    audioCtx: opts.audioCtx,
+    ...(opts.audioCtx ? { audioCtx: opts.audioCtx } : {}),
+    ...(opts.micSource ? { micSource: opts.micSource } : {}),
   });
   const mode = await new Promise<"live" | "demo">((resolve) => {
     let done = false;
