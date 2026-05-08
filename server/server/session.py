@@ -13,6 +13,7 @@ from collections.abc import AsyncIterator, MutableMapping
 from typing import Any, Protocol
 
 from .audio import KIND_CLIENT_MIC, decode_audio_frame, encode_tts_chunk
+from .heartbeat import Heartbeat
 from .pipelines.interfaces import LLM, STT, TTS
 from .pipelines.sentence_split import split_sentences_stream
 from .protocol import (
@@ -20,6 +21,7 @@ from .protocol import (
     AudioStart,
     Hello,
     Interrupt,
+    Pong,
     ServerMessage,
     TextIn,
     decode_client,
@@ -72,6 +74,7 @@ class Session:
         # llm_ended starts True so a stray `interrupt` while idle does not
         # spuriously emit `llm.end`. Reset to False at the start of each turn.
         self._llm_ended = True
+        self.heartbeat = Heartbeat(interval_s=HEARTBEAT_INTERVAL_S)
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
@@ -140,6 +143,9 @@ class Session:
             return
         if isinstance(msg, Interrupt):
             await self._do_interrupt()
+            return
+        if isinstance(msg, Pong):
+            self.heartbeat.record_pong(msg.seq)
             return
 
     async def _handle_binary(self, payload: bytes) -> None:
@@ -341,8 +347,8 @@ class Session:
         try:
             while not self._closing:
                 await asyncio.sleep(HEARTBEAT_INTERVAL_S)
-                await self._enqueue_json(
-                    ServerMessage.telemetry(level="info", message="heartbeat")
-                )
+                self.heartbeat.evict_stale()
+                seq = self.heartbeat.send_ping()
+                await self._enqueue_json(ServerMessage.ping(seq=seq))
         except asyncio.CancelledError:
             raise
