@@ -61,6 +61,30 @@ def parse_prefix(text: str, default: str) -> tuple[str, str]:
     return default, text
 
 
+def _spoken_error_for(exc: anthropic.APIError) -> str:
+    """Map an Anthropic exception to a short, factual sentence for TTS.
+
+    Order matters — most-specific subclasses first, generic APIError last.
+    """
+    if isinstance(exc, anthropic.RateLimitError):
+        return "Rate limit. Try again shortly."
+    if isinstance(exc, anthropic.AuthenticationError):
+        return "API key is invalid."
+    if isinstance(exc, anthropic.PermissionDeniedError):
+        return "API key lacks permission for that model."
+    if isinstance(exc, anthropic.NotFoundError):
+        return "Model not found. Check the model ID."
+    if isinstance(exc, anthropic.BadRequestError):
+        return "The request was rejected. Check the model and prompt."
+    if isinstance(exc, anthropic.APITimeoutError):
+        return "Anthropic timed out. Try again."
+    if isinstance(exc, anthropic.APIConnectionError):
+        return "Network error reaching Anthropic."
+    if isinstance(exc, anthropic.APIStatusError):
+        return "Anthropic server error. Try again."
+    return "API error. Check the logs."
+
+
 class ClaudeLLM(LLM):
     """Streams responses from the Anthropic Messages API."""
 
@@ -84,13 +108,17 @@ class ClaudeLLM(LLM):
     ) -> AsyncIterator[str]:
         model, content = parse_prefix(user_text, self._default_model)
         messages = [*history, {"role": "user", "content": content}]
-        async with self._client.messages.stream(
-            model=model,
-            max_tokens=max_tokens_for(model, self._max_tokens),
-            system=self._system_prompt,
-            messages=messages,
-        ) as stream:
-            async for event in stream:
-                if event.type == "content_block_delta" and event.delta is not None:
-                    if event.delta.type == "text_delta":
-                        yield event.delta.text
+        try:
+            async with self._client.messages.stream(
+                model=model,
+                max_tokens=max_tokens_for(model, self._max_tokens),
+                system=self._system_prompt,
+                messages=messages,
+            ) as stream:
+                async for event in stream:
+                    if event.type == "content_block_delta" and event.delta is not None:
+                        if event.delta.type == "text_delta":
+                            yield event.delta.text
+        except anthropic.APIError as exc:
+            logger.exception("Anthropic API error")
+            yield _spoken_error_for(exc)

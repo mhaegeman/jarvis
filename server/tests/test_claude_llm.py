@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+import httpx
 
 from server.pipelines.claude_llm import PREFIX_MAP, parse_prefix
 
@@ -231,3 +232,80 @@ class TestStream:
 
         assert client.messages.last_stream is not None
         assert client.messages.last_stream.aexit_called is True
+
+    async def test_api_error_yields_spoken_message_and_ends_cleanly(self):
+        """An exception inside the stream produces one spoken delta then clean end."""
+        rate_limit = _make_status_error(anthropic.RateLimitError, 429)
+        client = FakeAnthropic(raise_on_stream=rate_limit)
+        llm = ClaudeLLM(default_model=HAIKU, client=client)
+
+        chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
+
+        assert chunks == ["Rate limit. Try again shortly."]
+
+    async def test_connection_error_yields_spoken_message(self):
+        request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+        conn_err = anthropic.APIConnectionError(message="boom", request=request)
+        client = FakeAnthropic(raise_on_stream=conn_err)
+        llm = ClaudeLLM(default_model=HAIKU, client=client)
+
+        chunks = [chunk async for chunk in llm.stream(history=[], user_text="hi")]
+
+        assert chunks == ["Network error reaching Anthropic."]
+
+
+import anthropic
+
+from server.pipelines.claude_llm import _spoken_error_for
+
+
+def _http_response(status: int) -> httpx.Response:
+    return httpx.Response(
+        status,
+        request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"),
+    )
+
+
+def _make_status_error(cls, status: int) -> anthropic.APIStatusError:
+    return cls(message="test", response=_http_response(status), body=None)
+
+
+class TestSpokenErrorFor:
+    def test_rate_limit(self):
+        exc = _make_status_error(anthropic.RateLimitError, 429)
+        assert _spoken_error_for(exc) == "Rate limit. Try again shortly."
+
+    def test_authentication(self):
+        exc = _make_status_error(anthropic.AuthenticationError, 401)
+        assert _spoken_error_for(exc) == "API key is invalid."
+
+    def test_permission_denied(self):
+        exc = _make_status_error(anthropic.PermissionDeniedError, 403)
+        assert _spoken_error_for(exc) == "API key lacks permission for that model."
+
+    def test_not_found(self):
+        exc = _make_status_error(anthropic.NotFoundError, 404)
+        assert _spoken_error_for(exc) == "Model not found. Check the model ID."
+
+    def test_bad_request(self):
+        exc = _make_status_error(anthropic.BadRequestError, 400)
+        assert _spoken_error_for(exc) == "The request was rejected. Check the model and prompt."
+
+    def test_timeout(self):
+        request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+        exc = anthropic.APITimeoutError(request=request)
+        assert _spoken_error_for(exc) == "Anthropic timed out. Try again."
+
+    def test_connection(self):
+        request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+        exc = anthropic.APIConnectionError(message="boom", request=request)
+        assert _spoken_error_for(exc) == "Network error reaching Anthropic."
+
+    def test_other_status_error(self):
+        exc = _make_status_error(anthropic.InternalServerError, 500)
+        assert _spoken_error_for(exc) == "Anthropic server error. Try again."
+
+    def test_generic_api_error(self):
+        request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+        exc = anthropic.APIError(message="weird", request=request, body=None)
+        assert _spoken_error_for(exc) == "API error. Check the logs."
