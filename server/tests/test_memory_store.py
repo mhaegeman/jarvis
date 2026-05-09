@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from server.memory.store import MemoryStore
@@ -40,6 +42,30 @@ async def test_start_and_end_session(store: MemoryStore) -> None:
     cur = await store._conn.execute("SELECT ended_at FROM sessions WHERE session_id=?", (sid,))
     row = await cur.fetchone()
     assert row is not None and row[0] is not None
+
+
+async def test_start_session_assigns_sequential_counter_ids(store: MemoryStore) -> None:
+    ids = [await store.start_session() for _ in range(3)]
+    assert ids == ["1", "2", "3"]
+
+
+async def test_start_session_ignores_legacy_hex_ids(store: MemoryStore) -> None:
+    # Pre-populate with a hex session_id to simulate an upgraded DB.
+    await store._conn.execute(
+        "INSERT INTO sessions(session_id, started_at, ended_at) VALUES (?, '2026-01-01T00:00:00Z', NULL)",
+        ("a3b4c5d6e7f80123",),
+    )
+    await store._conn.commit()
+    assert await store.start_session() == "1"
+    assert await store.start_session() == "2"
+
+
+async def test_start_session_is_safe_under_concurrent_callers(store: MemoryStore) -> None:
+    """A shared MemoryStore is reused across websocket sessions, so concurrent
+    start_session() calls must not collide on the session_id PK."""
+    ids = await asyncio.gather(*(store.start_session() for _ in range(20)))
+    assert sorted(ids, key=int) == [str(i) for i in range(1, 21)]
+    assert len(set(ids)) == len(ids)
 
 
 async def test_append_and_load_turns(store: MemoryStore) -> None:
