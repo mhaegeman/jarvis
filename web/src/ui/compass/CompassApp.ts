@@ -52,7 +52,7 @@ export function createCompassApp(): Surface {
   // Notification chips (viewport-positioned, relative to disc centre)
   const notifRing = new NotifRing(app);
 
-  // Voice dock (shows while ⌘+Space is held)
+  // Voice dock (shows while Space is held)
   const voiceDock = new VoiceDock(disc);
 
   const start = Date.now();
@@ -142,7 +142,12 @@ export function createCompassApp(): Surface {
     }
     if ((e.metaKey || e.ctrlKey) && e.key === "e") { e.preventDefault(); openCodeFocus(); return; }
     if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); openCalendarTakeover(); return; }
-    if ((e.metaKey || e.ctrlKey) && e.key === " ") { e.preventDefault(); actions.onMicDown().catch(() => {}); return; }
+    // Plain Space = push-to-talk (no modifier required; skip if typing in an input)
+    if (e.key === " " && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      e.preventDefault(); // prevent page scroll
+      if (!micHeld) actions.onMicDown().catch(() => {});
+      return;
+    }
   }
   function handleKeyup(e: KeyboardEvent): void {
     if (e.key === " ") actions.onMicUp();

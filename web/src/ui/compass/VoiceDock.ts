@@ -1,8 +1,8 @@
 /**
- * Voice dock — appears while ⌘+Space is held.
+ * Voice dock — appears while Space is held.
  * Shows a serif "listening…" invite and a stagger-rise list of recent commands.
  * VoiceDock owns its DOM element but delegates show/hide to CompassApp which
- * already handles the ⌘+Space keydown/keyup lifecycle.
+ * already handles the Space keydown/keyup lifecycle.
  *
  * TODO: wire recentCmds from command history store instead of static stub.
  * Interface: CommandHistory { recent(): string[] }
@@ -36,7 +36,7 @@ export class VoiceDock {
     this.el.innerHTML = `
       <div class="head">
         <span class="invite">listening…</span>
-        <span class="hold-hint">hold ⌘ space</span>
+        <span class="hold-hint">hold Space</span>
       </div>
       <div class="recents">
         <div class="rlabel">recent</div>

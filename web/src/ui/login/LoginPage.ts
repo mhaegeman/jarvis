@@ -27,7 +27,7 @@ export function createLoginPage(onSuccess: () => void): Surface {
     </div>
     <div class="corner tr" id="login-clock"></div>
     <div class="corner bl">
-      <span class="k">esc</span> clear &nbsp; <span class="k">⏎</span> unlock
+      <span class="k">Esc</span> clear &nbsp; <span class="k">Enter</span> unlock
     </div>
     <div class="corner br">session · linen &amp; slate</div>
 
@@ -53,7 +53,7 @@ export function createLoginPage(onSuccess: () => void): Surface {
           <div class="actions">
             <button class="login-btn" type="submit" id="submit-btn" disabled>
               <span>Unlock</span>
-              <span class="arrow">⏎</span>
+              <span class="arrow">↵</span>
             </button>
           </div>
         </form>
@@ -115,7 +115,7 @@ export function createLoginPage(onSuccess: () => void): Surface {
       dot.className = i < len ? (full ? "warm" : "on") : "";
     });
 
-    hintEl.textContent = full ? "looks good · ⏎ to unlock" : `12 characters min · all local`;
+    hintEl.textContent = full ? "looks good · Enter to unlock" : `12 characters min · all local`;
     submitBtn.disabled = !full;
   }
 

@@ -44,7 +44,7 @@ export function buildCodeFocus(
           <div class="title">feat/compass-ui</div>
         </div>
         <div class="focus-actions">
-          <button class="f-btn">⌘ E · open in editor</button>
+          <button class="f-btn">Ctrl E · open in editor</button>
           <button class="f-btn solid">approve diff</button>
         </div>
       </div>

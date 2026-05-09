@@ -48,7 +48,7 @@ export class EastCode {
         <span class="meta">${totalDelta}</span>
       </div>
       ${diffHtml}
-      <div class="peek">⌘ E · open full diff</div>`;
+      <div class="peek">Ctrl E · open full diff</div>`;
   }
 
   destroy(): void {
