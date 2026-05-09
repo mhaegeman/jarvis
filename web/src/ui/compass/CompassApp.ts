@@ -1,5 +1,6 @@
 import type { Surface } from "@/router";
 import { store, events, mic, ensureMic, stopMicStream, tryTransition, log } from "@/main";
+import { mapCalendarEntries, mapSystem, mapTasks, STUB_CODE_FILES } from "@/compass/types";
 import { Topbar } from "./Topbar";
 import { Bottombar } from "./Bottombar";
 import { OrreryCore } from "./OrreryCore";
@@ -7,6 +8,10 @@ import { Ring } from "./Ring";
 import { HourLabels } from "./HourLabels";
 import { ListeningRim } from "./ListeningRim";
 import { UnderCore } from "./UnderCore";
+import { NorthCalendar } from "./zones/NorthCalendar";
+import { EastCode } from "./zones/EastCode";
+import { SouthSystem } from "./zones/SouthSystem";
+import { WestTasks } from "./zones/WestTasks";
 
 let micHeld = false;
 let micReady = false;
@@ -28,13 +33,16 @@ export function createCompassApp(): Surface {
   const topbar = new Topbar(document.getElementById("compass-topbar")!);
   const bottombar = new Bottombar(document.getElementById("compass-bottombar")!);
   const ring = new Ring(disc);
-  new HourLabels(disc);
+  const hourLabels = new HourLabels(disc);
   const orrery = new OrreryCore(disc);
   const rim = new ListeningRim(disc);
   const underCore = new UnderCore(disc);
 
-  const hourLabels = { render: (): void => { /* HourLabels updates itself internally */ } };
-  void hourLabels;
+  // Cardinal zones (appended directly to #app so they position relative to viewport)
+  const northCal  = new NorthCalendar(app);
+  const eastCode  = new EastCode(app);
+  const southSys  = new SouthSystem(app);
+  const westTasks = new WestTasks(app);
 
   const start = Date.now();
 
@@ -147,8 +155,30 @@ export function createCompassApp(): Surface {
     app.appendChild(overlayEl);
   }
 
-  // Render loop
+  // Wire zone click → overlay (stubs here, real overlays in Step 4)
+  northCal.onClick(() => openCalendarTakeover());
+  eastCode.onClick(() => openCodeFocus());
+  southSys.onClick(() => openGenericFocus("System"));
+  westTasks.onClick(() => openGenericFocus("Tasks"));
+
+  function openGenericFocus(title: string): void {
+    if (overlayEl) return;
+    app.classList.add("dim");
+    overlayEl = document.createElement("div");
+    overlayEl.className = "overlay";
+    overlayEl.innerHTML = `<div class="focus-card">
+      <button class="close" aria-label="Close">esc · close</button>
+      <div class="focus-head"><span class="kicker">Focus · ${escHtml(title)}</span></div>
+      <p style="font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:0">${escHtml(title)} focus — wired in Step 4</p>
+    </div>`;
+    overlayEl.addEventListener("click", (e) => { if (e.target === overlayEl) closeOverlay(); });
+    overlayEl.querySelector(".close")?.addEventListener("click", closeOverlay);
+    app.appendChild(overlayEl);
+  }
+
+  // Render loop — rAF-driven, renders everything each frame
   let rafId: number;
+  let lastCalRender = 0;
   function tick(): void {
     const s = store.get();
     const uptime = Date.now() - start;
@@ -161,6 +191,7 @@ export function createCompassApp(): Surface {
     });
 
     ring.render(s.state);
+    hourLabels.render();
     orrery.render(s.state);
 
     if (s.state === "listening") rim.show();
@@ -168,10 +199,18 @@ export function createCompassApp(): Surface {
 
     underCore.render(s.state, s.centerTitle);
 
-    // Zen mode sync
-    if (zenMode !== app.classList.contains("zen")) {
-      app.classList.toggle("zen", zenMode);
+    // Zones — throttled to 1Hz (data changes slowly)
+    const now = Date.now();
+    if (now - lastCalRender > 1000) {
+      lastCalRender = now;
+      northCal.render(mapCalendarEntries(s.panelData.calendar.entries));
+      eastCode.render(STUB_CODE_FILES);
+      southSys.render(mapSystem(s.panelData.system, s.panelData.memory, uptime));
+      westTasks.render(mapTasks(s.panelData.tasks));
     }
+
+    // Zen mode sync
+    app.classList.toggle("zen", zenMode);
 
     rafId = requestAnimationFrame(tick);
   }
@@ -186,7 +225,15 @@ export function createCompassApp(): Surface {
       bottombar.destroy();
       rim.destroy();
       underCore.destroy();
+      northCal.destroy();
+      eastCode.destroy();
+      southSys.destroy();
+      westTasks.destroy();
       app.innerHTML = "";
     },
   };
+}
+
+function escHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
