@@ -17,6 +17,8 @@ from .calendar_client import CalendarClient
 from .heartbeat import Heartbeat
 from .memory.store import MemoryStore
 from .memory.summarizer import Summarizer
+from starlette.websockets import WebSocketDisconnect
+
 from .pipelines.interfaces import LLM, STT, TTS
 from .pipelines.sentence_split import split_sentences_stream
 from .protocol import (
@@ -432,6 +434,8 @@ class Session:
                     await self._ws.send_text(payload)
                 elif kind == "bytes" and isinstance(payload, (bytes, bytearray)):
                     await self._ws.send_bytes(bytes(payload))
+            except WebSocketDisconnect:
+                return
             except Exception:  # noqa: BLE001
                 log.exception("send failed")
                 return
