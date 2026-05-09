@@ -269,15 +269,22 @@ export class WSEventSource implements IEventSource {
         const audioId = String(msg.audioId ?? "");
         const scheduledEnd = this.sentenceEndTimes.get(audioId) ?? 0;
         this.sentenceEndTimes.delete(audioId);
-        const remainingMs = Math.max(
-          0,
-          (scheduledEnd - (this.opts.audioCtx?.currentTime ?? 0)) * 1000,
-        );
-        const timer = setTimeout(() => {
-          this.ttsEndTimers.delete(timer);
+        const remainingMs =
+          scheduledEnd > 0
+            ? Math.max(
+                0,
+                (scheduledEnd - (this.opts.audioCtx?.currentTime ?? 0)) * 1000,
+              )
+            : 0;
+        if (remainingMs === 0) {
           this.emit("tts.end", { audioId });
-        }, remainingMs);
-        this.ttsEndTimers.add(timer);
+        } else {
+          const timer = setTimeout(() => {
+            this.ttsEndTimers.delete(timer);
+            this.emit("tts.end", { audioId });
+          }, remainingMs);
+          this.ttsEndTimers.add(timer);
+        }
         return;
       }
       case "telemetry": {
