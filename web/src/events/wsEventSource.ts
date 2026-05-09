@@ -44,6 +44,8 @@ export class WSEventSource implements IEventSource {
   private audioStartSent = false;
   private reconnectAttempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private sentenceEndTimes = new Map<string, number>();
+  private ttsEndTimers = new Set<ReturnType<typeof setTimeout>>();
   private static BACKOFF_S = [1, 2, 4, 8, 16, 30];
 
   constructor(private opts: WSEventSourceOpts) {
@@ -90,6 +92,9 @@ export class WSEventSource implements IEventSource {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    for (const t of this.ttsEndTimers) clearTimeout(t);
+    this.ttsEndTimers.clear();
+    this.sentenceEndTimes.clear();
     this.ws?.close();
     this.ws = null;
   }
@@ -153,6 +158,9 @@ export class WSEventSource implements IEventSource {
 
   interrupt(): void {
     this.playback?.interrupt();
+    for (const t of this.ttsEndTimers) clearTimeout(t);
+    this.ttsEndTimers.clear();
+    this.sentenceEndTimes.clear();
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type: "interrupt" }));
     }
@@ -194,6 +202,9 @@ export class WSEventSource implements IEventSource {
       this.playback?.interrupt();
       this.mic?.stop();
       this.mic = null;
+      for (const t of this.ttsEndTimers) clearTimeout(t);
+      this.ttsEndTimers.clear();
+      this.sentenceEndTimes.clear();
       this.scheduleReconnect();
     });
     ws.addEventListener("error", () => {
@@ -260,9 +271,28 @@ export class WSEventSource implements IEventSource {
           audioId: String(msg.audioId ?? ""),
         });
         return;
-      case "tts.end":
-        this.emit("tts.end", { audioId: String(msg.audioId ?? "") });
+      case "tts.end": {
+        const audioId = String(msg.audioId ?? "");
+        const scheduledEnd = this.sentenceEndTimes.get(audioId) ?? 0;
+        this.sentenceEndTimes.delete(audioId);
+        const remainingMs =
+          scheduledEnd > 0
+            ? Math.max(
+                0,
+                (scheduledEnd - (this.opts.audioCtx?.currentTime ?? 0)) * 1000,
+              )
+            : 0;
+        if (remainingMs === 0) {
+          this.emit("tts.end", { audioId });
+        } else {
+          const timer = setTimeout(() => {
+            this.ttsEndTimers.delete(timer);
+            this.emit("tts.end", { audioId });
+          }, remainingMs);
+          this.ttsEndTimers.add(timer);
+        }
         return;
+      }
       case "telemetry": {
         const t: TelemetryEvent = {
           ts: Date.now(),
@@ -323,6 +353,9 @@ export class WSEventSource implements IEventSource {
     for (let i = 0; i < frame.samples.length; i++)
       f32[i] = frame.samples[i] / 32768;
     this.emit("tts.audioChunk", { audioId: frame.audioId, samples: f32 });
-    this.playback?.enqueue(frame.audioId, frame.samples);
+    const scheduledEnd = this.playback?.enqueue(frame.audioId, frame.samples);
+    if (scheduledEnd !== undefined) {
+      this.sentenceEndTimes.set(frame.audioId, scheduledEnd);
+    }
   }
 }

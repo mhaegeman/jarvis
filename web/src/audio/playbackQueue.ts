@@ -18,8 +18,8 @@ export class PlaybackQueue {
     this.analyser.connect(ctx.destination);
   }
 
-  enqueue(_audioId: string, int16: Int16Array): void {
-    if (int16.length === 0) return;
+  enqueue(_audioId: string, int16: Int16Array): number {
+    if (int16.length === 0) return this.nextStart;
     const buf = this.ctx.createBuffer(1, int16.length, this.inputRate);
     const out = buf.getChannelData(0);
     for (let i = 0; i < int16.length; i++) out[i] = int16[i] / 32768;
@@ -34,6 +34,7 @@ export class PlaybackQueue {
       const i = this.active.indexOf(src);
       if (i >= 0) this.active.splice(i, 1);
     };
+    return this.nextStart;
   }
 
   endSentence(_audioId: string): void {

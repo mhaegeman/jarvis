@@ -75,7 +75,7 @@ const log = (level: TelemetryEvent["level"], message: string): void => {
 };
 
 // EventSource: try real WS, fall back to mock if backend is unreachable.
-const audioCtx = new AudioContext();
+const audioCtx = new AudioContext({ sampleRate: 16000 });
 let activeMicStream: MediaStream | null = null;
 const micSource = async (): Promise<MediaStreamAudioSourceNode> => {
   if (audioCtx.state === "suspended") await audioCtx.resume();
@@ -175,14 +175,26 @@ function tryTransition(event: Parameters<typeof transition>[1]): void {
   log("info", `state: ${cur} → ${next} (${event})`);
 }
 
+// micHeld: true while the button is physically down. Cleared on any release.
+// micReady: true once beginListening() resolves and the worklet is streaming.
+// Together they let us give immediate "Listening." feedback while still
+// preventing a quick tap from triggering "thinking" before any audio lands.
+let micHeld = false;
+let micReady = false;
+
 // Shared actions (Controls + keyboard both call into this)
 const actions = {
   onMicDown: async (): Promise<void> => {
     if (store.get().state !== "idle") return;
+    micHeld = true;
+    micReady = false;
     const ok = await ensureMic();
-    if (!ok) return;
-    // Transition immediately so a release during async mic startup still
-    // routes through onMicUp's stop path (state guard would otherwise bail).
+    if (!ok) {
+      micHeld = false;
+      return;
+    }
+    // Show "Listening." immediately so the user knows to start speaking,
+    // even though the worklet is still starting up.
     tryTransition("startListening");
     store.update(() => ({ centerTitle: "Listening." }));
     try {
@@ -191,12 +203,41 @@ const actions = {
       log("warn", `mic start failed: ${String(err)}`);
       events.endListening();
       stopMicStream();
+      micHeld = false;
       tryTransition("interrupt");
+      store.update(() => ({ centerTitle: "Standing by." }));
+      return;
+    }
+    micReady = true;
+    if (!micHeld) {
+      // Released while worklet was starting — worklet is up but user is gone.
+      // Send audio.end so the server isn't left hanging, then cancel.
+      events.endListening();
+      mic.stop();
+      stopMicStream();
+      tryTransition("cancelListening");
       store.update(() => ({ centerTitle: "Standing by." }));
     }
   },
   onMicUp: (): void => {
-    if (store.get().state !== "listening") return;
+    micHeld = false;
+    if (store.get().state !== "listening") {
+      // Released before startListening transition — abort in-flight setup.
+      events.endListening();
+      mic.stop();
+      stopMicStream();
+      return;
+    }
+    if (!micReady) {
+      // Worklet still starting — abort it and let the user retry.
+      // endListening() fires listenAbort so beginListening() exits early.
+      events.endListening();
+      mic.stop();
+      stopMicStream();
+      tryTransition("cancelListening");
+      store.update(() => ({ centerTitle: "Standing by." }));
+      return;
+    }
     events.endListening();
     mic.stop();
     stopMicStream();
@@ -204,6 +245,8 @@ const actions = {
     store.update(() => ({ centerTitle: "Thinking." }));
   },
   onInterrupt: (): void => {
+    micHeld = false;
+    micReady = false;
     events.interrupt();
     mic.stop();
     stopMicStream();
@@ -212,6 +255,8 @@ const actions = {
     store.update(() => ({ centerTitle: "Standing by." }));
   },
   onIdle: (): void => {
+    micHeld = false;
+    micReady = false;
     events.interrupt();
     mic.stop();
     stopMicStream();

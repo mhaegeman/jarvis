@@ -62,6 +62,7 @@ Available skills:
 - `ui-ux-pro-max` — When designing UI components, color palettes, typography, or UX patterns
 - `context-engineering` — When structuring context or reasoning protocols for LLM tasks
 - `remotion` — When building programmatic videos with React and Remotion
+- `grill-with-docs` — When stress-testing a coding plan against the domain model, sharpening terminology, and updating CONTEXT.md / ADRs inline
 
 ## The Rule
 

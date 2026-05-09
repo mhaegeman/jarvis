@@ -13,6 +13,8 @@ import secrets
 from collections.abc import AsyncIterator, MutableMapping
 from typing import Any, Protocol
 
+from starlette.websockets import WebSocketDisconnect
+
 from .audio import KIND_CLIENT_MIC, decode_audio_frame, encode_tts_chunk
 from .calendar_client import CalendarClient
 from .heartbeat import Heartbeat
@@ -439,6 +441,8 @@ class Session:
                     await self._ws.send_text(payload)
                 elif kind == "bytes" and isinstance(payload, (bytes, bytearray)):
                     await self._ws.send_bytes(bytes(payload))
+            except WebSocketDisconnect:
+                return
             except Exception:  # noqa: BLE001
                 log.exception("send failed")
                 return
