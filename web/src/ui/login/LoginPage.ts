@@ -123,10 +123,9 @@ export function createLoginPage(onSuccess: () => void): Surface {
     e.preventDefault();
     if (fieldState === "success") return;
     const val = pwEl.value;
-    if (val.length < MIN_LENGTH) return;
 
     // TODO: replace with POST /auth/login — see plan for interface stub
-    // Dev-mode demo checks only (from design spec):
+    // Dev-mode demo checks (tested before the length guard so short test strings are reachable):
     if (val === "wrong" || val === "wrongwrong") {
       setFieldState("error");
       setTimeout(() => {
@@ -138,6 +137,8 @@ export function createLoginPage(onSuccess: () => void): Surface {
       }, 600);
       return;
     }
+
+    if (val.length < MIN_LENGTH) return;
 
     setFieldState("success");
     setTimeout(() => onSuccess(), 900);

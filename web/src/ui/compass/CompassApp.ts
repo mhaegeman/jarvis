@@ -145,7 +145,7 @@ export function createCompassApp(): Surface {
     if ((e.metaKey || e.ctrlKey) && e.key === " ") { e.preventDefault(); actions.onMicDown().catch(() => {}); return; }
   }
   function handleKeyup(e: KeyboardEvent): void {
-    if ((e.metaKey || e.ctrlKey) || e.key === " ") actions.onMicUp();
+    if (e.key === " ") actions.onMicUp();
   }
   window.addEventListener("keydown", handleKeydown);
   window.addEventListener("keyup", handleKeyup);
