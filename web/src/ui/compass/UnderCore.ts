@@ -23,7 +23,7 @@ export class UnderCore {
 
     if (state === "idle" || state === "thinking") {
       this.el.innerHTML = `<div style="font-family:var(--serif);font-style:italic;font-size:16px;font-weight:300;color:var(--ink-3);">
-        ${state === "thinking" ? "thinking…" : "hold ⌘ space to speak · ⌘ K command"}
+        ${state === "thinking" ? "thinking…" : "hold Space to speak · Ctrl K command"}
       </div>`;
       return;
     }

@@ -21,10 +21,10 @@ export class Bottombar {
     this.el.className = "bottombar";
     this.el.innerHTML = `
       <div class="left">
-        <span class="pill"><span class="k">⌘</span> space speak</span>
-        <span class="pill"><span class="k">⌘ K</span> command</span>
-        <span class="pill"><span class="k">⌘ E</span> code</span>
-        <span class="pill"><span class="k">esc</span> close</span>
+        <span class="pill"><span class="k">Space</span> speak</span>
+        <span class="pill"><span class="k">Ctrl K</span> command</span>
+        <span class="pill"><span class="k">Ctrl E</span> code</span>
+        <span class="pill"><span class="k">Esc</span> close</span>
       </div>
       <div class="right" id="bottombar-stats"></div>`;
     parent.appendChild(this.el);
