@@ -1,0 +1,173 @@
+/* === Jarvis design tokens — all palettes ============================= */
+
+/* Default: Linen & slate */
+:root {
+  --paper:      #faf6ee;
+  --paper-2:    #f1ebde;
+  --paper-3:    #e6decb;
+  --paper-deep: #d8ceb7;
+
+  --ink:        #14171a;
+  --ink-2:      #2c3138;
+  --ink-3:      #5e6470;
+  --ink-4:      #8b919b;
+  --ink-faint:  rgba(20, 23, 26, 0.10);
+  --ink-line:   rgba(20, 23, 26, 0.28);
+  --ink-soft:   rgba(20, 23, 26, 0.55);
+
+  --accent:      #2f4f7a;
+  --accent-deep: #1d3556;
+  --accent-soft: rgba(47, 79, 122, 0.10);
+  --accent-line: rgba(47, 79, 122, 0.32);
+
+  --good: #3d6a4a;
+  --warn: #a86d22;
+
+  --serif: "Newsreader", "Source Serif 4", Georgia, serif;
+  --sans:  "Inter", system-ui, -apple-system, sans-serif;
+  --mono:  "JetBrains Mono", "Berkeley Mono", ui-monospace, monospace;
+}
+
+/* Paper & terracotta */
+[data-palette="paper-terracotta"] {
+  --paper:      #f4f1ea;
+  --paper-2:    #ece7dc;
+  --paper-3:    #e3ddcc;
+  --paper-deep: #d9d3c0;
+
+  --ink:        #1f1f1c;
+  --ink-2:      #3a3a35;
+  --ink-3:      #6e6a62;
+  --ink-4:      #9a948a;
+  --ink-faint:  rgba(31, 31, 28, 0.10);
+  --ink-line:   rgba(31, 31, 28, 0.28);
+  --ink-soft:   rgba(31, 31, 28, 0.55);
+
+  --accent:      #b8654a;
+  --accent-deep: #8a3e26;
+  --accent-soft: rgba(184, 101, 74, 0.10);
+  --accent-line: rgba(184, 101, 74, 0.32);
+
+  --good: #4f7a4a;
+  --warn: #c08a2a;
+}
+
+/* Bone & moss */
+[data-palette="bone-moss"] {
+  --paper:      #f1ede0;
+  --paper-2:    #e8e2cf;
+  --paper-3:    #ddd6bf;
+  --paper-deep: #cfc7ad;
+
+  --ink:        #20251c;
+  --ink-2:      #3a3f33;
+  --ink-3:      #6c705f;
+  --ink-4:      #969787;
+  --ink-faint:  rgba(32, 37, 28, 0.10);
+  --ink-line:   rgba(32, 37, 28, 0.28);
+  --ink-soft:   rgba(32, 37, 28, 0.55);
+
+  --accent:      #5a7a4f;
+  --accent-deep: #3d5535;
+  --accent-soft: rgba(90, 122, 79, 0.12);
+  --accent-line: rgba(90, 122, 79, 0.34);
+
+  --good: #4a7a55;
+  --warn: #b48533;
+}
+
+/* Linen & slate (explicit selector mirrors :root default) */
+[data-palette="linen-slate"] {
+  --paper:      #faf6ee;
+  --paper-2:    #f1ebde;
+  --paper-3:    #e6decb;
+  --paper-deep: #d8ceb7;
+
+  --ink:        #14171a;
+  --ink-2:      #2c3138;
+  --ink-3:      #5e6470;
+  --ink-4:      #8b919b;
+  --ink-faint:  rgba(20, 23, 26, 0.10);
+  --ink-line:   rgba(20, 23, 26, 0.28);
+  --ink-soft:   rgba(20, 23, 26, 0.55);
+
+  --accent:      #2f4f7a;
+  --accent-deep: #1d3556;
+  --accent-soft: rgba(47, 79, 122, 0.10);
+  --accent-line: rgba(47, 79, 122, 0.32);
+
+  --good: #3d6a4a;
+  --warn: #a86d22;
+}
+
+/* Cream & plum */
+[data-palette="cream-plum"] {
+  --paper:      #f3ecdf;
+  --paper-2:    #ebe2d0;
+  --paper-3:    #dfd4be;
+  --paper-deep: #cfc1a5;
+
+  --ink:        #26203a;
+  --ink-2:      #3e3551;
+  --ink-3:      #6e667e;
+  --ink-4:      #988fa3;
+  --ink-faint:  rgba(38, 32, 58, 0.10);
+  --ink-line:   rgba(38, 32, 58, 0.28);
+  --ink-soft:   rgba(38, 32, 58, 0.55);
+
+  --accent:      #7a4f8a;
+  --accent-deep: #553360;
+  --accent-soft: rgba(122, 79, 138, 0.12);
+  --accent-line: rgba(122, 79, 138, 0.32);
+
+  --good: #4f7a4a;
+  --warn: #b88033;
+}
+
+/* Midnight & amber */
+[data-palette="midnight-amber"] {
+  --paper:      #16151a;
+  --paper-2:    #1d1c22;
+  --paper-3:    #26242c;
+  --paper-deep: #2f2d36;
+
+  --ink:        #ece4d2;
+  --ink-2:      #c9c1ad;
+  --ink-3:      #8c8576;
+  --ink-4:      #5d5849;
+  --ink-faint:  rgba(236, 228, 210, 0.08);
+  --ink-line:   rgba(236, 228, 210, 0.22);
+  --ink-soft:   rgba(236, 228, 210, 0.55);
+
+  --accent:      #d9a14b;
+  --accent-deep: #b07e2b;
+  --accent-soft: rgba(217, 161, 75, 0.10);
+  --accent-line: rgba(217, 161, 75, 0.32);
+
+  --good: #7fb371;
+  --warn: #e0a83a;
+}
+
+/* Graphite & rose */
+[data-palette="graphite-rose"] {
+  --paper:      #1a181a;
+  --paper-2:    #221f22;
+  --paper-3:    #2a262a;
+  --paper-deep: #332e33;
+
+  --ink:        #ebe3df;
+  --ink-2:      #cac2bd;
+  --ink-3:      #8b8580;
+  --ink-4:      #5e5854;
+  --ink-faint:  rgba(235, 227, 223, 0.08);
+  --ink-line:   rgba(235, 227, 223, 0.22);
+  --ink-soft:   rgba(235, 227, 223, 0.55);
+
+  --accent:      #d97a86;
+  --accent-deep: #b15663;
+  --accent-soft: rgba(217, 122, 134, 0.12);
+  --accent-line: rgba(217, 122, 134, 0.32);
+
+  --good: #7eb88a;
+  --warn: #e3a25a;
+}

@@ -1,31 +1,51 @@
-:root {
-  --bg-0: #02060a;
-  --bg-1: #03101a;
-  --fg: #d6f0ff;
-  --fg-dim: rgba(214, 240, 255, 0.65);
-  --fg-faint: rgba(214, 240, 255, 0.45);
-  --accent: #5cf0ff;
-  --accent-dim: rgba(92, 240, 255, 0.35);
-  --accent-faint: rgba(92, 240, 255, 0.10);
-  --warn: #ffae5c;
-  --grid-line: rgba(92, 240, 255, 0.08);
-  color-scheme: dark;
-}
+@import "./tokens.css";
 
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
   height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 350;
+  letter-spacing: 0.005em;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 50%, var(--bg-1) 0%, var(--bg-0) 70%),
-    linear-gradient(transparent 95%, var(--grid-line) 95%) 0 0 / 100% 32px,
-    linear-gradient(90deg, transparent 95%, var(--grid-line) 95%) 0 0 / 32px 100%;
-  color: var(--fg);
-  font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: 0.04em;
+}
+
+/* Paper dot texture */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(rgba(20, 23, 26, 0.025) 1px, transparent 1px),
+    radial-gradient(rgba(20, 23, 26, 0.018) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 2px;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+}
+
+/* Vignette */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse at center,
+    transparent 40%,
+    rgba(20, 23, 26, 0.08) 100%);
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -39,23 +59,4 @@ html, body {
 button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-[role="region"]:focus-visible {
-  outline: 1px dashed var(--accent);
-  outline-offset: 2px;
-}
-
-.skip-link {
-  position: absolute;
-  left: -9999px;
-}
-.skip-link:focus {
-  left: 16px; top: 16px;
-  padding: 8px 12px;
-  background: var(--bg-1);
-  border: 1px solid var(--accent);
-  z-index: 1000;
-  color: var(--fg);
-  text-decoration: none;
 }
