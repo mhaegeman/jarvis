@@ -28,6 +28,8 @@ dev = [
   # Required to import server.pipelines.whisper_stt for unit tests, even
   # though the real STT engine itself lives behind the [stt] extra.
   "numpy>=1.26",
+  # Required to run server.pipelines.edge_tts unit tests without network.
+  "miniaudio>=1.2",
 ]
 stt = [
   "faster-whisper>=1.0",
