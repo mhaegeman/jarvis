@@ -172,3 +172,26 @@ The first synthesize call loads the OpenVoice models and (if cloning) runs
 If `JARVIS_TTS_ENGINE=auto` and torch isn't installed, the server logs a
 `WARNING` and falls back to `MockTTS`. Set the engine to `openvoice` to make
 a missing dep a hard failure.
+
+### TTS — edge-tts (recommended — no model downloads)
+
+Install the extra:
+
+```bash
+cd server
+pip install -e .[tts-edge]
+```
+
+Set the engine and (optionally) the voice:
+
+```bash
+export JARVIS_TTS_ENGINE=edge                       # or leave =auto (tries openvoice first)
+export JARVIS_TTS_VOICE=en-US-ChristopherNeural     # default; see edge-tts docs for other voices
+```
+
+Restart the server. `edge-tts` streams audio from Microsoft's cloud — no local model files
+required. Latency is ~200 ms per sentence.
+
+If `JARVIS_TTS_ENGINE=auto` and edge-tts/miniaudio aren't installed, the server logs a
+`WARNING` and falls back to `MockTTS`. Set the engine to `edge` to make a missing dep a
+hard failure.
