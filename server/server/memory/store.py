@@ -81,9 +81,14 @@ class MemoryStore:
     # ─── sessions ─────────────────────────────────────────────────────
 
     async def start_session(self) -> str:
-        import secrets
-
-        session_id = secrets.token_hex(8)
+        # session_id is a monotonically increasing counter starting at 1.
+        # The GLOB filter ignores legacy hex IDs from before counter IDs landed.
+        cur = await self._conn.execute(
+            "SELECT COALESCE(MAX(CAST(session_id AS INTEGER)), 0) + 1 FROM sessions "
+            "WHERE session_id GLOB '[0-9]*' AND NOT session_id GLOB '*[^0-9]*'"
+        )
+        row = await cur.fetchone()
+        session_id = str(row[0] if row else 1)
         await self._conn.execute(
             "INSERT INTO sessions(session_id, started_at, ended_at) VALUES (?, ?, NULL)",
             (session_id, _utcnow_iso()),
