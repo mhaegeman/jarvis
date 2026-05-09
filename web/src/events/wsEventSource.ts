@@ -92,6 +92,9 @@ export class WSEventSource implements IEventSource {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    for (const t of this.ttsEndTimers) clearTimeout(t);
+    this.ttsEndTimers.clear();
+    this.sentenceEndTimes.clear();
     this.ws?.close();
     this.ws = null;
   }
@@ -199,6 +202,9 @@ export class WSEventSource implements IEventSource {
       this.playback?.interrupt();
       this.mic?.stop();
       this.mic = null;
+      for (const t of this.ttsEndTimers) clearTimeout(t);
+      this.ttsEndTimers.clear();
+      this.sentenceEndTimes.clear();
       this.scheduleReconnect();
     });
     ws.addEventListener("error", () => {

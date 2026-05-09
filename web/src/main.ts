@@ -229,8 +229,13 @@ const actions = {
       return;
     }
     if (!micReady) {
-      // Worklet still starting. onMicDown's !micHeld check will clean up
-      // once beginListening() resolves. Don't transition to thinking yet.
+      // Worklet still starting — abort it and let the user retry.
+      // endListening() fires listenAbort so beginListening() exits early.
+      events.endListening();
+      mic.stop();
+      stopMicStream();
+      tryTransition("cancelListening");
+      store.update(() => ({ centerTitle: "Standing by." }));
       return;
     }
     events.endListening();
