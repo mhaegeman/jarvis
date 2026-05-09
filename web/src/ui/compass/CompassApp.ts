@@ -12,6 +12,9 @@ import { NorthCalendar } from "./zones/NorthCalendar";
 import { EastCode } from "./zones/EastCode";
 import { SouthSystem } from "./zones/SouthSystem";
 import { WestTasks } from "./zones/WestTasks";
+import { buildCodeFocus } from "./overlays/CodeFocus";
+import { buildCalendarTakeover } from "./overlays/CalendarTakeover";
+import { buildGenericFocus } from "./overlays/GenericFocus";
 
 let micHeld = false;
 let micReady = false;
@@ -124,57 +127,39 @@ export function createCompassApp(): Surface {
   window.addEventListener("keydown", handleKeydown);
   window.addEventListener("keyup", handleKeyup);
 
-  // Overlay helpers — stubs until Step 4 wires real content
   function openCodeFocus(): void {
     if (overlayEl) return;
     app.classList.add("dim");
-    overlayEl = document.createElement("div");
-    overlayEl.className = "overlay";
-    overlayEl.innerHTML = `<div class="focus-card">
-      <button class="close" aria-label="Close">esc · close</button>
-      <div class="focus-head"><span class="kicker">Focus · Code review</span></div>
-      <p style="font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:0">
-        Code focus — wired in Step 4
-      </p>
-    </div>`;
-    overlayEl.addEventListener("click", (e) => { if (e.target === overlayEl) closeOverlay(); });
-    overlayEl.querySelector(".close")?.addEventListener("click", closeOverlay);
-    app.appendChild(overlayEl);
-  }
-  function openCalendarTakeover(): void {
-    if (overlayEl) return;
-    app.classList.add("dim");
-    overlayEl = document.createElement("div");
-    overlayEl.className = "overlay";
-    overlayEl.innerHTML = `<div class="takeover-card">
-      <button class="close" style="position:absolute;top:14px;right:18px;font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);background:none;border:none;cursor:pointer;" aria-label="Close">esc · close</button>
-      <div class="now-eyebrow">Calendar takeover — wired in Step 4</div>
-    </div>`;
-    overlayEl.addEventListener("click", (e) => { if (e.target === overlayEl) closeOverlay(); });
-    overlayEl.querySelector(".close")?.addEventListener("click", closeOverlay);
+    overlayEl = buildCodeFocus(STUB_CODE_FILES, closeOverlay);
     app.appendChild(overlayEl);
   }
 
-  // Wire zone click → overlay (stubs here, real overlays in Step 4)
+  function openCalendarTakeover(): void {
+    if (overlayEl) return;
+    app.classList.add("dim");
+    const entries = mapCalendarEntries(store.get().panelData.calendar.entries);
+    overlayEl = buildCalendarTakeover(entries, closeOverlay);
+    app.appendChild(overlayEl);
+  }
+
+  function openGenericFocus(section: "System" | "Tasks"): void {
+    if (overlayEl) return;
+    app.classList.add("dim");
+    const s = store.get();
+    const uptime = Date.now() - start;
+    const body =
+      section === "System"
+        ? buildSystemBody(mapSystem(s.panelData.system, s.panelData.memory, uptime))
+        : buildTasksBody(mapTasks(s.panelData.tasks));
+    overlayEl = buildGenericFocus(`Focus · ${section}`, section, body, closeOverlay);
+    app.appendChild(overlayEl);
+  }
+
+  // Wire zone click → overlay
   northCal.onClick(() => openCalendarTakeover());
   eastCode.onClick(() => openCodeFocus());
   southSys.onClick(() => openGenericFocus("System"));
   westTasks.onClick(() => openGenericFocus("Tasks"));
-
-  function openGenericFocus(title: string): void {
-    if (overlayEl) return;
-    app.classList.add("dim");
-    overlayEl = document.createElement("div");
-    overlayEl.className = "overlay";
-    overlayEl.innerHTML = `<div class="focus-card">
-      <button class="close" aria-label="Close">esc · close</button>
-      <div class="focus-head"><span class="kicker">Focus · ${escHtml(title)}</span></div>
-      <p style="font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:0">${escHtml(title)} focus — wired in Step 4</p>
-    </div>`;
-    overlayEl.addEventListener("click", (e) => { if (e.target === overlayEl) closeOverlay(); });
-    overlayEl.querySelector(".close")?.addEventListener("click", closeOverlay);
-    app.appendChild(overlayEl);
-  }
 
   // Render loop — rAF-driven, renders everything each frame
   let rafId: number;
@@ -232,6 +217,31 @@ export function createCompassApp(): Surface {
       app.innerHTML = "";
     },
   };
+}
+
+function buildSystemBody(sys: ReturnType<typeof mapSystem>): string {
+  return `
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 24px;margin-bottom:16px;">
+      <span style="color:var(--ink-3);">uptime</span><span>${escHtml(sys.uptime)}</span>
+      <span style="color:var(--ink-3);">load</span><span>${escHtml(sys.load)}</span>
+      <span style="color:var(--ink-3);">tok/m</span><span>${escHtml(sys.tokens)}</span>
+      <span style="color:var(--ink-3);">model</span><span>${escHtml(sys.model)}</span>
+      <span style="color:var(--ink-3);">context</span><span>${sys.contextUsed}K / ${sys.contextMax}K</span>
+    </div>`;
+}
+
+function buildTasksBody(tasks: ReturnType<typeof mapTasks>): string {
+  if (tasks.length === 0) return `<p style="color:var(--ink-3);">no active tasks</p>`;
+  return tasks
+    .map(
+      (t) =>
+        `<div style="margin-bottom:8px;padding:8px;background:var(--paper-2);border-radius:3px;">
+           <span style="color:var(--ink-3);margin-right:8px;">${escHtml(t.state)}</span>
+           <span>${escHtml(t.label)}</span>
+           ${t.meta ? `<span style="color:var(--ink-3);margin-left:8px;">${escHtml(t.meta)}</span>` : ""}
+         </div>`,
+    )
+    .join("");
 }
 
 function escHtml(s: string): string {
