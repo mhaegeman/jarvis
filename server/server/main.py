@@ -139,49 +139,68 @@ def _openvoice_assets_present(path: str) -> bool:
 def _build_tts() -> TTS:
     """Construct the TTS pipeline based on `JARVIS_TTS_ENGINE`.
 
-    `auto` (default) returns `OpenVoiceTTS` when torch is importable AND
-    the OpenVoice clone at `JARVIS_OPENVOICE_PATH` has the expected layout;
-    otherwise logs a warning and returns `MockTTS`. Setting the engine
-    explicitly to `openvoice` makes either prerequisite missing a hard error.
+    `auto` (default) tries openvoice first, then edge-tts, then falls back to
+    MockTTS with a warning. Explicit engine names make missing prerequisites a
+    hard error.
 
     Raises:
-        ImportError: when `engine="openvoice"` and torch is not installed.
+        ImportError: when `engine="openvoice"` and torch is not installed,
+            or `engine="edge"` and edge-tts/miniaudio are not installed.
         FileNotFoundError: when `engine="openvoice"` and the OpenVoice clone
             is missing or incomplete at `JARVIS_OPENVOICE_PATH`.
-        ValueError: when `engine` is not one of {auto, mock, openvoice}.
+        ValueError: when `engine` is not one of {auto, mock, openvoice, edge}.
     """
     engine = settings.tts_engine
     if engine == "mock":
         return MockTTS()
+
+    # --- openvoice (explicit or auto) ---
     if engine in ("auto", "openvoice"):
         if importlib.util.find_spec("torch") is None:
             if engine == "openvoice":
                 raise ImportError(
                     "torch is not installed; run `pip install -e .[tts]`."
                 )
-            log.warning(
-                "TTS auto: torch not installed; using MockTTS. "
-                "Install with `pip install -e .[tts]`."
-            )
-            return MockTTS()
-        if not _openvoice_assets_present(settings.openvoice_path):
+            log.warning("TTS auto: torch not installed; skipping OpenVoice.")
+        elif not _openvoice_assets_present(settings.openvoice_path):
             if engine == "openvoice":
                 raise FileNotFoundError(
                     f"OpenVoice assets not found at {settings.openvoice_path!r}; "
                     "see server/deploy/README.md for the clone + checkpoints recipe."
                 )
             log.warning(
-                "TTS auto: OpenVoice clone missing at %s; using MockTTS. "
-                "See server/deploy/README.md.",
+                "TTS auto: OpenVoice clone missing at %s; skipping.",
                 settings.openvoice_path,
             )
-            return MockTTS()
-        from .pipelines.openvoice_tts import OpenVoiceTTS
-        return OpenVoiceTTS(
-            openvoice_path=settings.openvoice_path,
-            device=_resolve_device(),
-            speaker_wav=settings.speaker_wav,
+        else:
+            from .pipelines.openvoice_tts import OpenVoiceTTS
+            return OpenVoiceTTS(
+                openvoice_path=settings.openvoice_path,
+                device=_resolve_device(),
+                speaker_wav=settings.speaker_wav,
+            )
+        # explicit "openvoice": raised above; "auto": fall through to edge.
+
+    # --- edge (explicit or auto falling through from openvoice) ---
+    if engine in ("auto", "edge"):
+        _has_edge = (
+            importlib.util.find_spec("edge_tts") is not None
+            and importlib.util.find_spec("miniaudio") is not None
         )
+        if not _has_edge:
+            if engine == "edge":
+                raise ImportError(
+                    "edge-tts/miniaudio not installed; "
+                    "run `pip install -e .[tts-edge]`."
+                )
+            log.warning(
+                "TTS auto: edge-tts/miniaudio not installed; using MockTTS. "
+                "Install with `pip install -e .[tts-edge]`."
+            )
+            return MockTTS()
+        from .pipelines.edge_tts import EdgeTTS
+        return EdgeTTS(voice=settings.tts_voice)
+
     raise ValueError(f"unknown JARVIS_TTS_ENGINE: {engine!r}")
 
 
