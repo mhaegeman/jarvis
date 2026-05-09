@@ -43,9 +43,10 @@ class Settings(BaseSettings):
     device: str = "auto"  # auto | cuda | mps | cpu
 
     # TTS pipeline selection.
-    tts_engine: str = "auto"  # auto | mock | openvoice
+    tts_engine: str = "auto"  # auto | mock | openvoice | edge
     openvoice_path: str = "~/OpenVoice"
     speaker_wav: str | None = None
+    tts_voice: str = "en-US-ChristopherNeural"
 
 
 settings = Settings()
