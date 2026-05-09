@@ -4,20 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jarvis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   </head>
-  <body data-state="idle">
-    <a href="#center" class="skip-link">Skip to conversation</a>
-    <div id="app" class="hud" role="application" aria-label="Jarvis">
-      <header class="cell cell-top"      data-cell="top"></header>
-      <section class="cell cell-tl"      data-cell="tl"></section>
-      <section class="cell cell-tr"      data-cell="tr"></section>
-      <section class="cell cell-left"    data-cell="left"></section>
-      <section id="center" class="cell cell-center" data-cell="center" tabindex="-1"></section>
-      <section class="cell cell-right"   data-cell="right"></section>
-      <section class="cell cell-bl"      data-cell="bl"></section>
-      <footer  class="cell cell-bottom"  data-cell="bottom"></footer>
-      <section class="cell cell-br"      data-cell="br"></section>
-    </div>
+  <body>
+    <div id="app" role="application" aria-label="Jarvis"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
