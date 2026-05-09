@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import itertools
 import logging
 import secrets
 from collections.abc import AsyncIterator, MutableMapping
@@ -42,6 +43,12 @@ class _WS(Protocol):
     async def send_text(self, data: str) -> None: ...
     async def send_bytes(self, data: bytes) -> None: ...
     async def receive(self) -> MutableMapping[str, Any]: ...
+
+
+# Process-local fallback counter for sessions without a MemoryStore (tests,
+# memory-disabled deploys). When MemoryStore is wired up, its persisted counter
+# overwrites this value in run().
+_NO_MEMORY_SESSION_COUNTER = itertools.count(1)
 
 
 _AUDIO_ID_RANDS = "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -87,7 +94,7 @@ class Session:
         # spuriously emit `llm.end`. Reset to False at the start of each turn.
         self._llm_ended = True
         self.heartbeat = Heartbeat(interval_s=HEARTBEAT_INTERVAL_S)
-        self.session_id = secrets.token_hex(4)
+        self.session_id = str(next(_NO_MEMORY_SESSION_COUNTER))
         self.endpoint = "ws://localhost:8000/ws"
         self.emitter = StateEmitter(self)
         self._state_task: asyncio.Task[None] | None = None
