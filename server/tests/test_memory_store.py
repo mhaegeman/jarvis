@@ -52,8 +52,8 @@ async def test_start_session_assigns_sequential_counter_ids(store: MemoryStore) 
 async def test_start_session_ignores_legacy_hex_ids(store: MemoryStore) -> None:
     # Pre-populate with a hex session_id to simulate an upgraded DB.
     await store._conn.execute(
-        "INSERT INTO sessions(session_id, started_at, ended_at) VALUES (?, '2026-01-01T00:00:00Z', NULL)",
-        ("a3b4c5d6e7f80123",),
+        "INSERT INTO sessions(session_id, started_at, ended_at) VALUES (?, ?, NULL)",
+        ("a3b4c5d6e7f80123", "2026-01-01T00:00:00Z"),
     )
     await store._conn.commit()
     assert await store.start_session() == "1"
