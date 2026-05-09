@@ -42,5 +42,10 @@ class Settings(BaseSettings):
     whisper_model: str = "base.en"
     device: str = "auto"  # auto | cuda | mps | cpu
 
+    # TTS pipeline selection.
+    tts_engine: str = "auto"  # auto | mock | openvoice
+    openvoice_path: str = "~/OpenVoice"
+    speaker_wav: str | None = None
+
 
 settings = Settings()
