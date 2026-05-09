@@ -55,9 +55,6 @@ export function createLoginPage(onSuccess: () => void): Surface {
               <span>Unlock</span>
               <span class="arrow">⏎</span>
             </button>
-            <button type="button" class="login-alt" id="touch-btn">
-              or use TouchID&nbsp;<span class="key">⌘ T</span>
-            </button>
           </div>
         </form>
       </div>
@@ -71,7 +68,6 @@ export function createLoginPage(onSuccess: () => void): Surface {
   const hintEl = document.getElementById("hint")!;
   const statusEl = document.getElementById("login-status")!;
   const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
-  const touchBtn = document.getElementById("touch-btn")!;
   const forgotLink = document.getElementById("forgot")!;
   const form = document.getElementById("login-form") as HTMLFormElement;
 
@@ -147,15 +143,6 @@ export function createLoginPage(onSuccess: () => void): Surface {
     setTimeout(() => onSuccess(), 900);
   }
 
-  function handleTouchId(): void {
-    // TODO: call OS biometric API (macOS LocalAuthentication / WebAuthn)
-    // AuthProvider.biometric(): Promise<AuthResult>
-    statusEl.className = "login-status success";
-    statusEl.textContent = "reading print…";
-    orrery?.setState("unlocking");
-    setTimeout(() => onSuccess(), 1100);
-  }
-
   pwEl.addEventListener("input", () => {
     if (fieldState === "error") setFieldState("idle");
     updateDots(pwEl.value);
@@ -172,7 +159,6 @@ export function createLoginPage(onSuccess: () => void): Surface {
     // nothing to do — it's an easter egg
   });
 
-  touchBtn.addEventListener("click", handleTouchId);
   form.addEventListener("submit", handleSubmit);
 
   // Keyboard shortcuts
@@ -184,10 +170,6 @@ export function createLoginPage(onSuccess: () => void): Surface {
       eyeBtn.textContent = "show";
       updateDots("");
       setFieldState("idle");
-    }
-    if ((e.metaKey || e.ctrlKey) && e.key === "t") {
-      e.preventDefault();
-      handleTouchId();
     }
   }
   window.addEventListener("keydown", handleKeydown);

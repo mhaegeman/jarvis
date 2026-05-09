@@ -11,11 +11,6 @@ Items are grouped by area. Each entry names the stub, the file it lives in, and 
 The login form validates the passphrase client-side (minimum 12 chars + a hardcoded dev rejection list). No server round-trip happens.  
 **To implement:** `POST /auth/login` on the FastAPI backend. The backend should validate against an argon2 hash stored in `JARVIS_PASSPHRASE_HASH` env var and return a session token stored in `sessionStorage`. The frontend should swap the local check for a `fetch` call and handle 401 vs 200.
 
-### TouchID / biometric is a no-op
-**File:** `web/src/ui/login/LoginPage.ts:151`  
-Clicking "Use Touch ID" shows a brief "authenticating…" state then resolves immediately.  
-**To implement:** Call the WebAuthn API (`navigator.credentials.get`) or, on macOS desktop, the LocalAuthentication framework via a native bridge. Interface stub: `AuthProvider.biometric(): Promise<AuthResult>`.
-
 ---
 
 ## Frontend — Compass Zones & Overlays

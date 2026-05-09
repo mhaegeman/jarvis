@@ -258,27 +258,3 @@
 .login-btn:hover { background: var(--accent); border-color: var(--accent); }
 .login-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .login-btn .arrow { font-family: var(--mono); font-size: 11px; }
-
-.login-alt {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  color: var(--ink-3);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-.login-alt:hover { color: var(--ink); }
-.login-alt .key {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  background: var(--paper-2);
-  border: 1px solid var(--ink-faint);
-  border-radius: 3px;
-  padding: 1px 5px 2px;
-  color: var(--ink-2);
-}
