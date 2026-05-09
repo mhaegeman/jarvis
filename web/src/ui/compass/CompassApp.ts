@@ -1,6 +1,6 @@
 import type { Surface } from "@/router";
 import { store, events, mic, ensureMic, stopMicStream, tryTransition, log } from "@/main";
-import { mapCalendarEntries, mapSystem, mapTasks, STUB_CODE_FILES } from "@/compass/types";
+import { mapCalendarEntries, mapSystem, mapTasks, STUB_CODE_FILES, STUB_NOTIFS } from "@/compass/types";
 import { Topbar } from "./Topbar";
 import { Bottombar } from "./Bottombar";
 import { OrreryCore } from "./OrreryCore";
@@ -8,6 +8,8 @@ import { Ring } from "./Ring";
 import { HourLabels } from "./HourLabels";
 import { ListeningRim } from "./ListeningRim";
 import { UnderCore } from "./UnderCore";
+import { NotifRing } from "./NotifRing";
+import { VoiceDock } from "./VoiceDock";
 import { NorthCalendar } from "./zones/NorthCalendar";
 import { EastCode } from "./zones/EastCode";
 import { SouthSystem } from "./zones/SouthSystem";
@@ -47,7 +49,21 @@ export function createCompassApp(): Surface {
   const southSys  = new SouthSystem(app);
   const westTasks = new WestTasks(app);
 
+  // Notification chips (viewport-positioned, relative to disc centre)
+  const notifRing = new NotifRing(app);
+
+  // Voice dock (shows while ⌘+Space is held)
+  const voiceDock = new VoiceDock(disc);
+
   const start = Date.now();
+
+  // Time-of-day palette drift — cosine-lerp accent + paper toward night values on minute tick
+  // Gated: skip entirely under prefers-reduced-motion (no visual change, no overhead)
+  let driftInterval: ReturnType<typeof setInterval> | null = null;
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    applyTimeDrift(app);
+    driftInterval = setInterval(() => applyTimeDrift(app), 60_000);
+  }
 
   // State
   let zenMode = false;
@@ -65,8 +81,9 @@ export function createCompassApp(): Surface {
       if (store.get().state !== "idle") return;
       micHeld = true;
       micReady = false;
+      voiceDock.show();
       const ok = await ensureMic();
-      if (!ok) { micHeld = false; return; }
+      if (!ok) { micHeld = false; voiceDock.hide(); return; }
       tryTransition("startListening");
       store.update(() => ({ centerTitle: "Listening." }));
       try {
@@ -76,6 +93,7 @@ export function createCompassApp(): Surface {
         events.endListening();
         stopMicStream();
         micHeld = false;
+        voiceDock.hide();
         tryTransition("interrupt");
         store.update(() => ({ centerTitle: "Standing by." }));
         return;
@@ -85,6 +103,7 @@ export function createCompassApp(): Surface {
         events.endListening();
         mic.stop();
         stopMicStream();
+        voiceDock.hide();
         tryTransition("cancelListening");
         store.update(() => ({ centerTitle: "Standing by." }));
       }
@@ -92,6 +111,7 @@ export function createCompassApp(): Surface {
 
     onMicUp: (): void => {
       micHeld = false;
+      voiceDock.hide();
       if (store.get().state !== "listening") {
         events.endListening();
         mic.stop();
@@ -117,6 +137,9 @@ export function createCompassApp(): Surface {
   // Keyboard shortcuts
   function handleKeydown(e: KeyboardEvent): void {
     if (e.key === "Escape") { closeOverlay(); return; }
+    if (e.key === "z" && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target instanceof HTMLInputElement)) {
+      zenMode = !zenMode; return;
+    }
     if ((e.metaKey || e.ctrlKey) && e.key === "e") { e.preventDefault(); openCodeFocus(); return; }
     if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); openCalendarTakeover(); return; }
     if ((e.metaKey || e.ctrlKey) && e.key === " ") { e.preventDefault(); actions.onMicDown().catch(() => {}); return; }
@@ -184,7 +207,7 @@ export function createCompassApp(): Surface {
 
     underCore.render(s.state, s.centerTitle);
 
-    // Zones — throttled to 1Hz (data changes slowly)
+    // Zones + notifs — throttled to 1Hz (data changes slowly)
     const now = Date.now();
     if (now - lastCalRender > 1000) {
       lastCalRender = now;
@@ -192,6 +215,7 @@ export function createCompassApp(): Surface {
       eastCode.render(STUB_CODE_FILES);
       southSys.render(mapSystem(s.panelData.system, s.panelData.memory, uptime));
       westTasks.render(mapTasks(s.panelData.tasks));
+      notifRing.render(STUB_NOTIFS);
     }
 
     // Zen mode sync
@@ -204,6 +228,7 @@ export function createCompassApp(): Surface {
   return {
     destroy(): void {
       cancelAnimationFrame(rafId);
+      if (driftInterval !== null) clearInterval(driftInterval);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
       topbar.destroy();
@@ -214,6 +239,8 @@ export function createCompassApp(): Surface {
       eastCode.destroy();
       southSys.destroy();
       westTasks.destroy();
+      notifRing.destroy();
+      voiceDock.destroy();
       app.innerHTML = "";
     },
   };
@@ -246,4 +273,34 @@ function buildTasksBody(tasks: ReturnType<typeof mapTasks>): string {
 
 function escHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Time-of-day colour drift.
+ * Uses a cosine curve (peak warmth at solar noon, coolest at 3am) to shift
+ * --paper and --accent toward slightly warmer/dimmer night values.
+ * Applied as inline style overrides on #app so tokens.css defaults remain intact.
+ *
+ * Night targets (hand-tuned to feel like a candle-lit room):
+ *   --paper:        #f0ece2  →  #e8e2d6
+ *   --accent:       #8a3e26  →  #7a3418
+ *   --ink-3:        #9e9b93  →  #8a8780
+ */
+function applyTimeDrift(app: HTMLElement): void {
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
+  // t: 1.0 at noon, 0.0 at 3am (cosine, clamped to [0,1])
+  const t = Math.max(0, Math.min(1, (Math.cos(((h - 12) / 12) * Math.PI) + 1) / 2));
+
+  const lerp = (a: number, b: number) => Math.round(a + (b - a) * (1 - t));
+
+  // paper: #f4f1ea (244,241,234) → #e8e2d6 (232,226,214)
+  const pr = lerp(244, 232); const pg = lerp(241, 226); const pb = lerp(234, 214);
+  // accent: #8a3e26 (138,62,38) → #7a3418 (122,52,24)
+  const ar = lerp(138, 122); const ag = lerp(62, 52); const ab = lerp(38, 24);
+
+  app.style.setProperty("--paper", `rgb(${pr},${pg},${pb})`);
+  app.style.setProperty("--accent", `rgb(${ar},${ag},${ab})`);
+  // paper-2 is paper darkened ~3%; approximate
+  const p2r = Math.max(0, pr - 8); const p2g = Math.max(0, pg - 8); const p2b = Math.max(0, pb - 10);
+  app.style.setProperty("--paper-2", `rgb(${p2r},${p2g},${p2b})`);
 }

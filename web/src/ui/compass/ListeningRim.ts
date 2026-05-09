@@ -38,7 +38,10 @@ export class ListeningRim {
     this.visible = true;
     this.el.style.display = "";
     this.startTime = performance.now();
-    this.loop();
+    // Skip rAF waveform when user prefers reduced motion
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      this.loop();
+    }
   }
 
   hide(): void {
