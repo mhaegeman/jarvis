@@ -41,6 +41,10 @@ tts = [
   "librosa>=0.10",
   "soundfile>=0.12",
 ]
+tts-edge = [
+  "edge-tts>=7.0",
+  "miniaudio>=1.2",
+]
 
 [build-system]
 requires = ["setuptools>=68"]
