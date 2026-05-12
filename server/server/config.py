@@ -48,5 +48,9 @@ class Settings(BaseSettings):
     speaker_wav: str | None = None
     tts_voice: str = "en-US-ChristopherNeural"
 
+    # Auth — passphrase hash (argon2id). Generate with:
+    #   python -c "from argon2 import PasswordHasher; print(PasswordHasher().hash('yourphrase'))"
+    passphrase_hash: str | None = Field(default=None, validation_alias="JARVIS_PASSPHRASE_HASH")
+
 
 settings = Settings()
