@@ -1,6 +1,7 @@
 import type { Surface } from "@/router";
 import { store, events, mic, ensureMic, stopMicStream, tryTransition, log } from "@/main";
-import { mapCalendarEntries, mapSystem, mapTasks, STUB_CODE_FILES } from "@/compass/types";
+import { mapCalendarEntries, mapSystem, mapTasks } from "@/compass/types";
+import { fetchGitStatus, fetchGitDiff, pollIfVisible, type GitStatus } from "@/api/gitStatus";
 import { NotifManager } from "./notifManager";
 import { Topbar } from "./Topbar";
 import { Bottombar } from "./Bottombar";
@@ -70,6 +71,29 @@ export function createCompassApp(): Surface {
   // State
   let zenMode = false;
   let overlayEl: HTMLElement | null = null;
+
+  // Live git state — refreshed every GIT_POLL_MS by `pollGit` while the
+  // tab is visible. Hidden tabs pause polling to keep our request rate
+  // proportional to actual usage; the visibilitychange listener resumes
+  // immediately on tab focus so the East Code zone is never stale by
+  // more than one poll interval after re-focus.
+  let gitState: GitStatus = { branch: "—", files: [], buildStatus: null };
+  const GIT_POLL_MS = 10_000;
+  async function doFetch(): Promise<void> {
+    try {
+      gitState = await fetchGitStatus();
+    } catch {
+      // Backend offline / route missing: keep the last-known state and
+      // surface an empty list. Silent to avoid log spam every 10s.
+    }
+  }
+  async function pollGit(): Promise<void> {
+    await pollIfVisible(doFetch);
+  }
+  void pollGit();
+  const gitInterval = setInterval(() => { void pollGit(); }, GIT_POLL_MS);
+  const onVisibilityChange = (): void => { void pollGit(); };
+  document.addEventListener("visibilitychange", onVisibilityChange);
 
   function closeOverlay(): void {
     overlayEl?.remove();
@@ -160,7 +184,14 @@ export function createCompassApp(): Surface {
   function openCodeFocus(): void {
     if (overlayEl) return;
     app.classList.add("dim");
-    overlayEl = buildCodeFocus(STUB_CODE_FILES, closeOverlay);
+    overlayEl = buildCodeFocus(
+      {
+        branch: gitState.branch,
+        files: gitState.files,
+        loadDiff: (path) => fetchGitDiff(path),
+      },
+      closeOverlay,
+    );
     app.appendChild(overlayEl);
   }
 
@@ -219,7 +250,11 @@ export function createCompassApp(): Surface {
     if (now - lastCalRender > 1000) {
       lastCalRender = now;
       northCal.render(mapCalendarEntries(s.panelData.calendar.entries));
-      eastCode.render(STUB_CODE_FILES);
+      eastCode.render({
+        branch: gitState.branch,
+        files: gitState.files,
+        buildStatus: gitState.buildStatus,
+      });
       southSys.render(mapSystem(s.panelData.system, s.panelData.memory, uptime));
       westTasks.render(mapTasks(s.panelData.tasks));
       notifRing.render(
@@ -243,6 +278,8 @@ export function createCompassApp(): Surface {
     destroy(): void {
       cancelAnimationFrame(rafId);
       if (driftInterval !== null) clearInterval(driftInterval);
+      clearInterval(gitInterval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
       topbar.destroy();
