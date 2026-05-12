@@ -1,5 +1,6 @@
 import { LoginOrrery } from "./LoginOrrery";
 import type { Surface } from "@/router";
+import { attemptLogin } from "./attemptLogin";
 
 type FieldState = "idle" | "error" | "success";
 
@@ -119,14 +120,13 @@ export function createLoginPage(onSuccess: () => void): Surface {
     submitBtn.disabled = !full;
   }
 
-  function handleSubmit(e: Event): void {
+  async function handleSubmit(e: Event): Promise<void> {
     e.preventDefault();
     if (fieldState === "success") return;
     const val = pwEl.value;
-
-    // TODO: replace with POST /auth/login — see plan for interface stub
-    // Dev-mode demo checks (tested before the length guard so short test strings are reachable):
-    if (val === "wrong" || val === "wrongwrong") {
+    if (val.length < MIN_LENGTH) return;
+    const result = await attemptLogin(val);
+    if (!result.ok) {
       setFieldState("error");
       setTimeout(() => {
         if (fieldState === "error") {
@@ -137,9 +137,6 @@ export function createLoginPage(onSuccess: () => void): Surface {
       }, 600);
       return;
     }
-
-    if (val.length < MIN_LENGTH) return;
-
     setFieldState("success");
     setTimeout(() => onSuccess(), 900);
   }
@@ -160,7 +157,7 @@ export function createLoginPage(onSuccess: () => void): Surface {
     // nothing to do — it's an easter egg
   });
 
-  form.addEventListener("submit", handleSubmit);
+  form.addEventListener("submit", (e) => { handleSubmit(e).catch(() => {}); });
 
   // Keyboard shortcuts
   function handleKeydown(e: KeyboardEvent): void {

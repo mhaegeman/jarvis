@@ -10,6 +10,8 @@ export interface CompassCalendarEntry {
   title: string;
   dur: string;           // "30m"
   state: "past" | "now" | "next";
+  attendees: string[];
+  room: string | null;
 }
 
 export interface CompassTask {
@@ -69,6 +71,8 @@ export function mapCalendarEntries(
       title: e.title,
       dur: `${e.durationMin}m`,
       state,
+      attendees: e.attendees,
+      room: e.room,
     };
   });
 }

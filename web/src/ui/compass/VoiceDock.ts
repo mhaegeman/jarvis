@@ -1,20 +1,4 @@
-/**
- * Voice dock — appears while Space is held.
- * Shows a serif "listening…" invite and a stagger-rise list of recent commands.
- * VoiceDock owns its DOM element but delegates show/hide to CompassApp which
- * already handles the Space keydown/keyup lifecycle.
- *
- * TODO: wire recentCmds from command history store instead of static stub.
- * Interface: CommandHistory { recent(): string[] }
- */
-
-// TODO: replace with real command history source
-const RECENT_COMMANDS: string[] = [
-  "What's on my calendar this afternoon?",
-  "Summarise the last stand-up notes",
-  "Open the PR for the compass branch",
-  "Set a timer for fifteen minutes",
-];
+import { CommandHistory } from "./commandHistory";
 
 export class VoiceDock {
   private readonly el: HTMLElement;
@@ -29,9 +13,11 @@ export class VoiceDock {
   }
 
   private renderContent(): void {
-    const cmdRows = RECENT_COMMANDS.map(
-      (cmd) => `<div class="cmd">${escHtml(cmd)}</div>`,
-    ).join("");
+    const cmds = CommandHistory.recent();
+    const cmdRows =
+      cmds.length > 0
+        ? cmds.map((cmd) => `<div class="cmd">${escHtml(cmd)}</div>`).join("")
+        : `<div class="cmd empty">no recent commands</div>`;
 
     this.el.innerHTML = `
       <div class="head">
@@ -47,7 +33,7 @@ export class VoiceDock {
   show(): void {
     if (this.visible) return;
     this.visible = true;
-    // Re-render to restart stagger animations
+    // Re-render to restart stagger animations and pick up latest history
     this.renderContent();
     this.el.classList.add("open");
   }

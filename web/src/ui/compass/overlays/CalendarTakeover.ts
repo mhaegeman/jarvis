@@ -27,16 +27,28 @@ export function buildCalendarTakeover(
     ? `now · ${current.time}`
     : `in ${current.dur} · ${current.time}`;
 
-  // TODO: wire attendee and room info from calendar source (e.g. macOS EventKit / Google Calendar API)
-  // Interface: CalendarEvent { title, time, durationMin, attendees: string[], room: string | null }
+  // Build the "who" line: attendees list + room, or "no details".
+  // Defensive defaults guard against legacy backends or malformed messages
+  // that omit the new attendees/room fields (the wsEventSource cast is
+  // unchecked, so missing keys reach here as undefined).
+  const attendees = Array.isArray(current.attendees) ? current.attendees : [];
+  const room = typeof current.room === "string" ? current.room : null;
+  const whoLines: string[] = [];
+  if (attendees.length > 0) {
+    whoLines.push(attendees.map(escHtml).join(" · "));
+  }
+  if (room) {
+    whoLines.push(escHtml(room));
+  }
+  const whoText = whoLines.length > 0 ? whoLines.join(" · ") : "no details";
+
   overlay.innerHTML = `
     <div class="takeover-card">
       <button class="close" style="position:absolute;top:14px;right:18px;font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);background:none;border:none;cursor:pointer;" aria-label="Close">esc · close</button>
       <div class="now-eyebrow">${escHtml(eyebrow)}</div>
       <div class="what">${escHtml(current.title)}</div>
       <div class="who">
-        <!-- TODO: wire attendees from calendar source -->
-        ${current.dur} · details not yet available
+        ${current.dur} · ${whoText}
       </div>
       <div class="actions">
         <button class="f-btn">snooze 5m</button>

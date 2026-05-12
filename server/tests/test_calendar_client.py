@@ -31,8 +31,8 @@ def test_project_events_basic() -> None:
     ]
     out = project_events(raw)
     assert out == [
-        {"time": "09:00", "title": "Standup", "durationMin": 30},
-        {"time": "11:30", "title": "Lunch", "durationMin": 60},
+        {"time": "09:00", "title": "Standup", "durationMin": 30, "attendees": [], "room": None},
+        {"time": "11:30", "title": "Lunch", "durationMin": 60, "attendees": [], "room": None},
     ]
 
 
@@ -144,3 +144,28 @@ async def test_fetch_today_uses_local_timezone_bounds(tmp_path: Path) -> None:
     assert time_max.endswith(expected_iso_offset)
     # Sanity: both bounds start at the same local-midnight prefix
     assert "T00:00:00" in time_min
+
+
+def test_project_events_includes_attendees_and_room() -> None:
+    raw = [
+        {
+            "summary": "Design Review",
+            "start": {"dateTime": "2026-05-08T14:00:00+00:00"},
+            "end": {"dateTime": "2026-05-08T15:00:00+00:00"},
+            "attendees": [
+                {"displayName": "Alice", "email": "alice@example.com"},
+                {"email": "bob@example.com"},
+            ],
+            "location": "Room 42",
+        }
+    ]
+    out = project_events(raw)
+    assert out[0]["attendees"] == ["Alice", "bob@example.com"]
+    assert out[0]["room"] == "Room 42"
+
+
+def test_project_events_attendees_defaults_to_empty() -> None:
+    raw = [_evt("2026-05-08T09:00:00+00:00", "2026-05-08T09:30:00+00:00", "Solo")]
+    out = project_events(raw)
+    assert out[0]["attendees"] == []
+    assert out[0]["room"] is None
