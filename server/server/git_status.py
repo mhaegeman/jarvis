@@ -46,9 +46,19 @@ class ChangedFile:
 
 @dataclass(frozen=True)
 class DiffLine:
-    """A single line of a unified diff."""
+    """A single line of a unified diff.
 
-    kind: Literal["+", "-", " "]
+    ``kind``:
+      * ``"+"`` — added line
+      * ``"-"`` — removed line
+      * ``" "`` — context (incl. preserved hunk headers)
+      * ``"…"`` — truncation sentinel; ``text`` carries the user-facing message.
+        Emitted as the last line when the diff hits :data:`DIFF_MAX_LINES`,
+        so the UI can render a "diff truncated" notice instead of silently
+        cutting off.
+    """
+
+    kind: Literal["+", "-", " ", "…"]
     text: str
 
 
@@ -131,40 +141,78 @@ def _collapse_status(x: str, y: str) -> StatusCode:
     return "M"
 
 
+class PathNotAllowedError(ValueError):
+    """Raised when ``path`` is outside the changed-files whitelist."""
+
+
+def _is_git_internal(parts: tuple[str, ...]) -> bool:
+    """True if the first path component is ``.git`` (case-insensitive).
+
+    The whitelist enforced by :func:`diff` already rejects any path that
+    isn't in ``changed_files()`` — porcelain never reports ``.git/...``.
+    This is belt-and-braces in case a future caller bypasses the whitelist:
+    even a permissive client cannot exfiltrate ``.git/config`` credentials.
+    """
+    if not parts:
+        return False
+    return parts[0].lower() == ".git"
+
+
 def safe_resolve(path: str, root: Path) -> Path:
     """Resolve ``path`` (relative) against ``root``, rejecting traversal.
 
     Raises:
         ValueError: when ``path`` is absolute, contains ``..`` segments,
-            or resolves outside ``root``.
+            resolves outside ``root``, or targets the ``.git/`` directory.
     """
     p = Path(path)
     if p.is_absolute():
         raise ValueError("path must be relative")
     if any(part == ".." for part in p.parts):
         raise ValueError("parent traversal is not allowed")
+    if _is_git_internal(p.parts):
+        raise ValueError(".git directory is not accessible")
     resolved = (root / p).resolve()
     root_resolved = root.resolve()
     if root_resolved not in resolved.parents and resolved != root_resolved:
         raise ValueError("path escapes git root")
+    rel_parts = resolved.relative_to(root_resolved).parts
+    if _is_git_internal(rel_parts):
+        raise ValueError(".git directory is not accessible")
     return resolved
 
 
 def diff(path: str, root: Path | None = None) -> list[DiffLine]:
     """Return a bounded unified diff for ``path``.
 
-    For tracked files this calls ``git diff HEAD -- <path>``; for
-    untracked files it falls back to ``git diff --no-index /dev/null <path>``
-    so newly-added files still get a diff payload.
+    Only paths reported by :func:`changed_files` are accepted: this caps
+    the file-read surface to the working-tree delta the UI is allowed to
+    show. Anything else (gitignored secrets, arbitrary tracked files
+    outside the diff, ``.git/`` internals) raises :class:`PathNotAllowedError`,
+    which the route maps to 404.
 
-    The output is capped at :data:`DIFF_MAX_LINES` lines.
+    For tracked changed files this shells out to ``git diff HEAD -- <path>``;
+    for untracked files reported by porcelain it falls back to
+    ``git diff --no-index /dev/null <path>``.
+
+    The output is capped at :data:`DIFF_MAX_LINES` lines, with a
+    truncation marker appended when the cap is hit.
     """
     repo = root or Path.cwd()
     resolved = safe_resolve(path, repo)
     # Use the relative form for git so it matches the index.
     rel = resolved.relative_to(repo.resolve()).as_posix()
 
-    # Check whether git knows about this path.
+    # Whitelist: only files in the porcelain-reported delta are eligible
+    # for diff. Stops arbitrary file reads (gitignored .env*, secrets,
+    # config files outside the change set).
+    allowed = {f.path for f in changed_files(repo)}
+    if rel not in allowed:
+        raise PathNotAllowedError(f"path is not in the changed-files set: {rel}")
+
+    # Decide between tracked and untracked rendering. Belt-and-braces:
+    # `ls-files --error-unmatch` tells us whether the path is tracked,
+    # which avoids assuming the porcelain status code.
     ls = subprocess.run(  # noqa: S603
         ["git", "ls-files", "--error-unmatch", "--", rel],
         cwd=str(repo),
@@ -199,9 +247,12 @@ def _parse_unified_diff(raw: str, limit: int) -> list[DiffLine]:
     Skips ``diff --git``, ``index``, ``---``, ``+++`` header lines and
     ``\\ No newline at end of file`` markers. Hunk headers (``@@``) are
     preserved as context lines so the UI can show them. Output is
-    truncated to ``limit`` lines.
+    truncated to ``limit`` lines; when truncation occurs, a final sentinel
+    row of kind ``"…"`` is appended so the UI can render a "diff
+    truncated" notice instead of just cutting off.
     """
     lines: list[DiffLine] = []
+    truncated = False
     for line in raw.splitlines():
         if (
             line.startswith("diff --git")
@@ -224,5 +275,14 @@ def _parse_unified_diff(raw: str, limit: int) -> list[DiffLine]:
             # don't silently drop them.
             lines.append(DiffLine(kind=" ", text=line))
         if len(lines) >= limit:
+            truncated = True
             break
+    if truncated:
+        # Replace the last data row with the sentinel so total length stays
+        # at exactly ``limit`` — keeps the existing test contract intact
+        # while still signalling truncation to the UI.
+        lines[-1] = DiffLine(
+            kind="…",
+            text=f"diff truncated at {limit} lines",
+        )
     return lines
