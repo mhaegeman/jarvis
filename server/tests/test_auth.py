@@ -5,14 +5,13 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from server.config import Settings
+from server.main import app
 
 
 def test_passphrase_hash_config_default_is_none() -> None:
     """JARVIS_PASSPHRASE_HASH is optional; defaults to None."""
     s = Settings()
     assert s.passphrase_hash is None
-
-from server.main import app
 
 
 @pytest.mark.asyncio
