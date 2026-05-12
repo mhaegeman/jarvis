@@ -32,16 +32,25 @@ describe("attemptLogin", () => {
     expect(sessionStorage.getItem("jarvis_token")).toBeNull();
   });
 
-  it("returns ok:true (offline fallback) when fetch throws", async () => {
+  it("fails closed (ok:false) when fetch throws — never grants access without backend verification", async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError("Failed to fetch"));
-    // Offline fallback: any passphrase ≥12 chars succeeds
-    const result = await attemptLogin("offlinepassphrase");
-    expect(result.ok).toBe(true);
+    const result = await attemptLogin("anypassphrasevalue");
+    expect(result.ok).toBe(false);
+    expect(sessionStorage.getItem("jarvis_token")).toBeNull();
   });
 
-  it("offline fallback returns ok:false for short passphrase", async () => {
+  it("fails closed on short passphrase too (no length-based bypass)", async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError("Failed to fetch"));
     const result = await attemptLogin("short");
     expect(result.ok).toBe(false);
+  });
+
+  it("fails closed when backend returns malformed JSON (response.json() throws)", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response("not json", { status: 200 }),
+    );
+    const result = await attemptLogin("correctphrase123");
+    expect(result.ok).toBe(false);
+    expect(sessionStorage.getItem("jarvis_token")).toBeNull();
   });
 });

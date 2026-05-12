@@ -49,3 +49,33 @@ async def test_login_returns_token_on_correct_passphrase(monkeypatch: pytest.Mon
     body = r.json()
     assert "token" in body
     assert len(body["token"]) == 64  # 32 bytes hex = 64 chars
+
+
+@pytest.mark.asyncio
+async def test_login_returns_503_on_malformed_hash(monkeypatch: pytest.MonkeyPatch) -> None:
+    """503 (not 500) when JARVIS_PASSPHRASE_HASH is malformed.
+
+    A configuration error should produce a controlled response, not bubble up
+    as an internal server error that takes login offline silently.
+    """
+    monkeypatch.setattr(
+        "server.main.settings",
+        Settings(JARVIS_PASSPHRASE_HASH="not-a-valid-argon2-hash"),
+    )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.post("/auth/login", json={"passphrase": "anypassphrase"})
+    assert r.status_code == 503
+    assert r.json()["detail"] == "Auth misconfigured"
+
+
+@pytest.mark.asyncio
+async def test_login_returns_503_on_unsupported_hash_algo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """503 when hash uses a non-argon2 format (e.g. bcrypt-style)."""
+    monkeypatch.setattr(
+        "server.main.settings",
+        Settings(JARVIS_PASSPHRASE_HASH="$2b$12$abcdefghijklmnopqrstuv"),
+    )
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.post("/auth/login", json={"passphrase": "anypassphrase"})
+    assert r.status_code == 503
+    assert r.json()["detail"] == "Auth misconfigured"

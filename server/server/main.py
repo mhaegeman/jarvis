@@ -242,7 +242,7 @@ async def auth_login(req: _LoginRequest) -> dict[str, str]:
         raise HTTPException(status_code=503, detail="Auth not configured")
     try:
         from argon2 import PasswordHasher
-        from argon2.exceptions import VerifyMismatchError
+        from argon2.exceptions import InvalidHashError, VerifyMismatchError
     except ImportError:  # pragma: no cover
         raise HTTPException(status_code=503, detail="Auth not configured") from None
     ph = PasswordHasher()
@@ -250,6 +250,9 @@ async def auth_login(req: _LoginRequest) -> dict[str, str]:
         ph.verify(settings.passphrase_hash, req.passphrase)
     except VerifyMismatchError as exc:
         raise HTTPException(status_code=401, detail="Invalid passphrase") from exc
+    except (InvalidHashError, ValueError) as exc:
+        # JARVIS_PASSPHRASE_HASH is malformed or uses an unsupported algorithm.
+        raise HTTPException(status_code=503, detail="Auth misconfigured") from exc
     token = secrets.token_hex(32)
     return {"token": token}
 

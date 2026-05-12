@@ -1,5 +1,4 @@
 const AUTH_URL = "/auth/login";
-const MIN_LENGTH = 12;
 
 export interface LoginResult {
   ok: boolean;
@@ -19,7 +18,9 @@ export async function attemptLogin(passphrase: string): Promise<LoginResult> {
     }
     return { ok: false };
   } catch {
-    // Backend unreachable (demo/offline mode) — fall back to length check
-    return { ok: passphrase.length >= MIN_LENGTH };
+    // Network/runtime failure — fail closed. We never grant access without a
+    // successful backend verification. (Offline demo mode, if reintroduced,
+    // must be gated by an explicit build-time flag, not a fetch fallback.)
+    return { ok: false };
   }
 }
