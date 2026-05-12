@@ -42,13 +42,12 @@ export interface CompassNotif {
   id: string;
   angle: number;         // degrees, hand-tuned to diagonal alleys
   text: string;
-  kbd: string;           // "⌘1"
   warm: boolean;
   when: string;          // "2m ago"
   preview: string;
 }
 
-// ── Mappers ──────────────────────────────────────────────────────────────────
+// ── Mappers ─────────────────────────────────────────────
 
 export function mapCalendarEntries(
   entries: PanelDataCalendarEntry[],

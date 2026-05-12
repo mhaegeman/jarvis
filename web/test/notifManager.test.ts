@@ -177,12 +177,70 @@ describe("NotifManager — display contract", () => {
     expect(chips.length).toBeLessThanOrEqual(6);
   });
 
-  it("assigns a non-empty angle and Ctrl-N kbd to each visible chip", () => {
+  it("assigns a non-empty angle to each visible chip", () => {
     const mgr = new NotifManager();
     const entry = cal(minuteOffset(2), "1:1");
     const chips = mgr.update(baseInputs({ calendar: [entry] }));
-    expect(chips[0].kbd).toBe("Ctrl 1");
     expect(typeof chips[0].angle).toBe("number");
+    // P2.1: kbd label removed — no keydown handler reads it.
+    expect((chips[0] as unknown as { kbd?: string }).kbd).toBeUndefined();
+  });
+
+  it("anchors a chip to its first-seen slot — angle is stable across ticks", () => {
+    const mgr = new NotifManager();
+    const entry = cal(minuteOffset(2), "1:1");
+    // Tick 1: chip A appears alone in slot 0.
+    const t1 = mgr.update(baseInputs({ calendar: [entry], now: T0 }));
+    const angleA = t1[0].angle;
+    // Tick 2: a second, more recent chip appears (memory warning).
+    // A's angle must not move — only the new chip gets a fresh slot.
+    const t2 = mgr.update(
+      baseInputs({
+        calendar: [entry],
+        memory: { contextUsed: 180_000, contextMax: 200_000 },
+        now: T0 + 1000,
+      }),
+    );
+    const aAfter = t2.find((c) => c.text.includes("1:1"));
+    expect(aAfter).toBeDefined();
+    expect(aAfter!.angle).toBe(angleA);
+  });
+
+  it("frees a chip's slot when its source resolves so new arrivals can reuse it", () => {
+    const mgr = new NotifManager();
+    const entry = cal(minuteOffset(2), "expiring");
+    const t1 = mgr.update(baseInputs({ calendar: [entry], now: T0 }));
+    expect(t1).toHaveLength(1);
+    // Event passes — chip leaves.
+    const t2 = mgr.update(
+      baseInputs({ calendar: [entry], now: T0 + 10 * 60_000 }),
+    );
+    expect(t2).toHaveLength(0);
+    // Fresh chip lands in the freed slot.
+    const t3 = mgr.update(
+      baseInputs({
+        memory: { contextUsed: 180_000, contextMax: 200_000 },
+        now: T0 + 11 * 60_000,
+      }),
+    );
+    expect(t3[0].angle).toBe(t1[0].angle);
+  });
+
+  it("re-baselines without emitting transitions when task counter resets (P2.4)", () => {
+    const mgr = new NotifManager();
+    // Establish baseline: 2 done.
+    mgr.update(baseInputs({ tasks: { queued: 0, active: 0, done: 2 } }));
+    // Counter reset (new session): done goes back to 0.
+    const chips = mgr.update(
+      baseInputs({ tasks: { queued: 0, active: 0, done: 0 } }),
+    );
+    // No "task done"/"task started" chips spawned by the rebound.
+    expect(chips.filter((c) => /task /.test(c.text))).toHaveLength(0);
+    // Next tick a real "done" event fires off the new floor.
+    const after = mgr.update(
+      baseInputs({ tasks: { queued: 0, active: 0, done: 1 } }),
+    );
+    expect(after.some((c) => /task done/.test(c.text))).toBe(true);
   });
 
   it("reset() clears all internal state", () => {
