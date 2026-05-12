@@ -5,12 +5,14 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import logging
+import secrets
 from collections.abc import AsyncIterator, MutableMapping
 from pathlib import Path
 from typing import Any
 
 import anthropic
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel as _BaseModel
 
 from .config import settings
 from .memory.store import MemoryStore
@@ -228,6 +230,28 @@ app = FastAPI(lifespan=lifespan, title="Jarvis backend (spec-02 Phase 1)")
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+class _LoginRequest(_BaseModel):
+    passphrase: str
+
+
+@app.post("/auth/login")
+async def auth_login(req: _LoginRequest) -> dict[str, str]:
+    if settings.passphrase_hash is None:
+        raise HTTPException(status_code=503, detail="Auth not configured")
+    try:
+        from argon2 import PasswordHasher
+        from argon2.exceptions import VerifyMismatchError
+    except ImportError:  # pragma: no cover
+        raise HTTPException(status_code=503, detail="Auth not configured") from None
+    ph = PasswordHasher()
+    try:
+        ph.verify(settings.passphrase_hash, req.passphrase)
+    except VerifyMismatchError as exc:
+        raise HTTPException(status_code=401, detail="Invalid passphrase") from exc
+    token = secrets.token_hex(32)
+    return {"token": token}
 
 
 class _StarletteWSAdapter:
