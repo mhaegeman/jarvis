@@ -5,15 +5,18 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import logging
+import os
 import secrets
+import subprocess
 from collections.abc import AsyncIterator, MutableMapping
 from pathlib import Path
 from typing import Any
 
 import anthropic
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel as _BaseModel
 
+from . import git_status as git_status_mod
 from .config import settings
 from .memory.store import MemoryStore
 from .memory.summarizer import ClaudeSummarizer, Summarizer
@@ -230,6 +233,75 @@ app = FastAPI(lifespan=lifespan, title="Jarvis backend (spec-02 Phase 1)")
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+def _git_root() -> Path:
+    """Resolve the git root the endpoints operate against.
+
+    Reads ``JARVIS_GIT_ROOT`` from the env at call time so tests can
+    monkeypatch the env without re-importing the module. Falls back to
+    the process CWD.
+    """
+    return Path(os.environ.get("JARVIS_GIT_ROOT") or Path.cwd())
+
+
+class _GitStatusFile(_BaseModel):
+    path: str
+    status: str
+
+
+class _GitStatusResponse(_BaseModel):
+    branch: str
+    files: list[_GitStatusFile]
+    buildStatus: str | None = None
+
+
+class _GitDiffLine(_BaseModel):
+    kind: str
+    text: str
+
+
+class _GitDiffResponse(_BaseModel):
+    lines: list[_GitDiffLine]
+
+
+@app.get("/git/status", response_model=_GitStatusResponse)
+async def git_status() -> _GitStatusResponse:
+    """Return current branch + changed files for the East Code zone.
+
+    ``buildStatus`` is reserved for a future CI poll and is always
+    ``None`` for now.
+    """
+    root = _git_root()
+    try:
+        branch = git_status_mod.current_branch(root)
+        files = git_status_mod.changed_files(root)
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=500, detail="git unavailable") from exc
+    return _GitStatusResponse(
+        branch=branch,
+        files=[_GitStatusFile(path=f.path, status=f.status) for f in files],
+        buildStatus=None,
+    )
+
+
+@app.get("/git/diff", response_model=_GitDiffResponse)
+async def git_diff(path: str = Query(..., min_length=1)) -> _GitDiffResponse:
+    """Return a bounded unified diff for ``path`` relative to the git root."""
+    root = _git_root()
+    try:
+        resolved = git_status_mod.safe_resolve(path, root)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not resolved.exists():
+        raise HTTPException(status_code=404, detail="path not found")
+    try:
+        lines = git_status_mod.diff(path, root)
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=500, detail="git diff failed") from exc
+    return _GitDiffResponse(
+        lines=[_GitDiffLine(kind=line.kind, text=line.text) for line in lines],
+    )
 
 
 class _LoginRequest(_BaseModel):

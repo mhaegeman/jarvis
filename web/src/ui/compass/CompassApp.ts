@@ -1,6 +1,7 @@
 import type { Surface } from "@/router";
 import { store, events, mic, ensureMic, stopMicStream, tryTransition, log } from "@/main";
-import { mapCalendarEntries, mapSystem, mapTasks, STUB_CODE_FILES, STUB_NOTIFS } from "@/compass/types";
+import { mapCalendarEntries, mapSystem, mapTasks, STUB_NOTIFS } from "@/compass/types";
+import { fetchGitStatus, fetchGitDiff, type GitStatus } from "@/api/gitStatus";
 import { Topbar } from "./Topbar";
 import { Bottombar } from "./Bottombar";
 import { OrreryCore } from "./OrreryCore";
@@ -68,6 +69,20 @@ export function createCompassApp(): Surface {
   // State
   let zenMode = false;
   let overlayEl: HTMLElement | null = null;
+
+  // Live git state — refreshed every GIT_POLL_MS by `pollGit`.
+  let gitState: GitStatus = { branch: "—", files: [], buildStatus: null };
+  const GIT_POLL_MS = 10_000;
+  async function pollGit(): Promise<void> {
+    try {
+      gitState = await fetchGitStatus();
+    } catch {
+      // Backend offline / route missing: keep the last-known state and
+      // surface an empty list. Silent to avoid log spam every 10s.
+    }
+  }
+  void pollGit();
+  const gitInterval = setInterval(() => { void pollGit(); }, GIT_POLL_MS);
 
   function closeOverlay(): void {
     overlayEl?.remove();
@@ -158,7 +173,14 @@ export function createCompassApp(): Surface {
   function openCodeFocus(): void {
     if (overlayEl) return;
     app.classList.add("dim");
-    overlayEl = buildCodeFocus(STUB_CODE_FILES, closeOverlay);
+    overlayEl = buildCodeFocus(
+      {
+        branch: gitState.branch,
+        files: gitState.files,
+        loadDiff: (path) => fetchGitDiff(path),
+      },
+      closeOverlay,
+    );
     app.appendChild(overlayEl);
   }
 
@@ -217,7 +239,11 @@ export function createCompassApp(): Surface {
     if (now - lastCalRender > 1000) {
       lastCalRender = now;
       northCal.render(mapCalendarEntries(s.panelData.calendar.entries));
-      eastCode.render(STUB_CODE_FILES);
+      eastCode.render({
+        branch: gitState.branch,
+        files: gitState.files,
+        buildStatus: gitState.buildStatus,
+      });
       southSys.render(mapSystem(s.panelData.system, s.panelData.memory, uptime));
       westTasks.render(mapTasks(s.panelData.tasks));
       notifRing.render(STUB_NOTIFS);
@@ -234,6 +260,7 @@ export function createCompassApp(): Surface {
     destroy(): void {
       cancelAnimationFrame(rafId);
       if (driftInterval !== null) clearInterval(driftInterval);
+      clearInterval(gitInterval);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
       topbar.destroy();
