@@ -57,6 +57,8 @@ export interface PanelDataCalendarEntry {
   time: string;
   title: string;
   durationMin: number;
+  attendees: string[];
+  room: string | null;
 }
 export interface StateSnapshot {
   system: PanelDataSystem;

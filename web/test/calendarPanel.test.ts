@@ -32,7 +32,7 @@ describe("CalendarPanel", () => {
 
   it("renders a single entry with duration", () => {
     const root = mount({
-      entries: [{ time: "09:00", title: "Standup", durationMin: 30 }],
+      entries: [{ time: "09:00", title: "Standup", durationMin: 30, attendees: [], room: null }],
       syncing: false,
       onSync: () => {},
     });
@@ -46,6 +46,8 @@ describe("CalendarPanel", () => {
       time: `${String(8 + i).padStart(2, "0")}:00`,
       title: `Event ${i}`,
       durationMin: 30,
+      attendees: [] as string[],
+      room: null as string | null,
     }));
     const root = mount({ entries, syncing: false, onSync: () => {} });
     expect(root.querySelectorAll(".row").length).toBe(5);
@@ -58,6 +60,8 @@ describe("CalendarPanel", () => {
           time: "09:00",
           title: `<img src=x onerror="alert(1)">`,
           durationMin: 30,
+          attendees: [],
+          room: null,
         },
       ],
       syncing: false,
