@@ -109,6 +109,21 @@ rm ~/.config/jarvis/google-token.json
 systemctl --user restart jarvis-backend
 ```
 
+## Git status / diff endpoints
+
+The East Code zone polls `/git/status` and (on demand) `/git/diff`
+against `JARVIS_GIT_ROOT`. If `JARVIS_GIT_ROOT` is unset and the
+process CWD has no `.git/`, both routes return `503 git routes
+unavailable` and other features keep running. Set the env var:
+
+```bash
+export JARVIS_GIT_ROOT="$(git rev-parse --show-toplevel)"
+```
+
+When `JARVIS_PASSPHRASE_HASH` is configured, both routes (and `/ws`)
+require a bearer token from `POST /auth/login`. Tokens live in memory
+for the lifetime of the process — restart to revoke.
+
 ## Real pipelines (optional)
 
 The default install runs with mock pipelines. To enable real Whisper STT:
