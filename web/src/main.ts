@@ -18,6 +18,7 @@ import { createMicCapture, probeMicSupport } from "@/audio/micCapture";
 import { mount } from "@/router";
 import { createLoginPage } from "@/ui/login/LoginPage";
 import { createCompassApp } from "@/ui/compass/CompassApp";
+import { CommandHistory } from "@/ui/compass/commandHistory";
 
 interface PanelData {
   system: PanelDataSystem | null;
@@ -132,6 +133,7 @@ events.on("stt.partial", ({ text }) => {
 });
 events.on("stt.final", ({ text }) => {
   log("info", `you: ${text}`);
+  CommandHistory.push(text);
   openAudioIds.clear();
   llmEnded = false;
 });
