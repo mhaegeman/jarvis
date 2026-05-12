@@ -4,15 +4,6 @@ Items are grouped by area. Each entry names the stub, the file it lives in, and 
 
 ---
 
-## Authentication
-
-### Passphrase login is local-only
-**File:** `web/src/ui/login/LoginPage.ts:132`  
-The login form validates the passphrase client-side (minimum 12 chars + a hardcoded dev rejection list). No server round-trip happens.  
-**To implement:** `POST /auth/login` on the FastAPI backend. The backend should validate against an argon2 hash stored in `JARVIS_PASSPHRASE_HASH` env var and return a session token stored in `sessionStorage`. The frontend should swap the local check for a `fetch` call and handle 401 vs 200.
-
----
-
 ## Frontend — Compass Zones & Overlays
 
 ### Code zone shows hardcoded stub files
@@ -30,11 +21,6 @@ The diff pane always shows the same three hardcoded lines regardless of which fi
 `PanelDataTasks` only carries aggregate counts (active / queued / done). The mapper synthesises placeholder rows with `"step — / —"` and `pct: 50`.  
 **To implement:** Expose individual task records from the agent runtime (Temporal, BullMQ, or Jarvis's own tasks table). Interface: `TaskDetail { id, label, state: "run"|"queue"|"done", step: number, totalSteps: number, pct: number }`.
 
-### Calendar takeover shows no attendees or room
-**File:** `web/src/ui/compass/overlays/CalendarTakeover.ts:39`  
-The "who" line always reads `"details not yet available"`.  
-**To implement:** Extend `CompassCalendarEntry` with `attendees: string[]` and `room: string | null`. Populate these from the existing `calendar_client.py` Google Calendar response (the `attendees` and `location` fields are already returned by the API but are not currently forwarded to the frontend).
-
 ### Notification chips are a static stub array
 **Files:** `web/src/compass/types.ts:127`, `web/src/ui/compass/CompassApp.ts:218`  
 `STUB_NOTIFS` is six hardcoded chips that never change and are never dismissed persistently.  
@@ -43,11 +29,6 @@ The "who" line always reads `"details not yet available"`.
 - **Tasks** (ready to wire): emit on task state transition (queue → run, run → done).
 - **System** (ready to wire): emit when context usage > 80 % or CPU load > threshold, from `state.snapshot`.
 - **Build / CI** (needs external webhook): subscribe to a webhook from GitHub Actions / your CI provider. Interface: `NotifSource.build(payload: CIWebhookPayload): CompassNotif`.
-
-### Voice dock shows a hardcoded recent-commands list
-**File:** `web/src/ui/compass/VoiceDock.ts:11`  
-`RECENT_COMMANDS` is a static four-item array compiled into the bundle.  
-**To implement:** Persist the last N voice commands server-side (or in `localStorage` as a quick win) and expose them via a `CommandHistory.recent(): string[]` API. The dock should pull from there on each show.
 
 ---
 
@@ -76,10 +57,14 @@ Picks a reply from `scenarios.py` by coarse keyword matching. Ignores conversati
 
 ## Backend — Missing Endpoints
 
-### No `/auth/login` endpoint
-The frontend login form expects `POST /auth/login → { token: string }` but this route does not exist in `server/server/main.py`.  
-**To implement:** Add a FastAPI route that reads `JARVIS_PASSPHRASE_HASH` from the environment, verifies the submitted passphrase with `argon2-cffi`, and returns a signed session token (e.g. a short-lived JWT or a random token stored in a server-side set).
-
 ### No `/git/status` or `/git/diff` endpoint
 The EastCode zone and CodeFocus overlay need live git data.  
 **To implement:** Add routes (or extend the WebSocket `state.snapshot`) to expose `{ branch, files: CompassCodeFile[], buildStatus }` and per-file diffs. `simple-git` (Node side) or `pygit2` / `gitpython` (Python side) can drive this.
+
+---
+
+## Shipped
+
+- 2026-05-12: Voice dock recent commands persisted to `localStorage` via `CommandHistory` (PR #23)
+- 2026-05-12: `POST /auth/login` with argon2 verification + frontend wiring (PR #24)
+- 2026-05-12: Calendar attendees + room forwarded to `CalendarTakeover` (PR #25)
