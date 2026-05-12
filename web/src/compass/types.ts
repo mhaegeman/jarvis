@@ -47,7 +47,7 @@ export interface CompassNotif {
   preview: string;
 }
 
-// ── Mappers ─────────────────────────────────────────────
+// ── Mappers ──────────────────────────────────
 
 export function mapCalendarEntries(
   entries: PanelDataCalendarEntry[],
@@ -117,13 +117,9 @@ export function mapTasks(
   return rows;
 }
 
-// TODO: wire CompassCodeFile[] from git via simple-git (active branch + diff against main).
-// Interface: GitCodeSource { branch: string; files: CompassCodeFile[]; buildStatus: string }
-export const STUB_CODE_FILES: CompassCodeFile[] = [
-  { group: "modified", name: "src/ui/compass/CompassApp.ts", delta: "+84 / −6",  active: true },
-  { group: "modified", name: "src/ui/compass/Topbar.ts",    delta: "+52 / −0",  active: false },
-  { group: "added",    name: "src/styles/compass.css",      delta: "+312 / −0", active: false },
-];
+// CompassCodeFile[] now comes from the live `/git/status` endpoint via
+// `@/api/gitStatus` and is fetched by CompassApp on a poll. The stub array
+// has been removed.
 
 // CompassNotif[] is now produced live by `NotifManager` (see ui/compass/notifManager.ts)
 // from calendar entries, tasks state transitions, and context budget.

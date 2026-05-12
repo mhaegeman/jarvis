@@ -14,10 +14,24 @@ export interface ConnectResult {
   mode: "live" | "demo";
 }
 
+/**
+ * Append the cached bearer token (if any) to a WS URL as ``?token=…``.
+ *
+ * Browsers can't send custom headers on the WS upgrade, so the server
+ * accepts the same bearer token via query string. Exported for tests.
+ */
+export function withAuthToken(url: string): string {
+  if (typeof sessionStorage === "undefined") return url;
+  const token = sessionStorage.getItem("jarvis_token");
+  if (!token) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+}
+
 export async function connect(opts: ConnectOptions): Promise<ConnectResult> {
   const timeoutMs = opts.openTimeoutMs ?? 1000;
   const live = new WSEventSource({
-    url: opts.url,
+    url: withAuthToken(opts.url),
     ...(opts.audioCtx ? { audioCtx: opts.audioCtx } : {}),
     ...(opts.micSource ? { micSource: opts.micSource } : {}),
   });

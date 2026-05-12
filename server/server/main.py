@@ -5,15 +5,26 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import logging
+import os
 import secrets
+import subprocess
 from collections.abc import AsyncIterator, MutableMapping
 from pathlib import Path
 from typing import Any
 
 import anthropic
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from pydantic import BaseModel as _BaseModel
 
+from . import git_status as git_status_mod
 from .config import settings
 from .memory.store import MemoryStore
 from .memory.summarizer import ClaudeSummarizer, Summarizer
@@ -232,6 +243,145 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def _git_root() -> Path:
+    """Resolve the git root the endpoints operate against.
+
+    Reads ``JARVIS_GIT_ROOT`` from the env at call time so tests can
+    monkeypatch the env without re-importing the module. Falls back to
+    the process CWD.
+    """
+    return Path(os.environ.get("JARVIS_GIT_ROOT") or Path.cwd())
+
+
+def _git_routes_available() -> bool:
+    """True iff the resolved git root looks like a real git repo.
+
+    If ``JARVIS_GIT_ROOT`` is unset and the CWD has no ``.git/``, refuse
+    to serve git routes — they would otherwise crash on first request and
+    take other features down with them. Other server features keep working.
+    """
+    return (_git_root() / ".git").exists()
+
+
+# ── Auth: simple in-memory bearer-token store ────────────────────
+#
+# Tokens minted by ``POST /auth/login`` live in this set for the lifetime
+# of the process. They never expire in this iteration — the trade-off is
+# documented in ``server/deploy/README.md``: restart the server to revoke.
+# When ``JARVIS_PASSPHRASE_HASH`` is unset (local dev), ``require_token``
+# bypasses entirely; tighten by setting the hash.
+_active_tokens: set[str] = set()
+
+
+def _auth_enabled() -> bool:
+    """True when ``JARVIS_PASSPHRASE_HASH`` is configured.
+
+    Read at call time (not at import) so tests can monkeypatch the
+    settings object without re-importing the module.
+    """
+    return settings.passphrase_hash is not None
+
+
+def require_token(authorization: str | None = Header(default=None)) -> None:
+    """FastAPI dependency: validate ``Authorization: Bearer <token>``.
+
+    Bypasses entirely when auth is not configured (local-dev parity with
+    the existing ``/auth/login`` 503 path). Raises 401 otherwise.
+    """
+    if not _auth_enabled():
+        return
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = authorization[len("Bearer ") :].strip()
+    if token not in _active_tokens:
+        raise HTTPException(status_code=401, detail="Invalid bearer token")
+
+
+class _GitStatusFile(_BaseModel):
+    path: str
+    status: str
+
+
+class _GitStatusResponse(_BaseModel):
+    branch: str
+    files: list[_GitStatusFile]
+    buildStatus: str | None = None
+
+
+class _GitDiffLine(_BaseModel):
+    kind: str
+    text: str
+
+
+class _GitDiffResponse(_BaseModel):
+    lines: list[_GitDiffLine]
+
+
+@app.get("/git/status", response_model=_GitStatusResponse)
+async def git_status(_: None = Depends(require_token)) -> _GitStatusResponse:
+    """Return current branch + changed files for the East Code zone.
+
+    ``buildStatus`` is reserved for a future CI poll and is always
+    ``None`` for now.
+
+    Returns 503 if no git repository is available at the configured root —
+    keeps the rest of the server alive when a deploy forgot to set
+    ``JARVIS_GIT_ROOT``.
+    """
+    if not _git_routes_available():
+        raise HTTPException(
+            status_code=503,
+            detail="git routes unavailable: set JARVIS_GIT_ROOT or run from a repo",
+        )
+    root = _git_root()
+    try:
+        branch = git_status_mod.current_branch(root)
+        files = git_status_mod.changed_files(root)
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=500, detail="git unavailable") from exc
+    return _GitStatusResponse(
+        branch=branch,
+        files=[_GitStatusFile(path=f.path, status=f.status) for f in files],
+        buildStatus=None,
+    )
+
+
+@app.get("/git/diff", response_model=_GitDiffResponse)
+async def git_diff(
+    path: str = Query(..., min_length=1),
+    _: None = Depends(require_token),
+) -> _GitDiffResponse:
+    """Return a bounded unified diff for ``path`` relative to the git root.
+
+    Path validation:
+      * ``400`` on traversal, absolute paths, or ``.git/`` access attempts
+      * ``404`` when the path is not in the current changed-files set
+        (covers gitignored files, arbitrary tracked files, missing files)
+    """
+    if not _git_routes_available():
+        raise HTTPException(
+            status_code=503,
+            detail="git routes unavailable: set JARVIS_GIT_ROOT or run from a repo",
+        )
+    root = _git_root()
+    try:
+        git_status_mod.safe_resolve(path, root)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        lines = git_status_mod.diff(path, root)
+    except git_status_mod.PathNotAllowedError as exc:
+        # Path passed traversal checks but isn't in the changed-files
+        # whitelist — surface as 404 so callers can't distinguish
+        # "doesn't exist" from "not allowed to read" by status code.
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=500, detail="git diff failed") from exc
+    return _GitDiffResponse(
+        lines=[_GitDiffLine(kind=line.kind, text=line.text) for line in lines],
+    )
+
+
 class _LoginRequest(_BaseModel):
     passphrase: str
 
@@ -254,6 +404,7 @@ async def auth_login(req: _LoginRequest) -> dict[str, str]:
         # JARVIS_PASSPHRASE_HASH is malformed or uses an unsupported algorithm.
         raise HTTPException(status_code=503, detail="Auth misconfigured") from exc
     token = secrets.token_hex(32)
+    _active_tokens.add(token)
     return {"token": token}
 
 
@@ -274,7 +425,15 @@ class _StarletteWSAdapter:
 
 
 @app.websocket("/ws")
-async def ws_endpoint(ws: WebSocket) -> None:
+async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) -> None:
+    # Browsers can't send custom headers on the WS upgrade — accept the
+    # bearer token via ?token= query string. Validate BEFORE accepting so
+    # a bad token never sees an open socket.
+    if _auth_enabled() and (token is None or token not in _active_tokens):
+        # 1008 = policy violation. The browser observes this as a normal
+        # close with the matching code (better than a TCP reset).
+        await ws.close(code=1008)
+        return
     await ws.accept()
     # Per-connection pipeline instances. Construction is cheap — heavy
     # state (Whisper model, Anthropic client) lives in module-level

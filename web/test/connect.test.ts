@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { connect } from "@/events/connect";
+import { connect, withAuthToken } from "@/events/connect";
 import { FakeWebSocket, FakeAudioContext } from "./_fakes";
 
 describe("connect", () => {
@@ -39,5 +39,33 @@ describe("connect", () => {
     await vi.advanceTimersByTimeAsync(1000);
     const result = await promise;
     expect(result.mode).toBe("demo");
+  });
+});
+
+describe("withAuthToken", () => {
+  afterEach(() => {
+    sessionStorage.removeItem("jarvis_token");
+  });
+
+  it("appends ?token= when sessionStorage has a token", () => {
+    sessionStorage.setItem("jarvis_token", "abc123");
+    expect(withAuthToken("ws://x/ws")).toBe("ws://x/ws?token=abc123");
+  });
+
+  it("appends &token= when URL already has a query string", () => {
+    sessionStorage.setItem("jarvis_token", "abc");
+    expect(withAuthToken("ws://x/ws?foo=1")).toBe(
+      "ws://x/ws?foo=1&token=abc",
+    );
+  });
+
+  it("returns the URL unchanged when no token is cached", () => {
+    sessionStorage.removeItem("jarvis_token");
+    expect(withAuthToken("ws://x/ws")).toBe("ws://x/ws");
+  });
+
+  it("url-encodes the token (defense against weird storage)", () => {
+    sessionStorage.setItem("jarvis_token", "a b/c");
+    expect(withAuthToken("ws://x/ws")).toBe("ws://x/ws?token=a%20b%2Fc");
   });
 });
