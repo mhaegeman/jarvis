@@ -49,3 +49,29 @@ describe("CommandHistory integrates with stt.final (unit check)", () => {
     expect(CommandHistory.recent()[0]).toBe(cmd);
   });
 });
+
+describe("CommandHistory tolerates corrupted localStorage", () => {
+  it("returns [] when stored value is a JSON object (not array)", () => {
+    localStorage.setItem("jarvis_recent_commands", JSON.stringify({ foo: "bar" }));
+    expect(CommandHistory.recent()).toEqual([]);
+  });
+
+  it("returns [] when stored value is a JSON string (not array)", () => {
+    localStorage.setItem("jarvis_recent_commands", JSON.stringify("legacy data"));
+    expect(CommandHistory.recent()).toEqual([]);
+  });
+
+  it("filters out non-string elements from a mixed array", () => {
+    localStorage.setItem(
+      "jarvis_recent_commands",
+      JSON.stringify(["valid", 42, null, "also valid", { x: 1 }]),
+    );
+    expect(CommandHistory.recent()).toEqual(["valid", "also valid"]);
+  });
+
+  it("push() works after recovering from a non-array stored value", () => {
+    localStorage.setItem("jarvis_recent_commands", JSON.stringify({ foo: "bar" }));
+    CommandHistory.push("new command");
+    expect(CommandHistory.recent()).toEqual(["new command"]);
+  });
+});

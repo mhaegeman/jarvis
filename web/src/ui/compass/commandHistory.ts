@@ -4,7 +4,10 @@ const MAX_ENTRIES = 8;
 function load(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((e): e is string => typeof e === "string");
   } catch {
     return [];
   }
