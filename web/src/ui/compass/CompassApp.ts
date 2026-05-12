@@ -1,6 +1,7 @@
 import type { Surface } from "@/router";
 import { store, events, mic, ensureMic, stopMicStream, tryTransition, log } from "@/main";
-import { mapCalendarEntries, mapSystem, mapTasks, STUB_CODE_FILES, STUB_NOTIFS } from "@/compass/types";
+import { mapCalendarEntries, mapSystem, mapTasks, STUB_CODE_FILES } from "@/compass/types";
+import { NotifManager } from "./notifManager";
 import { Topbar } from "./Topbar";
 import { Bottombar } from "./Bottombar";
 import { OrreryCore } from "./OrreryCore";
@@ -51,6 +52,7 @@ export function createCompassApp(): Surface {
 
   // Notification chips (viewport-positioned, relative to disc centre)
   const notifRing = new NotifRing(app);
+  const notifManager = new NotifManager();
 
   // Voice dock (shows while Space is held)
   const voiceDock = new VoiceDock(disc);
@@ -220,7 +222,14 @@ export function createCompassApp(): Surface {
       eastCode.render(STUB_CODE_FILES);
       southSys.render(mapSystem(s.panelData.system, s.panelData.memory, uptime));
       westTasks.render(mapTasks(s.panelData.tasks));
-      notifRing.render(STUB_NOTIFS);
+      notifRing.render(
+        notifManager.update({
+          calendar: s.panelData.calendar.entries,
+          tasks: s.panelData.tasks,
+          memory: s.panelData.memory,
+          now,
+        }),
+      );
     }
 
     // Zen mode sync

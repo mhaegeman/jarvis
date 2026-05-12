@@ -126,13 +126,6 @@ export const STUB_CODE_FILES: CompassCodeFile[] = [
   { group: "added",    name: "src/styles/compass.css",      delta: "+312 / −0", active: false },
 ];
 
-// TODO: wire CompassNotif[] from unified notification inbox (calendar, tasks, system, CI).
-// Initial angles hand-tuned to diagonal alleys; production should assign by source quadrant + jitter.
-export const STUB_NOTIFS: CompassNotif[] = [
-  { id: "n1", angle: -52, text: "build #482 ✓", kbd: "Ctrl 1", warm: false, when: "2m ago", preview: "all green · 14.2s · main · ready to deploy" },
-  { id: "n2", angle: -38, text: "design review in 14m", kbd: "Ctrl 2", warm: true,  when: "14m",    preview: "w/ Harsh, Karoline, Fabio · room not booked" },
-  { id: "n3", angle:  42, text: "immer migration done", kbd: "Ctrl 3", warm: false, when: "8m ago", preview: "store.ts migrated · 4 tests added · ready to review" },
-  { id: "n4", angle:  58, text: "context 87%", kbd: "Ctrl 4", warm: true,  when: "now",    preview: "87K / 200K tokens used — consider compacting" },
-  { id: "n5", angle: 138, text: "cpu load 0.42", kbd: "Ctrl 5", warm: false, when: "live",   preview: "load avg 0.42 · 1 core · 14.1GB free RAM" },
-  { id: "n6", angle:-138, text: "stt latency 380ms", kbd: "Ctrl 6", warm: false, when: "live", preview: "avg 380ms · p95 640ms · last 5 turns" },
-];
+// CompassNotif[] is now produced live by `NotifManager` (see ui/compass/notifManager.ts)
+// from calendar entries, tasks state transitions, and context budget.
+// Build/CI source intentionally deferred — needs an external poller.
