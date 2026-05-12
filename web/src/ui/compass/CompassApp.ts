@@ -1,7 +1,7 @@
 import type { Surface } from "@/router";
 import { store, events, mic, ensureMic, stopMicStream, tryTransition, log } from "@/main";
 import { mapCalendarEntries, mapSystem, mapTasks, STUB_NOTIFS } from "@/compass/types";
-import { fetchGitStatus, fetchGitDiff, type GitStatus } from "@/api/gitStatus";
+import { fetchGitStatus, fetchGitDiff, pollIfVisible, type GitStatus } from "@/api/gitStatus";
 import { Topbar } from "./Topbar";
 import { Bottombar } from "./Bottombar";
 import { OrreryCore } from "./OrreryCore";
@@ -70,10 +70,14 @@ export function createCompassApp(): Surface {
   let zenMode = false;
   let overlayEl: HTMLElement | null = null;
 
-  // Live git state — refreshed every GIT_POLL_MS by `pollGit`.
+  // Live git state — refreshed every GIT_POLL_MS by `pollGit` while the
+  // tab is visible. Hidden tabs pause polling to keep our request rate
+  // proportional to actual usage; the visibilitychange listener resumes
+  // immediately on tab focus so the East Code zone is never stale by
+  // more than one poll interval after re-focus.
   let gitState: GitStatus = { branch: "—", files: [], buildStatus: null };
   const GIT_POLL_MS = 10_000;
-  async function pollGit(): Promise<void> {
+  async function doFetch(): Promise<void> {
     try {
       gitState = await fetchGitStatus();
     } catch {
@@ -81,8 +85,13 @@ export function createCompassApp(): Surface {
       // surface an empty list. Silent to avoid log spam every 10s.
     }
   }
+  async function pollGit(): Promise<void> {
+    await pollIfVisible(doFetch);
+  }
   void pollGit();
   const gitInterval = setInterval(() => { void pollGit(); }, GIT_POLL_MS);
+  const onVisibilityChange = (): void => { void pollGit(); };
+  document.addEventListener("visibilitychange", onVisibilityChange);
 
   function closeOverlay(): void {
     overlayEl?.remove();
@@ -261,6 +270,7 @@ export function createCompassApp(): Surface {
       cancelAnimationFrame(rafId);
       if (driftInterval !== null) clearInterval(driftInterval);
       clearInterval(gitInterval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
       topbar.destroy();

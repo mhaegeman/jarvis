@@ -4,6 +4,7 @@ import {
   fetchGitDiff,
   mapStatusGroup,
   toCompassFiles,
+  pollIfVisible,
 } from "@/api/gitStatus";
 
 const ok = (body: unknown): Response =>
@@ -104,5 +105,90 @@ describe("fetchGitDiff", () => {
     };
     await fetchGitDiff("src/has space.ts", "", stub);
     expect(captured).toContain("path=src%2Fhas%20space.ts");
+  });
+
+  it("forwards a truncation-marker line untouched", async () => {
+    const stub: typeof fetch = async () =>
+      ok({
+        lines: [
+          { kind: "+", text: "x" },
+          { kind: "…", text: "diff truncated at 200 lines" },
+        ],
+      });
+    const out = await fetchGitDiff("a.ts", "", stub);
+    expect(out[1].kind).toBe("…");
+    expect(out[1].text).toMatch(/truncated/);
+  });
+});
+
+describe("pollIfVisible", () => {
+  it("runs the poll when the tab is visible", async () => {
+    let called = 0;
+    const ran = await pollIfVisible(async () => {
+      called++;
+    }, "visible");
+    expect(called).toBe(1);
+    expect(ran).toBe(true);
+  });
+
+  it("skips the poll when the tab is hidden", async () => {
+    let called = 0;
+    const ran = await pollIfVisible(async () => {
+      called++;
+    }, "hidden");
+    expect(called).toBe(0);
+    expect(ran).toBe(false);
+  });
+
+  it("treats 'prerender' as not-visible", async () => {
+    let called = 0;
+    const ran = await pollIfVisible(
+      async () => {
+        called++;
+      },
+      "prerender" as DocumentVisibilityState,
+    );
+    expect(called).toBe(0);
+    expect(ran).toBe(false);
+  });
+});
+
+describe("authorization", () => {
+  it("sends Authorization: Bearer <token> on fetchGitStatus when a token is cached", async () => {
+    sessionStorage.setItem("jarvis_token", "tok123");
+    let seenAuth = "";
+    const stub: typeof fetch = async (_input, init) => {
+      const headers = new Headers(init?.headers);
+      seenAuth = headers.get("Authorization") ?? "";
+      return ok({ branch: "main", files: [], buildStatus: null });
+    };
+    await fetchGitStatus("", stub);
+    expect(seenAuth).toBe("Bearer tok123");
+    sessionStorage.removeItem("jarvis_token");
+  });
+
+  it("sends Authorization on fetchGitDiff when a token is cached", async () => {
+    sessionStorage.setItem("jarvis_token", "tok456");
+    let seenAuth = "";
+    const stub: typeof fetch = async (_input, init) => {
+      const headers = new Headers(init?.headers);
+      seenAuth = headers.get("Authorization") ?? "";
+      return ok({ lines: [] });
+    };
+    await fetchGitDiff("a.ts", "", stub);
+    expect(seenAuth).toBe("Bearer tok456");
+    sessionStorage.removeItem("jarvis_token");
+  });
+
+  it("does not send Authorization when no token is cached", async () => {
+    sessionStorage.removeItem("jarvis_token");
+    let seenAuth: string | null = null;
+    const stub: typeof fetch = async (_input, init) => {
+      const headers = new Headers(init?.headers);
+      seenAuth = headers.get("Authorization");
+      return ok({ branch: "main", files: [], buildStatus: null });
+    };
+    await fetchGitStatus("", stub);
+    expect(seenAuth).toBeNull();
   });
 });
