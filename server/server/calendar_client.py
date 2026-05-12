@@ -45,6 +45,13 @@ def project_events(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         end = dt.datetime.fromisoformat(end_dt)
         title = (ev.get("summary") or "").strip() or "(no title)"
         duration_min = max(0, int((end - start).total_seconds() // 60))
+        raw_attendees: list[dict[str, Any]] = ev.get("attendees") or []
+        attendees = [
+            a.get("displayName") or a.get("email") or ""
+            for a in raw_attendees
+            if a.get("displayName") or a.get("email")
+        ]
+        room: str | None = ev.get("location") or None
         out.append(
             (
                 start,
@@ -52,6 +59,8 @@ def project_events(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "time": start.strftime("%H:%M"),
                     "title": title,
                     "durationMin": duration_min,
+                    "attendees": attendees,
+                    "room": room,
                 },
             )
         )
