@@ -50,4 +50,27 @@ describe("CalendarTakeover", () => {
     );
     expect(el.innerHTML).not.toContain("<img src=x");
   });
+
+  it("tolerates legacy entries missing attendees/room fields (no throw)", () => {
+    // Simulate a mixed-version rollout: backend sends an entry without
+    // the new attendees/room keys. wsEventSource's unchecked cast lets
+    // the entry through; the overlay must not throw on .length access.
+    const legacyEntry = {
+      time: "14:00",
+      title: "Old-format Event",
+      dur: "60m",
+      state: "now",
+    } as unknown as CompassCalendarEntry;
+    expect(() => buildCalendarTakeover([legacyEntry], () => {})).not.toThrow();
+    const el = buildCalendarTakeover([legacyEntry], () => {});
+    expect(el.textContent).toContain("no details");
+    expect(el.textContent).toContain("Old-format Event");
+  });
+
+  it("tolerates non-array attendees (e.g. undefined → no throw, shows no details)", () => {
+    const malformed = makeEntry({ attendees: undefined as unknown as string[], room: null });
+    expect(() => buildCalendarTakeover([malformed], () => {})).not.toThrow();
+    const el = buildCalendarTakeover([malformed], () => {});
+    expect(el.textContent).toContain("no details");
+  });
 });

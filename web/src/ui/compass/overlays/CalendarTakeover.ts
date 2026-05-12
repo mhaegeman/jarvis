@@ -27,13 +27,18 @@ export function buildCalendarTakeover(
     ? `now · ${current.time}`
     : `in ${current.dur} · ${current.time}`;
 
-  // Build the "who" line: attendees list + room, or "no details"
+  // Build the "who" line: attendees list + room, or "no details".
+  // Defensive defaults guard against legacy backends or malformed messages
+  // that omit the new attendees/room fields (the wsEventSource cast is
+  // unchecked, so missing keys reach here as undefined).
+  const attendees = Array.isArray(current.attendees) ? current.attendees : [];
+  const room = typeof current.room === "string" ? current.room : null;
   const whoLines: string[] = [];
-  if (current.attendees.length > 0) {
-    whoLines.push(current.attendees.map(escHtml).join(" · "));
+  if (attendees.length > 0) {
+    whoLines.push(attendees.map(escHtml).join(" · "));
   }
-  if (current.room) {
-    whoLines.push(escHtml(current.room));
+  if (room) {
+    whoLines.push(escHtml(room));
   }
   const whoText = whoLines.length > 0 ? whoLines.join(" · ") : "no details";
 
