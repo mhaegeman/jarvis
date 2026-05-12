@@ -1,0 +1,51 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { CommandHistory } from "@/ui/compass/commandHistory";
+
+beforeEach(() => localStorage.clear());
+
+describe("CommandHistory.recent()", () => {
+  it("returns empty array when nothing stored", () => {
+    expect(CommandHistory.recent()).toEqual([]);
+  });
+
+  it("returns previously pushed commands newest-first", () => {
+    CommandHistory.push("first command");
+    CommandHistory.push("second command");
+    expect(CommandHistory.recent()).toEqual(["second command", "first command"]);
+  });
+});
+
+describe("CommandHistory.push()", () => {
+  it("deduplicates: pushes existing entry to front instead of duplicating", () => {
+    CommandHistory.push("hello");
+    CommandHistory.push("world");
+    CommandHistory.push("hello");
+    expect(CommandHistory.recent()).toEqual(["hello", "world"]);
+  });
+
+  it("trims to 8 entries", () => {
+    for (let i = 0; i < 12; i++) CommandHistory.push(`command ${i}`);
+    expect(CommandHistory.recent().length).toBe(8);
+  });
+
+  it("persists across module calls (simulating page reload via fresh read)", () => {
+    CommandHistory.push("persistent command");
+    const raw = localStorage.getItem("jarvis_recent_commands");
+    const parsed: string[] = raw ? JSON.parse(raw) : [];
+    expect(parsed).toContain("persistent command");
+  });
+
+  it("ignores blank strings", () => {
+    CommandHistory.push("");
+    CommandHistory.push("   ");
+    expect(CommandHistory.recent()).toEqual([]);
+  });
+});
+
+describe("CommandHistory integrates with stt.final (unit check)", () => {
+  it("push + recent round-trip works for a real voice command string", () => {
+    const cmd = "Brief me on today's agenda";
+    CommandHistory.push(cmd);
+    expect(CommandHistory.recent()[0]).toBe(cmd);
+  });
+});
