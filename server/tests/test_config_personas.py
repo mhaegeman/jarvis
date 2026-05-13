@@ -63,3 +63,9 @@ def test_learning_default_on(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("JARVIS_LEARNING", raising=False)
     s = _fresh_settings(monkeypatch)
     assert s.learning_enabled is True
+
+
+def test_persona_refresh_turns_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("JARVIS_PERSONA_REFRESH_TURNS", raising=False)
+    s = _fresh_settings(monkeypatch)
+    assert s.persona_refresh_turns == 20
