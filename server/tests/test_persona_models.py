@@ -7,7 +7,6 @@ from pydantic import ValidationError
 
 from server.personas.models import AgentBackend, ModelTier, Persona
 
-
 # ─── ModelTier ────────────────────────────────────────────────────────
 
 

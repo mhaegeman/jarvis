@@ -6,7 +6,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, PositiveInt, model_validator
 
-
 PersonaId = Literal["jarvis", "pepper"]
 Provider = Literal["anthropic", "openai"]
 TierName = Literal["fast", "balanced", "deep"]
@@ -57,7 +56,7 @@ class Persona(BaseModel):
     specialty_profile: str = Field(min_length=1, max_length=1800)
 
     @model_validator(mode="after")
-    def _require_three_tiers(self) -> "Persona":
+    def _require_three_tiers(self) -> Persona:
         expected = {"fast", "balanced", "deep"}
         missing = expected - set(self.tiers.keys())
         if missing:
