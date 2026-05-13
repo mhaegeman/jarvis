@@ -77,12 +77,17 @@ class PersonaRegistry:
         return [pid for pid in order if pid in self._personas]
 
     def update_profile(self, persona_id: PersonaId, new_profile: str) -> None:
-        """Used by the Phase 5 Profile Refresher to overwrite the live blurb."""
+        """Used by the Phase 5 Profile Refresher to overwrite the live blurb.
+
+        Re-validates through `model_validate` so the `specialty_profile`
+        bounds (non-empty, ≤1800 chars) actually fire. Pydantic v2's
+        `model_copy(update=...)` skips validators, which would let the
+        Refresher silently store an oversized / empty profile and poison
+        the Dispatcher prompt.
+        """
         persona = self.get(persona_id)
-        # Pydantic models are frozen by default in v2 only when configured;
-        # ours are not. Replace via model_copy(update=...) to preserve validation.
-        self._personas[persona_id] = persona.model_copy(
-            update={"specialty_profile": new_profile}
+        self._personas[persona_id] = type(persona).model_validate(
+            {**persona.model_dump(), "specialty_profile": new_profile}
         )
 
 

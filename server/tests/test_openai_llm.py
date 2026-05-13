@@ -41,6 +41,17 @@ def test_parse_prefix_unknown_passes_through() -> None:
     assert content == "/banana split"
 
 
+def test_parse_prefix_case_insensitive() -> None:
+    """Match the dispatcher's case-folding so /CODEX and /Gpt route correctly."""
+    model, content = parse_prefix("/CODEX fix tests", default="gpt-5-mini")
+    assert model == "gpt-5-codex"
+    assert content == "fix tests"
+
+    model, content = parse_prefix("/Gpt explain", default="gpt-5-mini")
+    assert model == "gpt-5"
+    assert content == "explain"
+
+
 # ─── max_tokens_for ───────────────────────────────────────────────────
 
 

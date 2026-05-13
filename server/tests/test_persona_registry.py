@@ -118,6 +118,56 @@ def test_registry_available_ids_lists_only_jarvis() -> None:
     assert reg.available_ids() == ["jarvis"]
 
 
+# ─── update_profile re-validates ──────────────────────────────────────
+
+
+def test_update_profile_rejects_empty_string() -> None:
+    """Pydantic v2's model_copy(update=...) skips validation. update_profile
+    must not: the Phase 5 Profile Refresher will call this seam, and a
+    malformed refresh output (empty or oversized) needs to fail fast rather
+    than silently poison the Dispatcher prompt.
+    """
+    from pydantic import ValidationError
+
+    reg = PersonaRegistry.build(
+        warmth="subtle",
+        anthropic_available=True,
+        openai_available=False,
+        codex_binary=None,
+        codex_workdir=None,
+    )
+    with pytest.raises(ValidationError):
+        reg.update_profile("jarvis", "")
+
+
+def test_update_profile_rejects_oversized_profile() -> None:
+    from pydantic import ValidationError
+
+    reg = PersonaRegistry.build(
+        warmth="subtle",
+        anthropic_available=True,
+        openai_available=False,
+        codex_binary=None,
+        codex_workdir=None,
+    )
+    # Persona caps specialty_profile at 1800 chars.
+    too_long = "x" * 1801
+    with pytest.raises(ValidationError):
+        reg.update_profile("jarvis", too_long)
+
+
+def test_update_profile_accepts_valid_profile() -> None:
+    reg = PersonaRegistry.build(
+        warmth="subtle",
+        anthropic_available=True,
+        openai_available=False,
+        codex_binary=None,
+        codex_workdir=None,
+    )
+    reg.update_profile("jarvis", "new specialty: post-Phase-5 evidence-driven blurb.")
+    assert reg.get("jarvis").specialty_profile.startswith("new specialty")
+
+
 # ─── build_registry_from_settings ─────────────────────────────────────
 
 

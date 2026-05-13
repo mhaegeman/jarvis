@@ -57,13 +57,19 @@ def max_tokens_for(model: str, base: int) -> int:
 def parse_prefix(text: str, default: str) -> tuple[str, str]:
     """Return (model_id, stripped_content).
 
+    Slash heads are matched case-insensitively to keep behaviour aligned
+    with `dialog.dispatcher._detect_slash`, which lowercases too. Without
+    this, "/CODEX fix tests" would route to Pepper at the dispatcher layer
+    but fall back to the default model here — silent inconsistency.
+
     Unrecognised prefixes pass through verbatim — matches the existing
     Claude `parse_prefix` behaviour so users can experiment without
     triggering surprise upgrades.
     """
     head, _, rest = text.partition(" ")
-    if head in PEPPER_PREFIX_MAP:
-        return PEPPER_PREFIX_MAP[head], rest.lstrip()
+    head_lower = head.lower()
+    if head_lower in PEPPER_PREFIX_MAP:
+        return PEPPER_PREFIX_MAP[head_lower], rest.lstrip()
     return default, text
 
 
