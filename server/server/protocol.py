@@ -97,20 +97,42 @@ class ServerMessage:
         return {"type": "stt.final", "text": text}
 
     @staticmethod
-    def llm_token(delta: str) -> dict[str, Any]:
-        return {"type": "llm.token", "delta": delta}
+    def llm_token(
+        delta: str,
+        *,
+        speaker: str | None = None,
+        segment_idx: int | None = None,
+    ) -> dict[str, Any]:
+        out: dict[str, Any] = {"type": "llm.token", "delta": delta}
+        if speaker is not None:
+            out["speaker"] = speaker
+        if segment_idx is not None:
+            out["segmentIdx"] = segment_idx
+        return out
 
     @staticmethod
     def llm_end() -> dict[str, Any]:
         return {"type": "llm.end"}
 
     @staticmethod
-    def tts_sentence(text: str, audio_id: str) -> dict[str, Any]:
-        return {
+    def llm_segment_end(*, speaker: str, segment_idx: int) -> dict[str, Any]:
+        return {"type": "llm.segment_end", "speaker": speaker, "segmentIdx": segment_idx}
+
+    @staticmethod
+    def tts_sentence(
+        text: str,
+        audio_id: str,
+        *,
+        speaker: str | None = None,
+    ) -> dict[str, Any]:
+        out: dict[str, Any] = {
             "type": "tts.sentence",
             "text": text,
             "audioId": audio_id,
         }
+        if speaker is not None:
+            out["speaker"] = speaker
+        return out
 
     @staticmethod
     def tts_end(audio_id: str) -> dict[str, Any]:
@@ -152,6 +174,20 @@ class ServerMessage:
     @staticmethod
     def ping(*, seq: int) -> dict[str, Any]:
         return {"type": "ping", "seq": seq}
+
+    @staticmethod
+    def dispatch_plan(
+        *,
+        turn_id: str,
+        segments: list[dict[str, Any]],
+        rationale: str,
+    ) -> dict[str, Any]:
+        return {
+            "type": "dispatch.plan",
+            "turnId": turn_id,
+            "segments": segments,
+            "rationale": rationale,
+        }
 
 
 def encode_server(msg: dict[str, Any]) -> str:
