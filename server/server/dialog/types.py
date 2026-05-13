@@ -13,7 +13,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, NonNegativeInt
 
-
 PersonaId = Literal["jarvis", "pepper"]
 Tier = Literal["fast", "balanced", "deep"]
 SegmentMode = Literal["chat", "codex_agent"]

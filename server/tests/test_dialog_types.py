@@ -9,7 +9,6 @@ from pydantic import ValidationError
 
 from server.dialog.types import DialogState, Outcome, Plan, Segment, TurnRef
 
-
 # ─── Segment ──────────────────────────────────────────────────────────
 
 
