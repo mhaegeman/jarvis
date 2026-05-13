@@ -111,3 +111,78 @@ def test_persona_requires_all_three_tiers() -> None:
             agent=None,
             specialty_profile="x",
         )
+
+
+# ─── Seed personas ─────────────────────────────────────────────────────
+
+
+def test_seed_jarvis_loads() -> None:
+    from server.personas.seed import build_jarvis_seed
+    p = build_jarvis_seed(warmth="subtle")
+    assert p.id == "jarvis"
+    assert p.provider == "anthropic"
+    assert p.voice == "en-US-ChristopherNeural"
+    assert "Pepper" in p.system_prompt  # Pepper is mentioned as a peer
+    assert "Miss Potts" in p.system_prompt  # warmth clause present
+
+
+def test_seed_jarvis_warmth_off_strips_clause() -> None:
+    from server.personas.seed import build_jarvis_seed
+    p = build_jarvis_seed(warmth="off")
+    assert "Miss Potts" not in p.system_prompt
+    # Still mentions Pepper as a peer (collegial baseline never removed)
+    assert "Pepper" in p.system_prompt
+
+
+def test_seed_pepper_loads() -> None:
+    from server.personas.seed import build_pepper_seed
+    p = build_pepper_seed(warmth="subtle")
+    assert p.id == "pepper"
+    assert p.provider == "openai"
+    assert p.voice == "en-US-AriaNeural"
+    assert "Jarvis" in p.system_prompt
+    assert "J." in p.system_prompt
+
+
+def test_seed_pepper_warmth_off_strips_clause() -> None:
+    from server.personas.seed import build_pepper_seed
+    p = build_pepper_seed(warmth="off")
+    assert "J." not in p.system_prompt
+    assert "Jarvis" in p.system_prompt
+
+
+def test_seed_jarvis_tiers_haiku_sonnet_opus() -> None:
+    from server.personas.seed import build_jarvis_seed
+    p = build_jarvis_seed(warmth="subtle")
+    assert p.tiers["fast"].model_id == "claude-haiku-4-5"
+    assert p.tiers["balanced"].model_id == "claude-sonnet-4-6"
+    assert p.tiers["deep"].model_id == "claude-opus-4-7"
+
+
+def test_seed_pepper_tiers_gpt5_codex() -> None:
+    from server.personas.seed import build_pepper_seed
+    p = build_pepper_seed(warmth="subtle")
+    assert p.tiers["fast"].model_id == "gpt-5-mini"
+    assert p.tiers["balanced"].model_id == "gpt-5"
+    assert p.tiers["deep"].model_id == "gpt-5-codex"
+
+
+def test_seed_pepper_has_codex_agent_backend() -> None:
+    from server.personas.seed import build_pepper_seed
+    p = build_pepper_seed(warmth="subtle", codex_binary="/usr/bin/codex", workdir="/repo")
+    assert p.agent is not None
+    assert p.agent.kind == "codex_cli"
+    assert p.agent.binary == "/usr/bin/codex"
+    assert p.agent.workdir == "/repo"
+
+
+def test_seed_pepper_agent_omitted_when_no_binary() -> None:
+    from server.personas.seed import build_pepper_seed
+    p = build_pepper_seed(warmth="subtle", codex_binary=None, workdir="/repo")
+    assert p.agent is None
+
+
+def test_seed_jarvis_never_has_agent() -> None:
+    from server.personas.seed import build_jarvis_seed
+    p = build_jarvis_seed(warmth="subtle")
+    assert p.agent is None
