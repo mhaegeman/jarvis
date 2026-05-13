@@ -10,7 +10,6 @@ from server.personas.registry import (
     build_registry_from_settings,
 )
 
-
 # ─── Construction + lookup ────────────────────────────────────────────
 
 
@@ -129,6 +128,7 @@ def test_build_registry_from_settings_with_keys(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr("shutil.which", lambda _: None)
     # Force settings reload
     import importlib
+
     import server.config as cfg
     importlib.reload(cfg)
 
@@ -142,6 +142,7 @@ def test_build_registry_from_settings_without_keys(monkeypatch: pytest.MonkeyPat
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     import importlib
+
     import server.config as cfg
     importlib.reload(cfg)
 

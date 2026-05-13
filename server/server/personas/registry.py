@@ -10,9 +10,9 @@ from __future__ import annotations
 import shutil
 from typing import Literal
 
+from server.config import Settings
 from server.personas.models import Persona
 from server.personas.seed import Warmth, build_jarvis_seed, build_pepper_seed
-
 
 PersonaId = Literal["jarvis", "pepper"]
 
@@ -41,7 +41,7 @@ class PersonaRegistry:
         openai_available: bool,
         codex_binary: str | None,
         codex_workdir: str | None,
-    ) -> "PersonaRegistry":
+    ) -> PersonaRegistry:
         """Construct a registry from feature flags + resolved Codex paths.
 
         A persona is registered only when its provider's API key is
@@ -86,7 +86,7 @@ class PersonaRegistry:
         )
 
 
-def build_registry_from_settings(settings, codex_workdir: str | None) -> PersonaRegistry:
+def build_registry_from_settings(settings: Settings, codex_workdir: str | None) -> PersonaRegistry:
     """Helper that translates Settings → PersonaRegistry.
 
     Used by `main.py` lifespan once `JARVIS_PERSONAS_ENABLED=true` (Phase 2).
@@ -96,11 +96,7 @@ def build_registry_from_settings(settings, codex_workdir: str | None) -> Persona
     openai_available = settings.openai_api_key is not None
 
     # Codex binary resolution: explicit env var beats $PATH, both optional.
-    codex_binary: str | None
-    if settings.codex_cli_path:
-        codex_binary = settings.codex_cli_path
-    else:
-        codex_binary = shutil.which("codex")
+    codex_binary: str | None = settings.codex_cli_path or shutil.which("codex")
 
     return PersonaRegistry.build(
         warmth=settings.persona_warmth,
