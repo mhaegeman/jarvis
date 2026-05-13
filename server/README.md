@@ -113,6 +113,49 @@ python -m server.cli_test  # in another; type messages, observe deltas
 
 Verify in [Anthropic's usage dashboard](https://console.anthropic.com/) that `/sonnet` and `/opus` prefixes route to the right model IDs.
 
+## Multi-model support (Phase 1 — foundations, behind a flag)
+
+Phase 1 of the multi-model build adds Pepper-flavoured plumbing without
+changing any user-visible behaviour. The new code is dormant unless
+`JARVIS_PERSONAS_ENABLED=true` is set, and even then it's not yet wired
+into the Session — that happens in Phase 2.
+
+See the design at `docs/superpowers/specs/2026-05-13-multi-model-support-design.md`.
+
+### New env vars
+
+| Var | Default | Notes |
+|---|---|---|
+| `JARVIS_PERSONAS_ENABLED` | `false` | Master feature flag. Leave off until Phase 5. |
+| `OPENAI_API_KEY` | — | Required for Pepper. Bypasses `JARVIS_` prefix (mirrors `ANTHROPIC_API_KEY`). |
+| `OPENAI_BASE_URL` | — | Optional pass-through to the OpenAI client. |
+| `JARVIS_TIER_DEFAULT_JARVIS` | `fast` | One of `fast`/`balanced`/`deep`. |
+| `JARVIS_TIER_DEFAULT_PEPPER` | `fast` | Same set. |
+| `JARVIS_DISPATCHER_MODEL` | `claude-haiku-4-5` | Router LLM (used in Phase 2). |
+| `JARVIS_PERSONA_WARMTH` | `subtle` | `subtle` or `off` — toggles the quiet-warmth clause in both prompts. |
+| `JARVIS_PERSONA_REFRESH_TURNS` | `20` | Learning-loop cadence (used in Phase 5). |
+| `JARVIS_LEARNING` | `on` | Master switch for the learning loop (used in Phase 5). |
+| `JARVIS_CODEX_CLI_PATH` | — | Optional path to the `codex` binary (used in Phase 3). |
+| `JARVIS_CODEX_APPROVAL` | `auto-low` | `auto-low`/`manual`/`never` (Phase 3). |
+| `JARVIS_CODEX_SANDBOX` | `workspace-write` | `read-only`/`workspace-write`/`full-access` (Phase 3). |
+| `JARVIS_CODEX_WORKDIR` | — | Overrides `JARVIS_GIT_ROOT` for the Codex agent specifically (Phase 3). |
+
+### Phase 1 quick check
+
+```bash
+cd server
+python -m pytest -q          # all green, including the new tests
+ruff check . && mypy         # clean
+
+# With the flag on, the registry can be constructed (still no Session wiring):
+ANTHROPIC_API_KEY=fake OPENAI_API_KEY=fake JARVIS_PERSONAS_ENABLED=true \
+  python -c "from server.personas import build_registry_from_settings; \
+             from server.config import settings; \
+             r = build_registry_from_settings(settings, codex_workdir=None); \
+             print(r.available_ids())"
+# Expected: ['jarvis', 'pepper']
+```
+
 ## Configuration
 
 Phase 1 reads env vars (prefix `JARVIS_`):
