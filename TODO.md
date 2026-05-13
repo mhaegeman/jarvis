@@ -6,29 +6,10 @@ Items are grouped by area. Each entry names the stub, the file it lives in, and 
 
 ## Frontend — Compass Zones & Overlays
 
-### Code zone shows hardcoded stub files
-**Files:** `web/src/compass/types.ts:119`, `web/src/ui/compass/zones/EastCode.ts`  
-`STUB_CODE_FILES` is a static array of three filenames. The diff pane in CodeFocus renders hardcoded `+/-` lines.  
-**To implement:** Wire `simple-git` (or a backend `/git/status` endpoint) to return the active branch, changed files, and per-file diffs. Interface: `GitCodeSource { branch: string; files: CompassCodeFile[]; buildStatus: "ok" | "fail" | "running" }`.
-
-### Real git diff not rendered in CodeFocus overlay
-**File:** `web/src/ui/compass/overlays/CodeFocus.ts:31`  
-The diff pane always shows the same three hardcoded lines regardless of which file is selected.  
-**To implement:** Fetch `DiffLine[]` per file from the git source above and render them dynamically. Interface: `GitCodeSource.diff(file: string): DiffLine[]`.
-
 ### Task rows have no individual task detail
 **File:** `web/src/compass/types.ts:100`  
 `PanelDataTasks` only carries aggregate counts (active / queued / done). The mapper synthesises placeholder rows with `"step — / —"` and `pct: 50`.  
 **To implement:** Expose individual task records from the agent runtime (Temporal, BullMQ, or Jarvis's own tasks table). Interface: `TaskDetail { id, label, state: "run"|"queue"|"done", step: number, totalSteps: number, pct: number }`.
-
-### Notification chips are a static stub array
-**Files:** `web/src/compass/types.ts:127`, `web/src/ui/compass/CompassApp.ts:218`  
-`STUB_NOTIFS` is six hardcoded chips that never change and are never dismissed persistently.  
-**To implement:** Replace with a unified notification inbox fed by real sources:
-- **Calendar** (ready to wire): emit a chip when a calendar event is ≤ 5 min away, using the existing `calendar.update` WebSocket event.
-- **Tasks** (ready to wire): emit on task state transition (queue → run, run → done).
-- **System** (ready to wire): emit when context usage > 80 % or CPU load > threshold, from `state.snapshot`.
-- **Build / CI** (needs external webhook): subscribe to a webhook from GitHub Actions / your CI provider. Interface: `NotifSource.build(payload: CIWebhookPayload): CompassNotif`.
 
 ---
 
@@ -55,11 +36,13 @@ Picks a reply from `scenarios.py` by coarse keyword matching. Ignores conversati
 
 ---
 
-## Backend — Missing Endpoints
+## Notifications — deferred sources
 
-### No `/git/status` or `/git/diff` endpoint
-The EastCode zone and CodeFocus overlay need live git data.  
-**To implement:** Add routes (or extend the WebSocket `state.snapshot`) to expose `{ branch, files: CompassCodeFile[], buildStatus }` and per-file diffs. `simple-git` (Node side) or `pygit2` / `gitpython` (Python side) can drive this.
+The notification chip system (PR #27) ships with three live sources (calendar ≤5 min, task transitions, context budget > 80%). One source was intentionally deferred:
+
+### Build / CI notification source
+**File:** `web/src/ui/compass/notifManager.ts`  
+**To implement:** Subscribe to a webhook from GitHub Actions (or whatever CI is wired). On failed/passed workflow runs, emit a chip via the existing manager. Interface: `NotifSource.build(payload: CIWebhookPayload): CompassNotif`. Needs a small backend route (`POST /webhooks/ci`) that the chip manager polls or subscribes to via WS.
 
 ---
 
@@ -68,3 +51,5 @@ The EastCode zone and CodeFocus overlay need live git data.
 - 2026-05-12: Voice dock recent commands persisted to `localStorage` via `CommandHistory` (PR #23)
 - 2026-05-12: `POST /auth/login` with argon2 verification + frontend wiring (PR #24)
 - 2026-05-12: Calendar attendees + room forwarded to `CalendarTakeover` (PR #25)
+- 2026-05-12: Notification chips live from calendar / tasks / system sources, with DOM reconciliation + click-to-dismiss persistence (PR #27)
+- 2026-05-12: `/git/status` + `/git/diff` endpoints with Bearer-token auth (consumes `/auth/login` tokens); EastCode zone + CodeFocus overlay wired to live git data; WebSocket `/ws` now auth-gated when a passphrase hash is configured (PR #29)
