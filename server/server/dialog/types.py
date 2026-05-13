@@ -26,6 +26,10 @@ class Segment(BaseModel):
 
     `handoff_style` is set only on non-terminal segments and tells the
     persona to end with a `[handoff:<persona>:<reason>]` tag (see spec §4.4).
+
+    `mode=codex_agent` is accepted for any speaker at the pydantic layer so
+    historical plans can round-trip. The Dispatcher (Task 7+) is the layer
+    that enforces "codex_agent only for Pepper" semantically.
     """
 
     model_config = {"extra": "forbid"}
@@ -47,6 +51,8 @@ class Plan(BaseModel):
     model_config = {"extra": "forbid"}
 
     segments: list[Segment] = Field(min_length=1, max_length=3)
+    # Bounded so the dispatch_log row stays small; the Dispatcher's
+    # prompt instructs "one sentence" (spec §5.2).
     rationale: str = Field(min_length=1, max_length=400)
 
 
@@ -56,8 +62,8 @@ class TurnRef(BaseModel):
     model_config = {"extra": "forbid"}
 
     speaker: PersonaId
-    user_text: str = Field(max_length=2000)
-    assistant_text: str = Field(max_length=4000)
+    user_text: str = Field(min_length=1, max_length=2000)
+    assistant_text: str = Field(min_length=1, max_length=4000)
 
 
 class DialogState(BaseModel):
