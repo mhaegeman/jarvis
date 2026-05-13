@@ -337,7 +337,7 @@ class LLMBackedDispatcher:
         except (_PlanFromLLMError, anthropic.APIError) as exc:
             logger.warning("LLMBackedDispatcher fallback: %s", exc)
             plan = self._rule_based.dispatch(text, state, now_ts=now_ts)
-            return plan.model_copy(  # type: ignore[no-any-return]
+            return plan.model_copy(
                 update={"rationale": f"{plan.rationale}; fallback ({exc.__class__.__name__})"},
             )
 
@@ -355,7 +355,7 @@ class LLMBackedDispatcher:
         for block in msg.content:
             if getattr(block, "type", None) == "tool_use":
                 try:
-                    return Plan.model_validate(block.input)  # type: ignore[no-any-return]
+                    return Plan.model_validate(block.input)
                 except ValidationError as exc:
                     raise _PlanFromLLMError(f"schema violation: {exc}") from exc
         raise _PlanFromLLMError("no tool_use block in LLM response")
