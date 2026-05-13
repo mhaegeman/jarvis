@@ -6,6 +6,7 @@ and profile_refresher.py (learning loop).
 """
 
 from server.dialog.dispatcher import LLMBackedDispatcher, RuleBasedDispatcher
+from server.dialog.manager import DialogManager
 from server.dialog.types import (
     DialogState,
     Outcome,
@@ -15,6 +16,7 @@ from server.dialog.types import (
 )
 
 __all__ = [
+    "DialogManager",
     "DialogState",
     "LLMBackedDispatcher",
     "Outcome",
