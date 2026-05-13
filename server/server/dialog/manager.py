@@ -106,12 +106,20 @@ class DialogManager:
         self._tts = tts
         self._state = DialogState()
         self._outcomes: list[Outcome] = []
+        # Concatenated text of every segment that produced tokens in the
+        # most recent turn. Session reads this to append to its `_history`
+        # so multi-turn chats keep context.
+        self._last_assistant_text: str = ""
 
     def current_state(self) -> DialogState:
         return self._state
 
     def last_outcome(self) -> Outcome | None:
         return self._outcomes[-1] if self._outcomes else None
+
+    def last_assistant_text(self) -> str:
+        """The concatenated spoken text from the most recent turn (all segments)."""
+        return self._last_assistant_text
 
     async def handle_turn(
         self,
@@ -131,22 +139,35 @@ class DialogManager:
             rationale=plan.rationale,
         ))
 
+        # Reset per-turn buffers BEFORE the segment loop so Session sees only
+        # this turn's output.
+        self._last_assistant_text = ""
+        assistant_chunks: list[str] = []
+        last_streamed_speaker: PersonaId | None = None
+
         outcome = Outcome()
         try:
             for idx, segment in enumerate(plan.segments):
+                seg_text: list[str] = []
                 ok = await self._run_segment(
                     ws, idx=idx, segment=segment, history=history, plan=plan,
+                    text_buf=seg_text,
                 )
-                if not ok:
+                if seg_text:
+                    assistant_chunks.extend(seg_text)
+                if ok:
+                    # Track the LAST speaker who actually produced tokens —
+                    # not the last planned segment, which may never have run.
+                    last_streamed_speaker = segment.speaker
+                else:
                     break
             outcome = outcome.model_copy(update={"completed": True})
         finally:
             await self._send(ws, ServerMessage.llm_end())
-            # Sticky-speaker update: the LAST speaker who actually streamed.
-            last_speaker = self._last_streamed_speaker(plan, outcome)
-            if last_speaker is not None:
+            self._last_assistant_text = "".join(assistant_chunks)
+            if last_streamed_speaker is not None:
                 self._state = DialogState(
-                    last_speaker=last_speaker,
+                    last_speaker=last_streamed_speaker,
                     last_turn_ts=time.time(),
                     recent_turns=self._state.recent_turns,  # Phase 2: leave compact
                     warmth_budget=self._state.warmth_budget,
@@ -164,8 +185,14 @@ class DialogManager:
         segment: Segment,
         history: list[dict[str, str]],
         plan: Plan,
+        text_buf: list[str] | None = None,
     ) -> bool:
-        """Run a single segment. Returns False on failure (caller halts plan)."""
+        """Run a single segment. Returns False on failure (caller halts plan).
+
+        When `text_buf` is provided, every streamed token delta is also appended
+        to it so the caller can reconstruct the assistant's spoken text without
+        re-parsing WS messages.
+        """
         if not self._registry.is_available(segment.speaker):
             logger.warning("segment %d: persona %s unavailable; skipping",
                            idx, segment.speaker)
@@ -222,6 +249,8 @@ class DialogManager:
                     extra_context=extra_context,
                 ):
                     sent_anything = True
+                    if text_buf is not None:
+                        text_buf.append(delta)
                     await self._send(ws, ServerMessage.llm_token(
                         delta, speaker=segment.speaker, segment_idx=idx,
                     ))
@@ -286,9 +315,6 @@ class DialogManager:
 
     async def _send(self, ws: _WSLike, payload: dict[str, Any]) -> None:
         await ws.send_text(encode_server(payload))
-
-    def _last_streamed_speaker(self, plan: Plan, outcome: Outcome) -> PersonaId | None:
-        return plan.segments[-1].speaker if plan.segments else None
 
 
 def plan_text_for_segment(plan: Plan, idx: int, persona: Persona) -> str:

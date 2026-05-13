@@ -204,3 +204,22 @@ async def test_falls_back_when_llm_returns_too_many_segments() -> None:
     d = LLMBackedDispatcher(client=client, model="claude-haiku-4-5")
     plan = await d.dispatch("Should we refactor X?", DialogState())
     assert "fallback" in plan.rationale.lower()
+
+
+# ── Regression test for Codex review on PR #32 ──────────────────────
+
+
+@pytest.mark.asyncio
+async def test_dispatcher_falls_back_when_client_is_none() -> None:
+    """When ANTHROPIC_API_KEY is missing but personas_enabled=true, main.py
+    constructs LLMBackedDispatcher with client=None. Non-fast-path turns
+    must NOT raise AttributeError — they must fall back to rule-based.
+    """
+    d = LLMBackedDispatcher(client=None, model="claude-haiku-4-5")
+    plan = await d.dispatch(
+        "Should we refactor the dispatcher?",  # domain keyword → non-fast-path
+        DialogState(),
+    )
+    assert plan.segments[0].speaker == "jarvis"
+    assert "fallback" in plan.rationale.lower()
+    assert "no-llm-client" in plan.rationale

@@ -323,11 +323,20 @@ class Session:
     async def _do_llm_and_tts(self, user_text: str) -> None:
         # Phase 2 path: delegate to the DialogManager when personas are enabled.
         if self._dialog_manager is not None:
+            # Append the user turn FIRST so the manager sees up-to-date
+            # history (the legacy path below does this too). After the
+            # turn completes, pull the assistant's spoken text from the
+            # manager and append it as the assistant turn — keeps multi-
+            # turn chats from going stateless.
+            self._history.append({"role": "user", "content": user_text})
             await self._dialog_manager.handle_turn(
                 self._ws,
                 text=user_text,
                 history=list(self._history),
             )
+            assistant_text = self._dialog_manager.last_assistant_text()
+            if assistant_text:
+                self._history.append({"role": "assistant", "content": assistant_text})
             return
 
         from .memory.context import MemoryContext

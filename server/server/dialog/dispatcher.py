@@ -331,6 +331,15 @@ class LLMBackedDispatcher:
             if not _utterance_has_domain_keyword(rest):
                 return self._rule_based.dispatch(text, state, now_ts=now_ts)
 
+        # If we have no LLM client (ANTHROPIC_API_KEY missing at startup but
+        # personas_enabled=true), every non-fast-path turn must still produce
+        # a Plan. Fall back to rule-based instead of dereferencing None.
+        if self._client is None:
+            plan = self._rule_based.dispatch(text, state, now_ts=now_ts)
+            return plan.model_copy(
+                update={"rationale": f"{plan.rationale}; fallback (no-llm-client)"},
+            )
+
         # Otherwise call the LLM. On any failure, fall back.
         try:
             return await self._call_llm(text)
