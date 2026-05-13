@@ -127,6 +127,11 @@ class TestParsePrefix:
         # Unknown slash-prefix is not stripped; full text routed to default.
         assert parse_prefix("/unknown foo", default=HAIKU) == (HAIKU, "/unknown foo")
 
+    def test_case_insensitive_prefix(self):
+        # Matches the dispatcher's case-folding so /OPUS and /Sonnet route correctly.
+        assert parse_prefix("/OPUS design X", default=HAIKU) == (OPUS, "design X")
+        assert parse_prefix("/Sonnet compare", default=HAIKU) == (SONNET, "compare")
+
     def test_prefix_with_extra_whitespace(self):
         # Multiple spaces between prefix and content collapse.
         assert parse_prefix("/sonnet   hi there", default=HAIKU) == (SONNET, "hi there")

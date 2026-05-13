@@ -53,10 +53,15 @@ def max_tokens_for(model: str, base: int) -> int:
 
 
 def parse_prefix(text: str, default: str) -> tuple[str, str]:
-    """Return (model_id, stripped_content). If no recognized prefix, return (default, text)."""
+    """Return (model_id, stripped_content). If no recognized prefix, return (default, text).
+
+    Slash heads are matched case-insensitively to align with the
+    dispatcher's case-folding (`dialog.dispatcher._detect_slash`).
+    """
     head, _, rest = text.partition(" ")
-    if head in PREFIX_MAP:
-        return PREFIX_MAP[head], rest.lstrip()
+    head_lower = head.lower()
+    if head_lower in PREFIX_MAP:
+        return PREFIX_MAP[head_lower], rest.lstrip()
     return default, text
 
 
