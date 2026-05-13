@@ -11,7 +11,7 @@ import itertools
 import logging
 import secrets
 from collections.abc import AsyncIterator, MutableMapping
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from starlette.websockets import WebSocketDisconnect
 
@@ -35,6 +35,9 @@ from .protocol import (
     encode_server,
 )
 from .state import StateEmitter
+
+if TYPE_CHECKING:
+    from .dialog.manager import DialogManager
 
 log = logging.getLogger(__name__)
 
@@ -76,6 +79,7 @@ class Session:
         recent_summary_refresh_turns: int = 5,
         recent_summary_window: int = 20,
         facts_cap: int = 50,
+        dialog_manager: DialogManager | None = None,
     ) -> None:
         self._ws = ws
         self._stt = stt
@@ -112,6 +116,7 @@ class Session:
         # the ws_endpoint's finally both call cleanup(), and consolidation is
         # non-deterministic + bills the Anthropic API.
         self._consolidated = False
+        self._dialog_manager = dialog_manager
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
@@ -316,6 +321,15 @@ class Session:
         return final
 
     async def _do_llm_and_tts(self, user_text: str) -> None:
+        # Phase 2 path: delegate to the DialogManager when personas are enabled.
+        if self._dialog_manager is not None:
+            await self._dialog_manager.handle_turn(
+                self._ws,
+                text=user_text,
+                history=list(self._history),
+            )
+            return
+
         from .memory.context import MemoryContext
         from .memory.triggers import is_memory_query
 
