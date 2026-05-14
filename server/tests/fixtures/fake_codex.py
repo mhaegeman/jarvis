@@ -63,6 +63,12 @@ def main() -> int:
         if delay_ms:
             time.sleep(delay_ms / 1000.0)
 
+    # If hang_after is set and we emitted exactly hang_after events (i.e.,
+    # the script had no more events to trigger the in-loop check), hang now.
+    if hang_after is not None and len(script) >= hang_after:
+        while True:
+            time.sleep(60)
+
     return exit_code
 
 
