@@ -49,8 +49,20 @@ class CalendarSync(_Base):
     type: Literal["calendar.sync"]
 
 
+class AgentApprove(_Base):
+    type: Literal["agent.approve"]
+    runId: str
+    choice: Literal["approve", "deny", "approve_session"]
+
+
+class AgentCancel(_Base):
+    type: Literal["agent.cancel"]
+    runId: str
+
+
 ClientMessage = Annotated[
-    Hello | AudioStart | AudioEnd | TextIn | Interrupt | Pong | CalendarSync,
+    Hello | AudioStart | AudioEnd | TextIn | Interrupt | Pong | CalendarSync
+    | AgentApprove | AgentCancel,
     Field(discriminator="type"),
 ]
 
@@ -187,6 +199,77 @@ class ServerMessage:
             "turnId": turn_id,
             "segments": segments,
             "rationale": rationale,
+        }
+
+    @staticmethod
+    def agent_start(*, speaker: str, task: str, run_id: str) -> dict[str, Any]:
+        return {
+            "type": "agent.start",
+            "speaker": speaker,
+            "task": task,
+            "runId": run_id,
+        }
+
+    @staticmethod
+    def agent_step(
+        *,
+        run_id: str,
+        kind: str,
+        summary: str,
+        detail: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "type": "agent.step",
+            "runId": run_id,
+            "kind": kind,
+            "summary": summary,
+        }
+        if detail is not None:
+            out["detail"] = detail
+        return out
+
+    @staticmethod
+    def agent_approval(
+        *,
+        run_id: str,
+        prompt: str,
+        choices: list[str],
+    ) -> dict[str, Any]:
+        return {
+            "type": "agent.approval",
+            "runId": run_id,
+            "prompt": prompt,
+            "choices": choices,
+        }
+
+    @staticmethod
+    def agent_progress(
+        *,
+        run_id: str,
+        phase: str,
+        percent: float | None = None,
+    ) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "type": "agent.progress",
+            "runId": run_id,
+            "phase": phase,
+        }
+        if percent is not None:
+            out["percent"] = percent
+        return out
+
+    @staticmethod
+    def agent_end(
+        *,
+        run_id: str,
+        status: str,
+        summary: str,
+    ) -> dict[str, Any]:
+        return {
+            "type": "agent.end",
+            "runId": run_id,
+            "status": status,
+            "summary": summary,
         }
 
 
