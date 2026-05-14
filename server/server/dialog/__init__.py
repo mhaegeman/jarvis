@@ -5,7 +5,8 @@ Subsequent phases add manager.py (orchestration), feedback.py (logger),
 and profile_refresher.py (learning loop).
 """
 
-from server.dialog.dispatcher import RuleBasedDispatcher
+from server.dialog.dispatcher import LLMBackedDispatcher, RuleBasedDispatcher
+from server.dialog.manager import DialogManager
 from server.dialog.types import (
     DialogState,
     Outcome,
@@ -15,7 +16,9 @@ from server.dialog.types import (
 )
 
 __all__ = [
+    "DialogManager",
     "DialogState",
+    "LLMBackedDispatcher",
     "Outcome",
     "Plan",
     "RuleBasedDispatcher",

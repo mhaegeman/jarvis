@@ -113,7 +113,7 @@ python -m server.cli_test  # in another; type messages, observe deltas
 
 Verify in [Anthropic's usage dashboard](https://console.anthropic.com/) that `/sonnet` and `/opus` prefixes route to the right model IDs.
 
-## Multi-model support (Phase 1 — foundations, behind a flag)
+## Multi-model support (Phase 2 — dialog manager + chat, behind a flag)
 
 Phase 1 of the multi-model build adds Pepper-flavoured plumbing without
 changing any user-visible behaviour. The new code is dormant unless
@@ -155,6 +155,35 @@ ANTHROPIC_API_KEY=fake OPENAI_API_KEY=fake JARVIS_PERSONAS_ENABLED=true \
              print(r.available_ids())"
 # Expected: ['jarvis', 'pepper']
 ```
+
+### Phase 2 — multi-persona chat
+
+With `JARVIS_PERSONAS_ENABLED=true` and both API keys set, the Session
+delegates each turn to a `DialogManager`. Jarvis (Claude) and Pepper
+(OpenAI) take turns within a single utterance via Dispatcher-planned
+segments; each segment streams in its persona's voice.
+
+Quick manual check:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... \
+OPENAI_API_KEY=sk-... \
+JARVIS_PERSONAS_ENABLED=true \
+JARVIS_TTS_ENGINE=edge \
+uvicorn server.main:app --port 8000
+
+# In another terminal:
+python -m server.cli_test --text "Pepper, add a test for parse_prefix"
+# Expect: dispatch.plan in the WS log; llm.token events with speaker=pepper;
+# tts.sentence events with speaker=pepper; voice = en-US-AriaNeural.
+
+python -m server.cli_test --text "Design and then implement a CSV exporter"
+# Expect: 2-segment plan (Jarvis design, Pepper implement); voice swaps
+# between Christopher and Aria mid-turn.
+```
+
+Phase 2 ships chat-only — `mode=codex_agent` segments degrade to chat
+with a warning. The Codex CLI agent lands in Phase 3.
 
 ## Configuration
 

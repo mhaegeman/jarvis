@@ -8,9 +8,9 @@ import logging
 import os
 import secrets
 import subprocess
-from collections.abc import AsyncIterator, MutableMapping
+from collections.abc import AsyncIterator, Callable, MutableMapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import anthropic
 from fastapi import (
@@ -35,11 +35,24 @@ from .pipelines.mock_stt import MockSTT
 from .pipelines.mock_tts import MockTTS
 from .session import Session
 
+if TYPE_CHECKING:
+    from .dialog.dispatcher import LLMBackedDispatcher
+    from .dialog.manager import DialogManager
+    from .personas.models import Persona
+    from .personas.registry import PersonaRegistry
+    from .pipelines.multi_voice_tts import MultiVoiceTTS
+
 logging.basicConfig(level=settings.log_level)
 log = logging.getLogger(__name__)
 
 _memory_store: MemoryStore | None = None
 _summarizer: Summarizer | None = None
+
+# ── Phase 2: persona infra (only non-None when personas_enabled=true) ──
+_persona_registry: PersonaRegistry | None = None
+_dispatcher: LLMBackedDispatcher | None = None
+_multi_voice_tts: MultiVoiceTTS | None = None
+_llm_factory: Callable[[Persona, str], LLM] | None = None
 
 
 def _build_llm() -> LLM:
@@ -217,9 +230,41 @@ def _build_tts() -> TTS:
     raise ValueError(f"unknown JARVIS_TTS_ENGINE: {engine!r}")
 
 
+def _build_llm_factory(
+    anthropic_client: Any,
+    openai_client: Any,
+) -> Callable[[Persona, str], LLM]:
+    """Return a factory that creates an LLM per persona + model_id.
+
+    Lazy imports kept inside the factory body so they never execute when
+    personas_enabled is False (dormancy regression guard).
+    """
+
+    def factory(persona: Persona, model_id: str) -> LLM:
+        from .pipelines.claude_llm import ClaudeLLM  # noqa: PLC0415
+        from .pipelines.openai_llm import OpenAILLM  # noqa: PLC0415
+
+        if persona.provider == "anthropic":
+            return ClaudeLLM(
+                default_model=model_id,
+                max_tokens=settings.llm_max_tokens,
+                system_prompt=persona.system_prompt,
+                client=anthropic_client,
+            )
+        return OpenAILLM(
+            default_model=model_id,
+            max_tokens=settings.llm_max_tokens,
+            system_prompt=persona.system_prompt,
+            client=openai_client,
+        )
+
+    return factory
+
+
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global _memory_store, _summarizer
+    global _persona_registry, _dispatcher, _multi_voice_tts, _llm_factory
     log.info("lifespan: Phase 1 mock pipelines (no model loading)")
     if settings.memory_enabled:
         Path(settings.memory_db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -228,6 +273,82 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         log.info("memory: enabled at %s", settings.memory_db_path)
     else:
         log.info("memory: disabled")
+
+    if settings.personas_enabled:
+        # ── Phase 2: build persona infra once at startup ────────────────
+        # All imports inside this block so dormancy regression guard passes.
+        from .dialog.dispatcher import LLMBackedDispatcher  # noqa: PLC0415
+        from .personas.registry import build_registry_from_settings  # noqa: PLC0415
+        from .pipelines.multi_voice_tts import MultiVoiceTTS  # noqa: PLC0415
+
+        _persona_registry = build_registry_from_settings(
+            settings, codex_workdir=str(_git_root())
+        )
+        log.info(
+            "personas: enabled; available=%s",
+            _persona_registry.available_ids(),
+        )
+
+        # Build one TTS backend per available persona voice.
+        _has_edge = (
+            importlib.util.find_spec("edge_tts") is not None
+            and importlib.util.find_spec("miniaudio") is not None
+        )
+        persona_voices: dict[str, TTS] = {}
+        for pid in _persona_registry.available_ids():
+            persona = _persona_registry.get(pid)
+            if _has_edge:
+                from .pipelines.edge_tts import EdgeTTS  # noqa: PLC0415
+
+                persona_voices[pid] = EdgeTTS(voice=persona.voice)
+            else:
+                log.warning(
+                    "personas: edge-tts/miniaudio not installed; "
+                    "using MockTTS for persona %r voice %r",
+                    pid,
+                    persona.voice,
+                )
+                persona_voices[pid] = MockTTS()
+
+        if persona_voices:
+            default_speaker = _persona_registry.available_ids()[0]
+            _multi_voice_tts = MultiVoiceTTS(
+                persona_voices, default_speaker=default_speaker
+            )
+
+        # Build the Anthropic client for the dispatcher + Jarvis LLM.
+        _anthropic_client: Any = None
+        if settings.anthropic_api_key is not None:
+            _anthropic_client = anthropic.AsyncAnthropic(
+                api_key=settings.anthropic_api_key.get_secret_value()
+            )
+
+        # Build the OpenAI client for Pepper LLM.
+        _openai_client: Any = None
+        if settings.openai_api_key is not None:
+            import openai  # noqa: PLC0415
+
+            _openai_client = openai.AsyncOpenAI(
+                api_key=settings.openai_api_key.get_secret_value(),
+                base_url=settings.openai_base_url,
+            )
+
+        # Build the dispatcher with formatted persona profiles.
+        profiles_parts = []
+        for pid in _persona_registry.available_ids():
+            p = _persona_registry.get(pid)
+            profiles_parts.append(f"{p.display_name} ({pid}): {p.specialty_profile}")
+        profiles_text = "\n".join(profiles_parts)
+
+        _dispatcher = LLMBackedDispatcher(
+            client=_anthropic_client,
+            model=settings.dispatcher_model,
+            profiles=profiles_text,
+        )
+
+        _llm_factory = _build_llm_factory(_anthropic_client, _openai_client)
+        log.info("personas: dispatcher + multi-voice TTS + llm_factory ready")
+
     try:
         yield
     finally:
@@ -438,6 +559,23 @@ async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) ->
     # Per-connection pipeline instances. Construction is cheap — heavy
     # state (Whisper model, Anthropic client) lives in module-level
     # singletons inside the wrappers.
+    dialog_manager: DialogManager | None = None
+    if (
+        _persona_registry is not None
+        and _dispatcher is not None
+        and _multi_voice_tts is not None
+        and _llm_factory is not None
+    ):
+        # Lazy import kept inside the personas_enabled branch so the
+        # dormancy regression guard keeps passing with the flag off.
+        from .dialog.manager import DialogManager  # noqa: PLC0415
+
+        dialog_manager = DialogManager(
+            registry=_persona_registry,
+            dispatcher=_dispatcher,
+            llm_factory=_llm_factory,
+            tts=_multi_voice_tts,
+        )
     session = Session(
         ws=_StarletteWSAdapter(ws),
         stt=_build_stt(),
@@ -449,6 +587,7 @@ async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) ->
         recent_summary_refresh_turns=settings.memory_refresh_turns,
         recent_summary_window=settings.memory_recent_window,
         facts_cap=settings.memory_facts_cap,
+        dialog_manager=dialog_manager,
     )
     try:
         await session.run()
