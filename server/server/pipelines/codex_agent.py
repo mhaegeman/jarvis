@@ -182,11 +182,17 @@ class CodexAgent:
         log.info("CodexAgent: spawning %r", argv)
         proc = await asyncio.create_subprocess_exec(
             *argv,
+            stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         active = _ActiveRun(process=proc)
         self._active[run_id] = active
+
+        # Concurrently drain stderr to the server log. Codex can be verbose
+        # on warnings/errors; an unread stderr pipe will eventually fill the
+        # OS buffer (~64 KB) and deadlock the child on its next stderr write.
+        stderr_task = asyncio.create_task(_drain_stderr(proc, run_id))
 
         last_narration_ts = time.monotonic()
         narration_debounce_s = 4.0
@@ -221,6 +227,34 @@ class CodexAgent:
                 if event.get("type") == "final.summary":
                     final_summary = event.get("summary", "")
 
+                # If Codex emitted an approval request, pause until the user
+                # responds. submit_approval(run_id, choice) wakes the future;
+                # a denial cancels the run; an approval (or session approval)
+                # writes the choice back to the subprocess stdin so Codex can
+                # proceed. The exact stdin protocol may shift across Codex
+                # versions — see spec §7.1 note on flag stability; if the
+                # real binary expects a different format, adjust here.
+                if event.get("type") == "approval.request":
+                    choice = await self._await_approval(active)
+                    if choice == "deny":
+                        log.info("CodexAgent: approval denied; cancelling run %s", run_id)
+                        active.cancelled = True
+                        with contextlib.suppress(ProcessLookupError):
+                            proc.terminate()
+                        raise _RunCancelled()
+                    # Approval / approve_session: forward the choice via stdin
+                    # so Codex can continue. Best-effort — if stdin is closed
+                    # or the child doesn't read it, the run will hang and
+                    # cancel() / hang_threshold_s handles the recovery.
+                    if proc.stdin is not None and not proc.stdin.is_closing():
+                        with contextlib.suppress(BrokenPipeError, ConnectionResetError):
+                            payload = json.dumps({
+                                "type": "approval.response",
+                                "choice": choice,
+                            }) + "\n"
+                            proc.stdin.write(payload.encode("utf-8"))
+                            await proc.stdin.drain()
+
             exit_code = await proc.wait()
             if active.cancelled:
                 raise _RunCancelled()
@@ -248,7 +282,24 @@ class CodexAgent:
                     with contextlib.suppress(ProcessLookupError):
                         proc.kill()
                     await proc.wait()
+            # Reap the stderr drainer (will exit when the child closes its stderr).
+            with contextlib.suppress(asyncio.CancelledError):
+                await asyncio.wait_for(stderr_task, timeout=1.0)
+            if not stderr_task.done():
+                stderr_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await stderr_task
             self._active.pop(run_id, None)
+
+    async def _await_approval(self, active: _ActiveRun) -> str:
+        """Park until submit_approval() resolves the future, then return choice."""
+        loop = asyncio.get_event_loop()
+        future: asyncio.Future[str] = loop.create_future()
+        active.pending_approval = future
+        try:
+            return await future
+        finally:
+            active.pending_approval = None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
@@ -273,6 +324,31 @@ def _binary_resolvable(path: str) -> bool:
     if os.path.isfile(path) and os.access(path, os.X_OK):
         return True
     return shutil.which(path) is not None
+
+
+async def _drain_stderr(
+    proc: asyncio.subprocess.Process, run_id: str,
+) -> None:
+    """Concurrently drain the subprocess's stderr to the server log.
+
+    Without this, a chatty stderr fills the OS pipe buffer (~64 KB) and
+    blocks the child process on its next stderr write — deadlocking the
+    whole run while the stdout reader waits for more data.
+
+    Uses fixed-size reads (not readline) so a long unterminated line can't
+    trip asyncio.streams' default 64 KB line limit.
+    """
+    if proc.stderr is None:
+        return
+    while True:
+        chunk = await proc.stderr.read(8192)
+        if not chunk:
+            return
+        log.warning(
+            "codex[%s] stderr: %s",
+            run_id,
+            chunk.decode("utf-8", errors="replace").rstrip(),
+        )
 
 
 def _translate_event(

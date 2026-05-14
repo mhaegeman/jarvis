@@ -188,3 +188,134 @@ async def test_concurrent_runs_serialize() -> None:
     # run should be ≥ the sequential time, not parallel. We just assert
     # both finished successfully — the lock is what we're testing.
     assert elapsed >= 0  # placeholder — see end events for correctness
+
+
+# ── Regression tests for Codex review on PR #33 ──────────────────────
+
+
+@pytest.mark.asyncio
+async def test_approval_flow_resumes_run_on_approve(tmp_path: Path) -> None:
+    """approval.request mid-stream pauses the run; submit_approval('approve')
+    forwards the choice to stdin and the run continues to completion.
+    """
+    script_file = tmp_path / "script.json"
+    script_file.write_text(json.dumps([
+        {"type": "step.start", "kind": "thinking", "summary": "warming up"},
+        {"type": "approval.request", "prompt": "Install X?",
+         "choices": ["approve", "deny", "approve_session"]},
+        {"type": "final.summary", "summary": "Done."},
+    ]))
+    os.environ["FAKE_CODEX_SCRIPT"] = str(script_file)
+    # Fake binary blocks on stdin after the approval event (idx=1, 1-indexed=2).
+    os.environ["FAKE_CODEX_WAIT_STDIN_AFTER"] = "2"
+    try:
+        ws = _FakeWS()
+        agent = CodexAgent(_config())
+
+        async def _consume() -> list[str]:
+            sentences = []
+            async for s in agent.run(ws=ws, task="install X", run_id="r-appr"):
+                sentences.append(s)
+            return sentences
+
+        task = asyncio.create_task(_consume())
+        # Wait until the approval WS message arrives.
+        for _ in range(50):  # 5s timeout
+            if any(m["type"] == "agent.approval" for m in ws.sent):
+                break
+            await asyncio.sleep(0.1)
+        else:
+            pytest.fail("agent.approval was never emitted")
+
+        # Approve. This must forward the choice to stdin and let the run
+        # continue to the final.summary event.
+        await agent.submit_approval("r-appr", "approve")
+        await task
+    finally:
+        del os.environ["FAKE_CODEX_SCRIPT"]
+        del os.environ["FAKE_CODEX_WAIT_STDIN_AFTER"]
+
+    end = next(m for m in ws.sent if m["type"] == "agent.end")
+    assert end["status"] == "ok"
+    # Approval message was emitted.
+    assert any(m["type"] == "agent.approval" for m in ws.sent)
+
+
+@pytest.mark.asyncio
+async def test_approval_flow_cancels_run_on_deny(tmp_path: Path) -> None:
+    """approval.request → submit_approval('deny') → run cancels."""
+    script_file = tmp_path / "script.json"
+    script_file.write_text(json.dumps([
+        {"type": "step.start", "kind": "thinking", "summary": "warming up"},
+        {"type": "approval.request", "prompt": "Install X?",
+         "choices": ["approve", "deny", "approve_session"]},
+        {"type": "final.summary", "summary": "Should never run."},
+    ]))
+    os.environ["FAKE_CODEX_SCRIPT"] = str(script_file)
+    os.environ["FAKE_CODEX_WAIT_STDIN_AFTER"] = "2"
+    try:
+        ws = _FakeWS()
+        agent = CodexAgent(_config())
+
+        async def _consume() -> None:
+            async for _ in agent.run(ws=ws, task="install X", run_id="r-deny"):
+                pass
+
+        task = asyncio.create_task(_consume())
+        for _ in range(50):
+            if any(m["type"] == "agent.approval" for m in ws.sent):
+                break
+            await asyncio.sleep(0.1)
+        else:
+            pytest.fail("agent.approval was never emitted")
+
+        await agent.submit_approval("r-deny", "deny")
+        await task
+    finally:
+        del os.environ["FAKE_CODEX_SCRIPT"]
+        del os.environ["FAKE_CODEX_WAIT_STDIN_AFTER"]
+
+    end = next(m for m in ws.sent if m["type"] == "agent.end")
+    assert end["status"] == "cancelled"
+    # final.summary must NOT have been processed.
+    assert not any(
+        m["type"] == "agent.step" and "Should never run" in m.get("summary", "")
+        for m in ws.sent
+    )
+
+
+@pytest.mark.asyncio
+async def test_stderr_drained_so_chatty_codex_does_not_deadlock(
+    tmp_path: Path,
+) -> None:
+    """A chatty subprocess (>64 KB stderr) must NOT deadlock the run.
+
+    Without stderr draining, the OS pipe fills and the child blocks on its
+    next stderr write — stdout reader spins forever waiting for events
+    that will never come.
+    """
+    script_file = tmp_path / "script.json"
+    script_file.write_text(json.dumps([
+        {"type": "step.start", "kind": "thinking", "summary": "x"},
+        {"type": "final.summary", "summary": "done."},
+    ]))
+    os.environ["FAKE_CODEX_SCRIPT"] = str(script_file)
+    # 256 KB of stderr — well above the typical 64 KB pipe buffer.
+    os.environ["FAKE_CODEX_STDERR_BYTES"] = "262144"
+    try:
+        ws = _FakeWS()
+        agent = CodexAgent(_config())
+
+        async def _consume() -> None:
+            async for _ in agent.run(ws=ws, task="x", run_id="r-stderr"):
+                pass
+
+        # If stderr draining is broken, this hangs forever. The wait_for
+        # bounds the test at 10s and surfaces the deadlock as a failure.
+        await asyncio.wait_for(_consume(), timeout=10.0)
+    finally:
+        del os.environ["FAKE_CODEX_SCRIPT"]
+        del os.environ["FAKE_CODEX_STDERR_BYTES"]
+
+    end = next(m for m in ws.sent if m["type"] == "agent.end")
+    assert end["status"] == "ok"

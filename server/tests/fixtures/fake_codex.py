@@ -12,11 +12,17 @@ Usage (matches what `CodexAgent` will spawn):
 Behaviour is controlled by env vars (so tests can script the fixture
 without writing a wrapper):
 
-    FAKE_CODEX_SCRIPT  — path to a JSON file with a list of events to emit
-                         (default: a hard-coded "happy path" sequence)
-    FAKE_CODEX_DELAY_MS — sleep between events (default: 0)
-    FAKE_CODEX_EXIT_CODE — process exit code (default: 0)
-    FAKE_CODEX_HANG_AFTER — if set to an int N, emit N events then sleep forever
+    FAKE_CODEX_SCRIPT       — path to a JSON file with a list of events to emit
+                              (default: a hard-coded "happy path" sequence)
+    FAKE_CODEX_DELAY_MS     — sleep between events (default: 0)
+    FAKE_CODEX_EXIT_CODE    — process exit code (default: 0)
+    FAKE_CODEX_HANG_AFTER   — if set to an int N, emit N events then sleep forever
+    FAKE_CODEX_STDERR_BYTES — if set, emit this many bytes to stderr at start.
+                              Used to verify the parent drains stderr (otherwise
+                              the OS pipe buffer fills and the child blocks).
+    FAKE_CODEX_WAIT_STDIN_AFTER  — if set to an int N, after emitting the Nth
+                                   event, block on stdin.readline() before
+                                   continuing. Used to test the approval flow.
 """
 
 from __future__ import annotations
@@ -51,6 +57,15 @@ def main() -> int:
     exit_code = int(os.environ.get("FAKE_CODEX_EXIT_CODE", "0"))
     hang_after_raw = os.environ.get("FAKE_CODEX_HANG_AFTER")
     hang_after = int(hang_after_raw) if hang_after_raw else None
+    stderr_bytes_raw = os.environ.get("FAKE_CODEX_STDERR_BYTES")
+    stderr_bytes = int(stderr_bytes_raw) if stderr_bytes_raw else 0
+    wait_stdin_after_raw = os.environ.get("FAKE_CODEX_WAIT_STDIN_AFTER")
+    wait_stdin_after = int(wait_stdin_after_raw) if wait_stdin_after_raw else None
+
+    # Spray stderr first so the parent has to drain it to keep us alive.
+    if stderr_bytes > 0:
+        sys.stderr.write("X" * stderr_bytes + "\n")
+        sys.stderr.flush()
 
     script = _load_script()
     for idx, event in enumerate(script):
@@ -60,6 +75,11 @@ def main() -> int:
                 time.sleep(60)
         sys.stdout.write(json.dumps(event) + "\n")
         sys.stdout.flush()
+        if wait_stdin_after is not None and idx == wait_stdin_after - 1:
+            # Block until the parent writes one line (the approval response).
+            # If the parent never writes, we hang here — that's the test's job
+            # to either call cancel() or call submit_approval(...).
+            sys.stdin.readline()
         if delay_ms:
             time.sleep(delay_ms / 1000.0)
 
