@@ -23,6 +23,8 @@ from .memory.summarizer import Summarizer
 from .pipelines.interfaces import LLM, STT, TTS
 from .pipelines.sentence_split import split_sentences_stream
 from .protocol import (
+    AgentApprove,
+    AgentCancel,
     AudioEnd,
     AudioStart,
     CalendarSync,
@@ -38,6 +40,7 @@ from .state import StateEmitter
 
 if TYPE_CHECKING:
     from .dialog.manager import DialogManager
+    from .pipelines.codex_agent import CodexAgent
 
 log = logging.getLogger(__name__)
 
@@ -80,6 +83,7 @@ class Session:
         recent_summary_window: int = 20,
         facts_cap: int = 50,
         dialog_manager: DialogManager | None = None,
+        codex_agent: CodexAgent | None = None,
     ) -> None:
         self._ws = ws
         self._stt = stt
@@ -117,6 +121,7 @@ class Session:
         # non-deterministic + bills the Anthropic API.
         self._consolidated = False
         self._dialog_manager = dialog_manager
+        self._codex_agent = codex_agent
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
@@ -213,6 +218,14 @@ class Session:
             return
         if isinstance(msg, CalendarSync):
             await self._do_calendar_sync()
+            return
+        if isinstance(msg, AgentApprove):
+            if self._codex_agent is not None:
+                await self._codex_agent.submit_approval(msg.runId, msg.choice)
+            return
+        if isinstance(msg, AgentCancel):
+            if self._codex_agent is not None:
+                await self._codex_agent.cancel(msg.runId)
             return
 
     async def _handle_binary(self, payload: bytes) -> None:

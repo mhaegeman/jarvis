@@ -53,6 +53,8 @@ _persona_registry: PersonaRegistry | None = None
 _dispatcher: LLMBackedDispatcher | None = None
 _multi_voice_tts: MultiVoiceTTS | None = None
 _llm_factory: Callable[[Persona, str], LLM] | None = None
+# ── Phase 3: Codex agent (only non-None when binary resolves at startup) ──
+_codex_agent: Any = None
 
 
 def _build_llm() -> LLM:
@@ -264,7 +266,7 @@ def _build_llm_factory(
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global _memory_store, _summarizer
-    global _persona_registry, _dispatcher, _multi_voice_tts, _llm_factory
+    global _persona_registry, _dispatcher, _multi_voice_tts, _llm_factory, _codex_agent
     log.info("lifespan: Phase 1 mock pipelines (no model loading)")
     if settings.memory_enabled:
         Path(settings.memory_db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -348,6 +350,25 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
         _llm_factory = _build_llm_factory(_anthropic_client, _openai_client)
         log.info("personas: dispatcher + multi-voice TTS + llm_factory ready")
+
+        # ── Phase 3: Codex agent ────────────────────────────────────────
+        # Lazy import inside personas_enabled block so the dormancy
+        # regression guard keeps passing with the flag off.
+        pepper = (
+            _persona_registry.get("pepper")
+            if _persona_registry.is_available("pepper")
+            else None
+        )
+        if pepper is not None and pepper.agent is not None:
+            from .pipelines.codex_agent import CodexAgent, CodexAgentConfig  # noqa: PLC0415
+
+            _codex_agent = CodexAgent(CodexAgentConfig(
+                binary=pepper.agent.binary,
+                workdir=pepper.agent.workdir,
+                approval_mode=pepper.agent.approval_mode,
+                sandbox=pepper.agent.sandbox,
+            ))
+            log.info("personas: CodexAgent ready (binary=%s)", pepper.agent.binary)
 
     try:
         yield
@@ -575,6 +596,7 @@ async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) ->
             dispatcher=_dispatcher,
             llm_factory=_llm_factory,
             tts=_multi_voice_tts,
+            codex_agent=_codex_agent,
         )
     session = Session(
         ws=_StarletteWSAdapter(ws),
@@ -588,6 +610,7 @@ async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) ->
         recent_summary_window=settings.memory_recent_window,
         facts_cap=settings.memory_facts_cap,
         dialog_manager=dialog_manager,
+        codex_agent=_codex_agent,
     )
     try:
         await session.run()
