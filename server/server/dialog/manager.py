@@ -22,9 +22,11 @@ Streaming model:
   6. Update sticky-speaker (last_speaker, last_turn_ts) for next turn.
   7. Record Outcome in-memory.
 
-In Phase 2 there's no Codex agent yet — `mode=codex_agent` segments are
-treated as `mode=chat` with a logged warning. Phase 3 introduces the
-CodexAgent backend and wires it here.
+Phase 3: when a CodexAgent is configured and the segment is
+(pepper, codex_agent), delegate to _run_codex_segment() instead of
+the chat stream path. Narration sentences are pushed back through
+the same tts.sentence path. When no agent is configured or the
+speaker is not Pepper, falls back to chat with a logged warning.
 """
 
 from __future__ import annotations
@@ -86,11 +88,24 @@ class _MultiVoiceTTSLike(Protocol):
     ) -> AsyncIterator[bytes]: ...
 
 
+class _CodexAgentLike(Protocol):
+    def run(
+        self,
+        *,
+        ws: _WSLike,
+        task: str,
+        run_id: str,
+        speaker: str = "pepper",
+    ) -> AsyncIterator[str]: ...
+
+    async def cancel(self, run_id: str) -> None: ...
+
+
 LLMFactory = Callable[[Persona, str], _LLMLike]
 
 
 class DialogManager:
-    """Per-turn orchestrator (Phase 2, chat-only)."""
+    """Per-turn orchestrator (Phase 3, chat + Codex agent)."""
 
     def __init__(
         self,
@@ -99,11 +114,13 @@ class DialogManager:
         dispatcher: _DispatcherLike,
         llm_factory: LLMFactory,
         tts: _MultiVoiceTTSLike,
+        codex_agent: _CodexAgentLike | None = None,
     ) -> None:
         self._registry = registry
         self._dispatcher = dispatcher
         self._llm_factory = llm_factory
         self._tts = tts
+        self._codex_agent = codex_agent
         self._state = DialogState()
         self._outcomes: list[Outcome] = []
         # Concatenated text of every segment that produced tokens in the
@@ -199,15 +216,29 @@ class DialogManager:
             return False
         persona = self._registry.get(segment.speaker)
         tier = persona.tiers[segment.tier]
-        llm = self._llm_factory(persona, tier.model_id)
 
-        # Phase 2: codex_agent mode degrades to chat with a logged warning.
-        # Phase 3 will dispatch to CodexAgent instead.
+        # Phase 3: Codex agent path — only for Pepper segments with a
+        # configured agent. Jarvis with codex_agent falls through to chat.
+        if (
+            segment.mode == "codex_agent"
+            and segment.speaker == "pepper"
+            and self._codex_agent is not None
+        ):
+            return await self._run_codex_segment(
+                ws, idx=idx, segment=segment, history=history, plan=plan,
+                text_buf=text_buf,
+            )
+
+        # Fall through to chat for: chat mode segments, jarvis with codex_agent
+        # (shouldn't happen per spec), missing CodexAgent (binary not resolved).
         if segment.mode == "codex_agent":
             logger.warning(
-                "segment %d (pepper, codex_agent) degraded to chat in Phase 2",
-                idx,
+                "segment %d (%s, codex_agent) falling back to chat — "
+                "agent unavailable or wrong speaker",
+                idx, segment.speaker,
             )
+
+        llm = self._llm_factory(persona, tier.model_id)
 
         extra_context = (
             f"Persona profile: {persona.specialty_profile}\n"
@@ -285,6 +316,56 @@ class DialogManager:
                 f"Error: {exc}",
                 speaker=segment.speaker,
                 segment_idx=idx,
+            ))
+            await self._send(ws, ServerMessage.llm_segment_end(
+                speaker=segment.speaker, segment_idx=idx,
+            ))
+            return False
+
+        await self._send(ws, ServerMessage.llm_segment_end(
+            speaker=segment.speaker, segment_idx=idx,
+        ))
+        return sent_anything
+
+    async def _run_codex_segment(
+        self,
+        ws: _WSLike,
+        *,
+        idx: int,
+        segment: Segment,
+        history: list[dict[str, str]],
+        plan: Plan,
+        text_buf: list[str] | None = None,
+    ) -> bool:
+        """Run a Codex agent segment. Narration sentences flow through the
+        same tts.sentence path as chat segments (voice = persona.voice)."""
+        assert self._codex_agent is not None  # checked by caller
+        run_id = f"r-{uuid.uuid4().hex[:8]}"
+        audio_id_base = f"seg-{idx}"
+        sentence_counter = 0
+        sent_anything = False
+
+        try:
+            async for sentence in self._codex_agent.run(
+                ws=ws, task=segment.intent, run_id=run_id, speaker=segment.speaker,
+            ):
+                sent_anything = True
+                if text_buf is not None:
+                    text_buf.append(sentence)
+                # Emit llm.token (one per sentence) so the transcript shows
+                # what was spoken, then tts.sentence + audio.
+                await self._send(ws, ServerMessage.llm_token(
+                    sentence, speaker=segment.speaker, segment_idx=idx,
+                ))
+                audio_id = f"{audio_id_base}-{sentence_counter}"
+                sentence_counter += 1
+                await self._emit_sentence(
+                    ws, sentence, audio_id=audio_id, speaker=segment.speaker,
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("codex segment %d crashed", idx)
+            await self._send(ws, ServerMessage.llm_token(
+                f"Error: {exc}", speaker=segment.speaker, segment_idx=idx,
             ))
             await self._send(ws, ServerMessage.llm_segment_end(
                 speaker=segment.speaker, segment_idx=idx,
