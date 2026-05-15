@@ -86,6 +86,43 @@ observable store (`src/state/store.ts`) and updates components.
 - **Space (hold)** — push-to-talk
 - **Esc** — interrupt current reply
 
+## Phase 4 — Multi-model UI surface
+
+Phase 4 adds dual-persona rendering to the HUD. All new affordances are flag-driven: when the backend's `JARVIS_PERSONAS_ENABLED` flag is off (or the server is offline), the single-Jarvis UX is preserved.
+
+**Demo mode** (`?dev=1` + no backend): MockEventSource emits a synthetic 2-segment plan (Jarvis design → Pepper implement) so all Phase 4 UI can be exercised without a backend.
+
+### New WebSocket messages consumed
+
+| Message | Payload | Effect |
+|---|---|---|
+| `dispatch.plan` | `{turnId, segments[], rationale}` | DispatchRibbon above transcript; speaker dots on voice-dock entries |
+| `llm.segment_end` | `{speaker, segmentIdx}` | Signals segment boundary (tint crossfade is triggered by next `llm.token`) |
+| `agent.start` | `{speaker, task, runId}` | Activates Agent Panel in the East Code zone |
+| `agent.step` | `{runId, kind, summary, detail?}` | Appends a step row in the Agent Panel |
+| `agent.approval` | `{runId, prompt, choices[]}` | Renders approval card with one button per choice |
+| `agent.progress` | `{runId, phase, percent?}` | Updates the Agent Panel progress bar |
+| `agent.end` | `{runId, status, summary}` | Collapses the Agent Panel; East Code zone is restored |
+
+### New client messages sent
+
+| Message | When |
+|---|---|
+| `agent.approve {runId, choice}` | User clicks an approval card button |
+| `agent.cancel {runId}` | User clicks the cancel button in the Agent Panel |
+
+### New UI components
+
+- **Dual persona chip (Topbar)** — Jarvis (cyan) and Pepper (amber) chips side by side; active chip pulses.
+- **Dispatch ribbon** — One-line banner above the transcript showing the current plan (e.g. `Jarvis → Pepper (code)`). Auto-hides when no plan is active.
+- **Agent Panel** — Renders in the East Code zone when an agent run is active. Shows task line, step log, approval cards, progress bar, and cancel button.
+- **System panel persona rows** — When `state.snapshot.system.personas` is present, two extra rows appear (`jarvis <model> <tier>` / `pepper <model> <tier>`).
+- **Voice-dock speaker dots** — Each recent command entry optionally carries a speaker dot (cyan for Jarvis, amber for Pepper) derived from the `dispatch.plan` that responded to it.
+
+### Playwright e2e
+
+`web/e2e/personasTint.spec.ts` exercises the cyan→amber tint transition during the synthetic 2-segment mock turn. Requires Chromium system libraries (`npx playwright install --with-deps chromium`). Skips gracefully if the dev bypass or browser is unavailable in the current environment.
+
 ## Manual end-to-end checklist (spec-03)
 
 Run with the backend up:
