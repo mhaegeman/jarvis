@@ -54,11 +54,12 @@ class Settings(BaseSettings):
     #   python -c "from argon2 import PasswordHasher; print(PasswordHasher().hash('yourphrase'))"
     passphrase_hash: str | None = Field(default=None, validation_alias="JARVIS_PASSPHRASE_HASH")
 
-    # ─── Multi-model support (Phase 1) ─────────────────────────────────
-    # Feature flag — when false, the existing single-Jarvis path is used.
-    # All new code is dormant. Flip to true at the end of Phase 5 once the
-    # full feature is verified end-to-end.
-    personas_enabled: bool = False
+    # ─── Multi-model support (Phase 5) ─────────────────────────────────
+    # Phase 5: default is now true — the full multi-persona path runs out of
+    # the box. Set JARVIS_PERSONAS_ENABLED=false to fall back to the
+    # single-Jarvis path (offline dev, CI, demos, or deploys without
+    # OPENAI_API_KEY).
+    personas_enabled: bool = True
 
     # OpenAI credentials — required for Pepper chat and Codex CLI agent.
     # validation_alias bypasses the JARVIS_ prefix to follow the OpenAI

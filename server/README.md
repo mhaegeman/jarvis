@@ -113,20 +113,40 @@ python -m server.cli_test  # in another; type messages, observe deltas
 
 Verify in [Anthropic's usage dashboard](https://console.anthropic.com/) that `/sonnet` and `/opus` prefixes route to the right model IDs.
 
-## Multi-model support (Phase 3 — Codex CLI agent escalation, behind a flag)
+## Multi-model support (Phase 5 — learning loop + live by default)
 
-Phase 1 of the multi-model build adds Pepper-flavoured plumbing without
-changing any user-visible behaviour. The new code is dormant unless
-`JARVIS_PERSONAS_ENABLED=true` is set, and even then it's not yet wired
-into the Session — that happens in Phase 2.
+The multi-persona path is now **live by default**. Jarvis (Claude) and
+Pepper (OpenAI) run in every session. The learning loop records each
+turn's dispatch outcome and rewrites persona specialty profiles every 20
+turns via `ProfileRefresher`. Set `JARVIS_PERSONAS_ENABLED=false` to
+fall back to the single-Jarvis path (offline dev, CI, demos, or deploys
+without `OPENAI_API_KEY`).
 
 See the design at `docs/superpowers/specs/2026-05-13-multi-model-support-design.md`.
+
+### `/reset personas`
+
+Send the text `/reset personas` to restore both Jarvis and Pepper
+profiles to their seed values, wiping any learned drift. The server
+replies with a spoken confirmation (`"Personas reset to seed."`) and
+skips the normal dispatcher / LLM path for that turn.
+
+### `GET /personas`
+
+Returns the current live persona profiles along with last-refresh
+timestamp and refresh count. Requires the `Authorization` header (same
+token as all other auth-gated endpoints). Returns 503 if
+`JARVIS_PERSONAS_ENABLED=false`.
+
+```bash
+curl -H "Authorization: Bearer <token>" http://localhost:8765/personas
+```
 
 ### New env vars
 
 | Var | Default | Notes |
 |---|---|---|
-| `JARVIS_PERSONAS_ENABLED` | `false` | Master feature flag. Leave off until Phase 5. |
+| `JARVIS_PERSONAS_ENABLED` | `true` | Master feature flag. Set to `false` for single-Jarvis fallback. |
 | `OPENAI_API_KEY` | — | Required for Pepper. Bypasses `JARVIS_` prefix (mirrors `ANTHROPIC_API_KEY`). |
 | `OPENAI_BASE_URL` | — | Optional pass-through to the OpenAI client. |
 | `JARVIS_TIER_DEFAULT_JARVIS` | `fast` | One of `fast`/`balanced`/`deep`. |

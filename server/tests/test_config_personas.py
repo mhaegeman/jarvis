@@ -14,10 +14,10 @@ def _fresh_settings(monkeypatch: pytest.MonkeyPatch):
     return cfg.settings
 
 
-def test_personas_enabled_defaults_false(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_personas_enabled_defaults_true(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("JARVIS_PERSONAS_ENABLED", raising=False)
     s = _fresh_settings(monkeypatch)
-    assert s.personas_enabled is False
+    assert s.personas_enabled is True
 
 
 def test_personas_enabled_true_via_env(monkeypatch: pytest.MonkeyPatch) -> None:
