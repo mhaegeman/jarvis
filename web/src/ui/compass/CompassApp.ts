@@ -249,7 +249,12 @@ export function createCompassApp(): Surface {
     const s = store.get();
     const uptime = Date.now() - start;
 
-    topbar.render({ convState: s.state, currentSpeaker: s.currentSpeaker });
+    // Active speaker is audio-driven (via the playback queue) so the chip
+    // pulse + centerpiece tint follow what's currently audible — not the
+    // most-recent llm.token (which arrives ahead of audio and skips entirely
+    // for agent-only narration on chat-tagged sentences).
+    const activeSpeaker = events.currentSpeaker();
+    topbar.render({ convState: s.state, currentSpeaker: activeSpeaker });
     bottombar.render({
       tokensPerMin: s.panelData.system?.tokensPerMin ?? 0,
       load: s.panelData.system?.load ?? 0,
@@ -259,7 +264,7 @@ export function createCompassApp(): Surface {
     ring.render(s.state);
     hourLabels.render();
     orrery.render(s.state);
-    orrery.setTint(s.currentSpeaker);
+    orrery.setTint(activeSpeaker);
 
     if (s.state === "listening") rim.show();
     else rim.hide();

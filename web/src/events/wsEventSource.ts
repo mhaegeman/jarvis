@@ -181,6 +181,10 @@ export class WSEventSource implements IEventSource {
     this.ws?.send(JSON.stringify({ type: "agent.cancel", runId }));
   }
 
+  currentSpeaker(): Speaker | null {
+    return this.playback?.currentSpeaker() ?? null;
+  }
+
   private openSocket(): void {
     const ws = new WebSocket(this.opts.url);
     ws.binaryType = "arraybuffer";

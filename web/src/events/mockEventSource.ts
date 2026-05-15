@@ -1,5 +1,5 @@
 import type { EventSource } from "./eventSource";
-import type { EventName, EventMap, EventHandler, TtsAudioChunk } from "@/types";
+import type { EventName, EventMap, EventHandler, Speaker, TtsAudioChunk } from "@/types";
 import { pickScenario, splitSentences, type Scenario } from "./scenarios";
 
 interface Options {
@@ -105,6 +105,12 @@ export class MockEventSource implements EventSource {
 
   sendAgentCancel(_runId: string): void {
     // Demo mode: no-op.
+  }
+
+  currentSpeaker(): Speaker | null {
+    // Demo mode has no real audio playback; the synthetic 2-segment plan
+    // emits speaker-tagged tokens but no audio. Tint stays neutral.
+    return null;
   }
 
   private streamReply(): void {

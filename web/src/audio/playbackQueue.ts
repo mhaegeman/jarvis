@@ -55,6 +55,12 @@ export class PlaybackQueue {
     src.onended = (): void => {
       const i = this.active.indexOf(src);
       if (i >= 0) this.active.splice(i, 1);
+      // When the last queued chunk finishes naturally, clear the speaker so
+      // the UI returns to the neutral idle state instead of staying tinted
+      // by whoever spoke last.
+      if (this.active.length === 0) {
+        this._currentSpeaker = null;
+      }
     };
     return this.nextStart;
   }

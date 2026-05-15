@@ -47,4 +47,16 @@ describe("PlaybackQueue.currentSpeaker", () => {
     q.markChunkPlaying("unknown");
     expect(q.currentSpeaker()).toBeNull();
   });
+
+  it("clears when active queue empties naturally (no interrupt)", () => {
+    // Regression: previously the speaker persisted past the end of playback,
+    // so the tint stayed amber/cyan into the idle state.
+    q.enqueueSentence("a1", "pepper");
+    q.enqueue("a1", new Int16Array([1, 2, 3, 4]));
+    q.markChunkPlaying("a1");
+    expect(q.currentSpeaker()).toBe("pepper");
+    // Fire onended on every active source — simulates natural playback end.
+    for (const src of ctx.sources) src.onended?.();
+    expect(q.currentSpeaker()).toBeNull();
+  });
 });

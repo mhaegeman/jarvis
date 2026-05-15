@@ -59,4 +59,21 @@ export const CommandHistory = {
     entries.unshift(entry);
     save(entries.slice(0, MAX_ENTRIES));
   },
+
+  /**
+   * Tag the most-recent entry with a speaker. Called when `dispatch.plan`
+   * arrives AFTER the matching `stt.final` — the speaker for the current
+   * turn isn't known until then. No-op when the entry already has a
+   * speaker (later same-turn plans don't overwrite) or when the entry
+   * text has drifted (different command in the meantime).
+   */
+  tagLastSpeaker(text: string, speaker: Speaker): void {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const entries = load();
+    if (entries.length === 0 || entries[0].text !== trimmed) return;
+    if (entries[0].speaker !== undefined) return;
+    entries[0] = { ...entries[0], speaker };
+    save(entries);
+  },
 };

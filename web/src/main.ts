@@ -140,29 +140,42 @@ export function tryTransition(event: Parameters<typeof transition>[1]): void {
 events.on("stt.partial", ({ text }) => {
   store.update(() => ({ centerTitle: text || "Listening." }));
 });
+// Tracks the most recent user text so dispatch.plan can retroactively tag
+// the matching CommandHistory entry with the speaker that ended up handling
+// it. dispatch.plan arrives AFTER stt.final, so we can't read the plan
+// speaker at push-time.
+let lastUserText = "";
+
 events.on("stt.final", ({ text }) => {
   log("info", `you: ${text}`);
-  // Pass the first segment's speaker from the most recent plan (if any).
-  const planSpeaker = store.get().lastPlan?.segments[0]?.speaker ?? undefined;
-  CommandHistory.push(text, planSpeaker);
+  lastUserText = text;
+  // Push without a speaker — dispatch.plan will tag it once routing decides.
+  CommandHistory.push(text);
   openAudioIds.clear();
   llmEnded = false;
 });
-events.on("llm.token", ({ delta, speaker }) => {
+events.on("llm.token", ({ delta }) => {
   if (store.get().state === "thinking") {
     tryTransition("replyStart");
     store.update(() => ({ centerTitle: "" }));
   }
-  store.update((d) => ({
-    centerTitle: d.centerTitle + delta,
-    currentSpeaker: speaker ?? d.currentSpeaker,
-  }));
+  // The active-speaker tint / chip pulse is driven by playback (via
+  // events.currentSpeaker()), NOT by llm.token.speaker — tokens arrive
+  // ahead of audio, and agent-only turns emit narration without llm.token
+  // arrivals on the chat path. Token handler only appends to the title.
+  store.update((d) => ({ centerTitle: d.centerTitle + delta }));
 });
 events.on("llm.segment_end", () => {
-  // No-op for now: next llm.token's speaker field flips the centerpiece tint.
+  // No-op for now: playback-driven currentSpeaker handles the boundary.
 });
 events.on("dispatch.plan", (plan) => {
   store.update(() => ({ lastPlan: plan }));
+  // Retroactively tag the most-recent CommandHistory entry with the
+  // first segment's speaker (the persona that handled this turn).
+  const firstSpeaker = plan.segments[0]?.speaker;
+  if (firstSpeaker && lastUserText) {
+    CommandHistory.tagLastSpeaker(lastUserText, firstSpeaker);
+  }
 });
 events.on("agent.start", ({ runId, task, speaker }) => {
   store.update(() => ({ activeAgentRun: { runId, task, speaker } }));
