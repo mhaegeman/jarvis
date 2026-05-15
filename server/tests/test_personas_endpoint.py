@@ -158,15 +158,23 @@ def test_personas_endpoint_refresh_ts_none_when_no_refresher() -> None:
         assert data["jarvis"]["refreshCount"] == 0
 
 
-def test_personas_endpoint_refresh_ts_from_refresher() -> None:
-    """lastRefreshTs + refreshCount come from the ProfileRefresher when present."""
+def test_personas_endpoint_refresh_ts_from_persisted_storage() -> None:
+    """lastRefreshTs + refreshCount come from the persisted personas table
+    via ProfileRefresher.get_persisted_metadata — survives server restart.
+    """
     import server.main as main_mod
 
     mock_registry = _build_mock_registry()
 
     mock_refresher = MagicMock()
-    mock_refresher._last_refresh_ts = {"jarvis": 1234567890.0, "pepper": 1234567891.0}
-    mock_refresher._refresh_count = {"jarvis": 3, "pepper": 2}
+
+    async def fake_metadata(pid: str) -> tuple[float | None, int]:
+        return {
+            "jarvis": (1234567890.0, 3),
+            "pepper": (1234567891.0, 2),
+        }[pid]
+
+    mock_refresher.get_persisted_metadata = fake_metadata
 
     with (
         patch.object(main_mod, "_persona_registry", mock_registry),

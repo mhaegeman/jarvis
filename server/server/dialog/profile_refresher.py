@@ -147,19 +147,30 @@ class ProfileRefresher:
         self._refresh_count: dict[str, int] = {}
 
     async def refresh(self) -> dict[str, Any]:
-        """Run one refresh cycle. Returns a status dict."""
+        """Run one refresh cycle. Returns a status dict.
+
+        Skips personas that aren't registered (single-provider deployments).
+        """
         recent_rows = await self._feedback.recent(limit=100)
         if not recent_rows:
             return {"status": "skipped", "reason": "no turns"}
 
-        jarvis_current = self._registry.get("jarvis").specialty_profile
-        pepper_current = self._registry.get("pepper").specialty_profile
+        available_ids = self._registry.available_ids()
+        if not available_ids:
+            return {"status": "skipped", "reason": "no personas registered"}
 
-        # Build the user message with log + current profiles.
+        current_profiles: dict[str, str] = {
+            pid: self._registry.get(pid).specialty_profile for pid in available_ids
+        }
+
+        # Build the user message with log + current profiles for whichever
+        # personas are registered.
         log_text = json.dumps(recent_rows, indent=None)
+        profile_blocks = "\n\n".join(
+            f"Current {pid} profile:\n{prof}" for pid, prof in current_profiles.items()
+        )
         user_msg = (
-            f"Current Jarvis profile:\n{jarvis_current}\n\n"
-            f"Current Pepper profile:\n{pepper_current}\n\n"
+            f"{profile_blocks}\n\n"
             f"Recent dispatch log ({len(recent_rows)} rows):\n{log_text}"
         )
 
@@ -170,28 +181,55 @@ class ProfileRefresher:
             log.warning("ProfileRefresher LLM output invalid: %s", exc)
             return {"status": "error", "reason": str(exc)}
 
-        # Apply bounded-change safety rail (spec §8.4).
-        j_blended = self._apply_bounded_change(jarvis_current, parsed.jarvis_profile)
-        p_blended = self._apply_bounded_change(pepper_current, parsed.pepper_profile)
+        # Map structured output keys → persona ids. Only act on persona ids
+        # that are registered; skip the rest silently.
+        parsed_dict = parsed.model_dump()
+        updated: list[str] = []
+        for pid in available_ids:
+            new_text = parsed_dict.get(f"{pid}_profile")
+            if not new_text:
+                continue
+            blended = self._apply_bounded_change(current_profiles[pid], new_text)
+            self._registry.update_profile(pid, blended)
+            await self._persist(pid, blended)
+            updated.append(pid)
 
-        # Write back via registry (re-validates via pydantic).
-        self._registry.update_profile("jarvis", j_blended)
-        self._registry.update_profile("pepper", p_blended)
-
-        # Persist to personas table.
-        await self._persist("jarvis", j_blended)
-        await self._persist("pepper", p_blended)
-
-        return {"status": "ok", "summary": parsed.summary}
+        return {"status": "ok", "summary": parsed.summary, "updated": updated}
 
     async def reset(self) -> None:
-        """Restore seed profiles — wipes any learned drift."""
-        jarvis = build_jarvis_seed(warmth=self._warmth)
-        pepper = build_pepper_seed(warmth=self._warmth)
-        self._registry.update_profile("jarvis", jarvis.specialty_profile)
-        self._registry.update_profile("pepper", pepper.specialty_profile)
-        await self._persist("jarvis", jarvis.specialty_profile)
-        await self._persist("pepper", pepper.specialty_profile)
+        """Restore seed profiles — wipes any learned drift.
+
+        Only resets personas that are registered; missing-provider deployments
+        leave their unavailable persona alone instead of raising.
+        """
+        for pid in self._registry.available_ids():
+            if pid == "jarvis":
+                profile = build_jarvis_seed(warmth=self._warmth).specialty_profile
+            elif pid == "pepper":
+                profile = build_pepper_seed(warmth=self._warmth).specialty_profile
+            else:
+                continue  # unknown persona id — skip safely
+            self._registry.update_profile(pid, profile)
+            await self._persist(pid, profile)
+
+    async def get_persisted_metadata(
+        self, persona_id: str,
+    ) -> tuple[float | None, int]:
+        """Read (last_refresh, refresh_count) from the personas table.
+
+        Returns (None, 0) when no row exists yet. Used by GET /personas to
+        report data that survives a server restart — the in-memory dicts
+        reset on each process start.
+        """
+        async with aiosqlite.connect(self._db_path) as db:
+            cur = await db.execute(
+                "SELECT last_refresh, refresh_count FROM personas WHERE id = ?",
+                (persona_id,),
+            )
+            row = await cur.fetchone()
+        if row is None:
+            return None, 0
+        return float(row[0]), int(row[1])
 
     # ── private ───────────────────────────────────────────────────────────
 

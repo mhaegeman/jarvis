@@ -435,3 +435,143 @@ async def test_refresh_uses_haiku_model(tmp_path: Path) -> None:
         assert tc.get("name") == "emit_refresh"
     finally:
         await store.close()
+
+
+# ── Regression tests for Codex review on PR #35 ──────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_refresh_skips_unregistered_personas(tmp_path: Path) -> None:
+    """When only one provider key is configured (PersonaRegistry omits the
+    unavailable persona), refresh must skip the missing one instead of
+    raising PersonaUnavailableError on registry.get().
+    """
+    from server.dialog.profile_refresher import ProfileRefresher
+
+    db_path = str(tmp_path / "memory.db")
+    store = await MemoryStore.open(db_path)
+    logger = FeedbackLogger(db_path)
+    # Single-provider registry: only jarvis registered.
+    registry = PersonaRegistry({"jarvis": build_jarvis_seed(warmth=_WARMTH)})
+    try:
+        await _seed_one_turn(logger)
+        # FakeClient returns a refresh output that mentions both personas.
+        # The refresher must update jarvis and silently skip pepper.
+        client = _FakeClient(
+            return_msg=_refresh_tool_use(
+                jarvis_profile=("Jarvis specialises in calendar and strategy. " * 4),
+                pepper_profile=("Pepper specialises in code and tests. " * 4),
+                summary="updated",
+            ),
+        )
+        refresher = ProfileRefresher(
+            registry=registry, feedback=logger, client=client, db_path=db_path,
+        )
+        result = await refresher.refresh()
+        assert result["status"] == "ok"
+        assert result["updated"] == ["jarvis"]
+        # No PersonaUnavailableError raised.
+        # Jarvis updated; pepper not in registry, not in personas table.
+        async with aiosqlite.connect(db_path) as db:
+            cur = await db.execute(
+                "SELECT id FROM personas ORDER BY id"
+            )
+            ids = [row[0] for row in await cur.fetchall()]
+        assert ids == ["jarvis"]
+    finally:
+        await store.close()
+
+
+@pytest.mark.asyncio
+async def test_reset_skips_unregistered_personas(tmp_path: Path) -> None:
+    """/reset personas must work in single-provider deployments."""
+    from server.dialog.profile_refresher import ProfileRefresher
+
+    db_path = str(tmp_path / "memory.db")
+    store = await MemoryStore.open(db_path)
+    logger = FeedbackLogger(db_path)
+    registry = PersonaRegistry({"pepper": build_pepper_seed(warmth=_WARMTH)})
+    try:
+        refresher = ProfileRefresher(
+            registry=registry, feedback=logger, client=_FakeClient(), db_path=db_path,
+        )
+        # Must not raise — pepper is registered, jarvis is not.
+        await refresher.reset()
+        # Pepper's profile got persisted; jarvis was silently skipped.
+        async with aiosqlite.connect(db_path) as db:
+            cur = await db.execute("SELECT id FROM personas")
+            ids = {row[0] for row in await cur.fetchall()}
+        assert ids == {"pepper"}
+    finally:
+        await store.close()
+
+
+@pytest.mark.asyncio
+async def test_get_persisted_metadata_returns_db_state(tmp_path: Path) -> None:
+    """Metadata for GET /personas must come from SQLite so it survives
+    server restarts (in-memory dicts reset on each process start).
+    """
+    from server.dialog.profile_refresher import ProfileRefresher
+
+    db_path = str(tmp_path / "memory.db")
+    store = await MemoryStore.open(db_path)
+    logger = FeedbackLogger(db_path)
+    registry = PersonaRegistry(
+        {
+            "jarvis": build_jarvis_seed(warmth=_WARMTH),
+            "pepper": build_pepper_seed(warmth=_WARMTH),
+        }
+    )
+    try:
+        await _seed_one_turn(logger)
+        client = _FakeClient(
+            return_msg=_refresh_tool_use(
+                jarvis_profile=("Jarvis profile. " * 8),
+                pepper_profile=("Pepper profile. " * 8),
+                summary="x",
+            ),
+        )
+        refresher = ProfileRefresher(
+            registry=registry, feedback=logger, client=client, db_path=db_path,
+        )
+        await refresher.refresh()
+
+        # Both personas should have last_refresh + count=1 in the DB.
+        ts_j, count_j = await refresher.get_persisted_metadata("jarvis")
+        ts_p, count_p = await refresher.get_persisted_metadata("pepper")
+        assert ts_j is not None
+        assert ts_p is not None
+        assert count_j == 1
+        assert count_p == 1
+
+        # Simulate a server restart by constructing a NEW refresher with
+        # the same DB. Its in-memory dicts start empty; get_persisted_metadata
+        # must still return the real DB values.
+        fresh_refresher = ProfileRefresher(
+            registry=registry, feedback=logger, client=_FakeClient(), db_path=db_path,
+        )
+        ts2, count2 = await fresh_refresher.get_persisted_metadata("jarvis")
+        assert ts2 == ts_j
+        assert count2 == 1
+    finally:
+        await store.close()
+
+
+@pytest.mark.asyncio
+async def test_get_persisted_metadata_returns_none_when_no_row(tmp_path: Path) -> None:
+    from server.dialog.profile_refresher import ProfileRefresher
+
+    db_path = str(tmp_path / "memory.db")
+    store = await MemoryStore.open(db_path)
+    try:
+        refresher = ProfileRefresher(
+            registry=PersonaRegistry({}),
+            feedback=FeedbackLogger(db_path),
+            client=_FakeClient(),
+            db_path=db_path,
+        )
+        ts, count = await refresher.get_persisted_metadata("jarvis")
+        assert ts is None
+        assert count == 0
+    finally:
+        await store.close()

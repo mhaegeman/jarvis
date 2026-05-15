@@ -499,21 +499,23 @@ async def personas_endpoint(_: None = Depends(require_token)) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for pid in _persona_registry.available_ids():
         p = _persona_registry.get(pid)
+        # Read refresh metadata from the persisted personas table when a
+        # refresher is configured — in-memory dicts reset on every server
+        # restart, so /personas would otherwise report null/0 across
+        # process lifecycles even when SQLite has the real values.
+        last_refresh_ts: float | None = None
+        refresh_count = 0
+        if _profile_refresher is not None:
+            last_refresh_ts, refresh_count = (
+                await _profile_refresher.get_persisted_metadata(pid)
+            )
         out[pid] = {
             "displayName": p.display_name,
             "provider": p.provider,
             "voice": p.voice,
             "specialtyProfile": p.specialty_profile,
-            "lastRefreshTs": (
-                _profile_refresher._last_refresh_ts.get(pid)
-                if _profile_refresher is not None
-                else None
-            ),
-            "refreshCount": (
-                _profile_refresher._refresh_count.get(pid, 0)
-                if _profile_refresher is not None
-                else 0
-            ),
+            "lastRefreshTs": last_refresh_ts,
+            "refreshCount": refresh_count,
         }
     return out
 
