@@ -8,6 +8,8 @@ import type {
   PanelDataNetwork,
   PanelDataTasks,
   PanelDataCalendarEntry,
+  Speaker,
+  DispatchPlan,
 } from "@/types";
 import { transition, canTransition } from "@/state/stateMachine";
 import { createStore } from "@/state/store";
@@ -38,6 +40,10 @@ export interface AppState {
   centerTitle: string;
   panelData: PanelData;
   wsState: WsState;
+  // ─── Phase 4 additions ───
+  currentSpeaker: Speaker | null;
+  lastPlan: DispatchPlan | null;
+  activeAgentRun: { runId: string; task: string; speaker: Speaker } | null;
 }
 
 export const store = createStore<AppState>({
@@ -54,6 +60,9 @@ export const store = createStore<AppState>({
     calendar: { entries: [], syncing: false },
   },
   wsState: "live",
+  currentSpeaker: null,
+  lastPlan: null,
+  activeAgentRun: null,
 });
 
 export const log = (level: TelemetryEvent["level"], message: string): void => {
@@ -137,12 +146,27 @@ events.on("stt.final", ({ text }) => {
   openAudioIds.clear();
   llmEnded = false;
 });
-events.on("llm.token", ({ delta }) => {
+events.on("llm.token", ({ delta, speaker }) => {
   if (store.get().state === "thinking") {
     tryTransition("replyStart");
     store.update(() => ({ centerTitle: "" }));
   }
-  store.update((d) => ({ centerTitle: d.centerTitle + delta }));
+  store.update((d) => ({
+    centerTitle: d.centerTitle + delta,
+    currentSpeaker: speaker ?? d.currentSpeaker,
+  }));
+});
+events.on("llm.segment_end", () => {
+  // No-op for now: next llm.token's speaker field flips the centerpiece tint.
+});
+events.on("dispatch.plan", (plan) => {
+  store.update(() => ({ lastPlan: plan }));
+});
+events.on("agent.start", ({ runId, task, speaker }) => {
+  store.update(() => ({ activeAgentRun: { runId, task, speaker } }));
+});
+events.on("agent.end", () => {
+  store.update(() => ({ activeAgentRun: null }));
 });
 events.on("llm.end", () => { llmEnded = true; maybeFinishSpeaking(); });
 events.on("tts.sentence", ({ audioId }) => { openAudioIds.add(audioId); });
