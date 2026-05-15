@@ -20,6 +20,7 @@ import { buildCodeFocus } from "./overlays/CodeFocus";
 import { buildCalendarTakeover } from "./overlays/CalendarTakeover";
 import { buildGenericFocus } from "./overlays/GenericFocus";
 import { mountDispatchRibbon } from "./DispatchRibbon";
+import { mountAgentPanel } from "./AgentPanel";
 
 let micHeld = false;
 let micReady = false;
@@ -56,6 +57,19 @@ export function createCompassApp(): Surface {
   const eastCode  = new EastCode(app);
   const southSys  = new SouthSystem(app);
   const westTasks = new WestTasks(app);
+
+  // Agent panel — overlays the East Code zone when an agent run is active.
+  const agentPanelHost = document.createElement("div");
+  agentPanelHost.className = "zone east agent-panel-host";
+  agentPanelHost.style.display = "none";
+  app.appendChild(agentPanelHost);
+  const unsubAgentPanel = mountAgentPanel(agentPanelHost, store as never, events as never);
+  // Show/hide the agent panel host + East Code zone based on activeAgentRun.
+  const unsubAgentZone = store.subscribe((s) => {
+    const active = s.activeAgentRun !== null;
+    agentPanelHost.style.display = active ? "" : "none";
+    eastCode.setVisible(!active);
+  });
 
   // Notification chips (viewport-positioned, relative to disc centre)
   const notifRing = new NotifRing(app);
@@ -290,6 +304,9 @@ export function createCompassApp(): Surface {
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
       unsubRibbon();
+      unsubAgentPanel();
+      unsubAgentZone();
+      agentPanelHost.remove();
       topbar.destroy();
       bottombar.destroy();
       rim.destroy();
