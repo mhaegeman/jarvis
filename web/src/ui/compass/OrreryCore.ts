@@ -1,4 +1,5 @@
-import type { ConvState } from "@/types";
+import type { ConvState, Speaker } from "@/types";
+import { SPEAKER_TINT } from "@/ui/Centerpiece";
 
 /** Four-ring animated SVG orrery. State drives CSS class → animation swap. */
 export class OrreryCore {
@@ -29,6 +30,19 @@ export class OrreryCore {
     this.el.classList.remove("warm", "listening");
     if (state === "speaking") this.el.classList.add("warm");
     if (state === "listening") this.el.classList.add("listening");
+  }
+
+  /**
+   * Set the speaker tint on the orrery core.
+   * Null clears the tint (fallback to accent colour).
+   * The CSS transition on --centerpiece-tint handles the 120ms crossfade.
+   */
+  setTint(speaker: Speaker | null): void {
+    if (speaker === null) {
+      this.el.style.removeProperty("--centerpiece-tint");
+    } else {
+      this.el.style.setProperty("--centerpiece-tint", SPEAKER_TINT[speaker]);
+    }
   }
 
   destroy(): void {

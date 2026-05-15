@@ -1,4 +1,5 @@
 import type { CompassSystem } from "@/compass/types";
+import type { PanelDataSystemPersonas } from "@/types";
 
 export class SouthSystem {
   private readonly el: HTMLElement;
@@ -53,12 +54,34 @@ export class SouthSystem {
           <i style="width:${ctxPct}%"></i>
         </div>
       </div>
+      ${sys.personas ? renderPersonaRows(sys.personas) : ""}
       <div class="peek">Click to open system details</div>`;
   }
 
   destroy(): void {
     this.el.remove();
   }
+}
+
+function renderPersonaRows(personas: PanelDataSystemPersonas): string {
+  const rows: string[] = [];
+  const entries: [string, { model: string; tier: string } | undefined][] = [
+    ["jarvis", personas.jarvis],
+    ["pepper", personas.pepper],
+  ];
+  for (const [id, p] of entries) {
+    if (p) {
+      rows.push(
+        `<div class="zone-row" style="border:none;padding:2px 0;">
+          <span class="when">${escHtml(id)}</span>
+          <span class="what" style="font-size:10px;">${escHtml(p.model)}</span>
+          <span class="meta">${escHtml(p.tier)}</span>
+        </div>`,
+      );
+    }
+  }
+  if (rows.length === 0) return "";
+  return `<div style="margin-top:6px;border-top:1px solid var(--paper-2);padding-top:6px;">${rows.join("")}</div>`;
 }
 
 function escHtml(s: string): string {

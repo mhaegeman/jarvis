@@ -8,6 +8,8 @@ import type {
   PanelDataNetwork,
   PanelDataTasks,
   PanelDataCalendarEntry,
+  Speaker,
+  DispatchPlan,
 } from "@/types";
 import { transition, canTransition } from "@/state/stateMachine";
 import { createStore } from "@/state/store";
@@ -38,6 +40,10 @@ export interface AppState {
   centerTitle: string;
   panelData: PanelData;
   wsState: WsState;
+  // ─── Phase 4 additions ───
+  currentSpeaker: Speaker | null;
+  lastPlan: DispatchPlan | null;
+  activeAgentRun: { runId: string; task: string; speaker: Speaker } | null;
 }
 
 export const store = createStore<AppState>({
@@ -54,6 +60,9 @@ export const store = createStore<AppState>({
     calendar: { entries: [], syncing: false },
   },
   wsState: "live",
+  currentSpeaker: null,
+  lastPlan: null,
+  activeAgentRun: null,
 });
 
 export const log = (level: TelemetryEvent["level"], message: string): void => {
@@ -131,8 +140,16 @@ export function tryTransition(event: Parameters<typeof transition>[1]): void {
 events.on("stt.partial", ({ text }) => {
   store.update(() => ({ centerTitle: text || "Listening." }));
 });
+// Tracks the most recent user text so dispatch.plan can retroactively tag
+// the matching CommandHistory entry with the speaker that ended up handling
+// it. dispatch.plan arrives AFTER stt.final, so we can't read the plan
+// speaker at push-time.
+let lastUserText = "";
+
 events.on("stt.final", ({ text }) => {
   log("info", `you: ${text}`);
+  lastUserText = text;
+  // Push without a speaker — dispatch.plan will tag it once routing decides.
   CommandHistory.push(text);
   openAudioIds.clear();
   llmEnded = false;
@@ -142,7 +159,29 @@ events.on("llm.token", ({ delta }) => {
     tryTransition("replyStart");
     store.update(() => ({ centerTitle: "" }));
   }
+  // The active-speaker tint / chip pulse is driven by playback (via
+  // events.currentSpeaker()), NOT by llm.token.speaker — tokens arrive
+  // ahead of audio, and agent-only turns emit narration without llm.token
+  // arrivals on the chat path. Token handler only appends to the title.
   store.update((d) => ({ centerTitle: d.centerTitle + delta }));
+});
+events.on("llm.segment_end", () => {
+  // No-op for now: playback-driven currentSpeaker handles the boundary.
+});
+events.on("dispatch.plan", (plan) => {
+  store.update(() => ({ lastPlan: plan }));
+  // Retroactively tag the most-recent CommandHistory entry with the
+  // first segment's speaker (the persona that handled this turn).
+  const firstSpeaker = plan.segments[0]?.speaker;
+  if (firstSpeaker && lastUserText) {
+    CommandHistory.tagLastSpeaker(lastUserText, firstSpeaker);
+  }
+});
+events.on("agent.start", ({ runId, task, speaker }) => {
+  store.update(() => ({ activeAgentRun: { runId, task, speaker } }));
+});
+events.on("agent.end", () => {
+  store.update(() => ({ activeAgentRun: null }));
 });
 events.on("llm.end", () => { llmEnded = true; maybeFinishSpeaking(); });
 events.on("tts.sentence", ({ audioId }) => { openAudioIds.add(audioId); });

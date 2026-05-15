@@ -1,5 +1,10 @@
 import { CommandHistory } from "./commandHistory";
 
+const SPEAKER_COLOR: Record<string, string> = {
+  jarvis: "var(--cyan, #48d1cc)",
+  pepper: "var(--amber, #ffb86b)",
+};
+
 export class VoiceDock {
   private readonly el: HTMLElement;
   private visible = false;
@@ -13,10 +18,18 @@ export class VoiceDock {
   }
 
   private renderContent(): void {
-    const cmds = CommandHistory.recent();
+    const entries = CommandHistory.recentEntries();
     const cmdRows =
-      cmds.length > 0
-        ? cmds.map((cmd) => `<div class="cmd">${escHtml(cmd)}</div>`).join("")
+      entries.length > 0
+        ? entries
+            .map((entry) => {
+              const dot =
+                entry.speaker && SPEAKER_COLOR[entry.speaker]
+                  ? `<span class="speaker-dot" aria-hidden="true" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${SPEAKER_COLOR[entry.speaker]};margin-right:6px;vertical-align:middle;flex-shrink:0;"></span>`
+                  : "";
+              return `<div class="cmd">${dot}${escHtml(entry.text)}</div>`;
+            })
+            .join("")
         : `<div class="cmd empty">no recent commands</div>`;
 
     this.el.innerHTML = `

@@ -1,5 +1,5 @@
 import type { EventSource } from "./eventSource";
-import type { EventName, EventMap, EventHandler, TtsAudioChunk } from "@/types";
+import type { EventName, EventMap, EventHandler, Speaker, TtsAudioChunk } from "@/types";
 import { pickScenario, splitSentences, type Scenario } from "./scenarios";
 
 interface Options {
@@ -99,11 +99,43 @@ export class MockEventSource implements EventSource {
     };
   }
 
+  sendAgentApprove(_runId: string, _choice: string): void {
+    // Demo mode: no-op (agent approval not wired to backend in demo).
+  }
+
+  sendAgentCancel(_runId: string): void {
+    // Demo mode: no-op.
+  }
+
+  currentSpeaker(): Speaker | null {
+    // Demo mode has no real audio playback; the synthetic 2-segment plan
+    // emits speaker-tagged tokens but no audio. Tint stays neutral.
+    return null;
+  }
+
   private streamReply(): void {
     if (this.cancelled || this.currentReply === undefined) return;
     const reply = this.currentReply;
+
+    // Emit a synthetic 2-segment dispatch.plan before tokens.
+    const turnId = `t-demo-${Math.random().toString(36).slice(2, 7)}`;
+    this.emit("dispatch.plan", {
+      turnId,
+      segments: [
+        { speaker: "jarvis", tier: "balanced", mode: "chat", intent: "design" },
+        { speaker: "pepper", tier: "deep", mode: "chat", intent: "implement" },
+      ],
+      rationale: "demo: jarvis designs, pepper implements",
+    });
+
+    // Split reply into two halves for two segments.
+    const midpoint = Math.ceil(reply.length / 2);
+    const seg0Text = reply.slice(0, midpoint);
+
     let charIdx = 0;
     const stepMs = 33;
+    let segmentEmitted = false;
+
     const tokenStep = (): void => {
       if (this.cancelled) return;
       if (charIdx >= reply.length) {
@@ -115,11 +147,36 @@ export class MockEventSource implements EventSource {
       }
       const next = Math.min(charIdx + 3 + Math.floor(Math.random() * 4), reply.length);
       const delta = reply.slice(charIdx, next);
+
+      // Determine which segment we're in and emit segment_end at boundary.
+      const wasInSeg0 = charIdx < midpoint;
       charIdx = next;
-      this.emit("llm.token", { delta });
+      const nowInSeg1 = charIdx >= midpoint;
+
+      if (wasInSeg0 && nowInSeg1 && !segmentEmitted) {
+        segmentEmitted = true;
+        this.emit("llm.token", { delta: seg0Text.slice(seg0Text.length - (next - midpoint)), speaker: "jarvis", segmentIdx: 0 });
+        this.emit("llm.segment_end", { speaker: "jarvis", segmentIdx: 0 });
+        const remainder = reply.slice(charIdx);
+        if (remainder.length > 0) {
+          this.emit("llm.token", { delta: remainder.slice(0, Math.min(3, remainder.length)), speaker: "pepper", segmentIdx: 1 });
+        }
+      } else if (charIdx <= midpoint) {
+        this.emit("llm.token", { delta, speaker: "jarvis", segmentIdx: 0 });
+      } else {
+        this.emit("llm.token", { delta, speaker: "pepper", segmentIdx: 1 });
+      }
+
       this.schedule(stepMs, tokenStep);
     };
     tokenStep();
+
+    // Mark end of second segment before llm.end.
+    const seg1EndMs = Math.ceil(reply.length / 3) * stepMs + 100;
+    this.schedule(seg1EndMs, () => {
+      if (this.cancelled) return;
+      this.emit("llm.segment_end", { speaker: "pepper", segmentIdx: 1 });
+    });
 
     const sentences = splitSentences(reply);
     let cumulative = 0;

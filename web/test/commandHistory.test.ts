@@ -30,9 +30,8 @@ describe("CommandHistory.push()", () => {
 
   it("persists across module calls (simulating page reload via fresh read)", () => {
     CommandHistory.push("persistent command");
-    const raw = localStorage.getItem("jarvis_recent_commands");
-    const parsed: string[] = raw ? JSON.parse(raw) : [];
-    expect(parsed).toContain("persistent command");
+    // Storage format is now CommandEntry[]; verify round-trip via the public API.
+    expect(CommandHistory.recent()).toContain("persistent command");
   });
 
   it("ignores blank strings", () => {
@@ -73,5 +72,38 @@ describe("CommandHistory tolerates corrupted localStorage", () => {
     localStorage.setItem("jarvis_recent_commands", JSON.stringify({ foo: "bar" }));
     CommandHistory.push("new command");
     expect(CommandHistory.recent()).toEqual(["new command"]);
+  });
+});
+
+describe("CommandHistory.tagLastSpeaker — regression for stale-plan bug", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("tags the most-recent entry with the speaker when text matches", () => {
+    CommandHistory.push("Pepper, refactor X");
+    CommandHistory.tagLastSpeaker("Pepper, refactor X", "pepper");
+    const entries = CommandHistory.recentEntries();
+    expect(entries[0].speaker).toBe("pepper");
+  });
+
+  it("does NOT overwrite an existing speaker (only-once tagging)", () => {
+    CommandHistory.push("Pepper, refactor X", "pepper");
+    CommandHistory.tagLastSpeaker("Pepper, refactor X", "jarvis");
+    const entries = CommandHistory.recentEntries();
+    expect(entries[0].speaker).toBe("pepper");
+  });
+
+  it("ignores tagging when text has drifted (different last entry)", () => {
+    CommandHistory.push("first command");
+    CommandHistory.push("second command");
+    CommandHistory.tagLastSpeaker("first command", "pepper");
+    const entries = CommandHistory.recentEntries();
+    expect(entries[0].speaker).toBeUndefined();
+  });
+
+  it("no-ops on empty history", () => {
+    CommandHistory.tagLastSpeaker("anything", "jarvis");
+    expect(CommandHistory.recentEntries()).toEqual([]);
   });
 });

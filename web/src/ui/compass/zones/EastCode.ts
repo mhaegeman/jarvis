@@ -29,6 +29,11 @@ export class EastCode {
     this.onClickCb = cb;
   }
 
+  /** Show or hide the East Code zone (used when the Agent Panel takes over). */
+  setVisible(visible: boolean): void {
+    this.el.style.display = visible ? "" : "none";
+  }
+
   render(props: EastCodeProps): void {
     const { branch, files, buildStatus } = props;
     const modified = files.filter((f) => f.group === "modified").length;

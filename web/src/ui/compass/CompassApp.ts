@@ -19,6 +19,8 @@ import { WestTasks } from "./zones/WestTasks";
 import { buildCodeFocus } from "./overlays/CodeFocus";
 import { buildCalendarTakeover } from "./overlays/CalendarTakeover";
 import { buildGenericFocus } from "./overlays/GenericFocus";
+import { mountDispatchRibbon } from "./DispatchRibbon";
+import { mountAgentPanel } from "./AgentPanel";
 
 let micHeld = false;
 let micReady = false;
@@ -29,12 +31,17 @@ export function createCompassApp(): Surface {
   // Build DOM scaffold
   app.innerHTML = `
     <div id="compass-topbar"></div>
+    <div id="dispatch-ribbon-host"></div>
     <div class="stage">
       <div class="compass" id="compass-disc"></div>
     </div>
     <div id="compass-bottombar"></div>`;
 
   const disc = document.getElementById("compass-disc")!;
+
+  // Mount dispatch ribbon (subscribes to store, auto-hides when no plan)
+  const ribbonHost = document.getElementById("dispatch-ribbon-host")!;
+  const unsubRibbon = mountDispatchRibbon(ribbonHost, store);
 
   // Mount sub-components
   const topbar = new Topbar(document.getElementById("compass-topbar")!);
@@ -50,6 +57,19 @@ export function createCompassApp(): Surface {
   const eastCode  = new EastCode(app);
   const southSys  = new SouthSystem(app);
   const westTasks = new WestTasks(app);
+
+  // Agent panel — overlays the East Code zone when an agent run is active.
+  const agentPanelHost = document.createElement("div");
+  agentPanelHost.className = "zone east agent-panel-host";
+  agentPanelHost.style.display = "none";
+  app.appendChild(agentPanelHost);
+  const unsubAgentPanel = mountAgentPanel(agentPanelHost, store as never, events as never);
+  // Show/hide the agent panel host + East Code zone based on activeAgentRun.
+  const unsubAgentZone = store.subscribe((s) => {
+    const active = s.activeAgentRun !== null;
+    agentPanelHost.style.display = active ? "" : "none";
+    eastCode.setVisible(!active);
+  });
 
   // Notification chips (viewport-positioned, relative to disc centre)
   const notifRing = new NotifRing(app);
@@ -229,7 +249,12 @@ export function createCompassApp(): Surface {
     const s = store.get();
     const uptime = Date.now() - start;
 
-    topbar.render({ convState: s.state });
+    // Active speaker is audio-driven (via the playback queue) so the chip
+    // pulse + centerpiece tint follow what's currently audible — not the
+    // most-recent llm.token (which arrives ahead of audio and skips entirely
+    // for agent-only narration on chat-tagged sentences).
+    const activeSpeaker = events.currentSpeaker();
+    topbar.render({ convState: s.state, currentSpeaker: activeSpeaker });
     bottombar.render({
       tokensPerMin: s.panelData.system?.tokensPerMin ?? 0,
       load: s.panelData.system?.load ?? 0,
@@ -239,6 +264,7 @@ export function createCompassApp(): Surface {
     ring.render(s.state);
     hourLabels.render();
     orrery.render(s.state);
+    orrery.setTint(activeSpeaker);
 
     if (s.state === "listening") rim.show();
     else rim.hide();
@@ -282,6 +308,10 @@ export function createCompassApp(): Surface {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
+      unsubRibbon();
+      unsubAgentPanel();
+      unsubAgentZone();
+      agentPanelHost.remove();
       topbar.destroy();
       bottombar.destroy();
       rim.destroy();
