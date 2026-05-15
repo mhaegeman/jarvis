@@ -142,7 +142,9 @@ events.on("stt.partial", ({ text }) => {
 });
 events.on("stt.final", ({ text }) => {
   log("info", `you: ${text}`);
-  CommandHistory.push(text);
+  // Pass the first segment's speaker from the most recent plan (if any).
+  const planSpeaker = store.get().lastPlan?.segments[0]?.speaker ?? undefined;
+  CommandHistory.push(text, planSpeaker);
   openAudioIds.clear();
   llmEnded = false;
 });

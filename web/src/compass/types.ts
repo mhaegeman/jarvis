@@ -3,7 +3,7 @@
  * and are adapted at the view layer to keep the backend protocol stable.
  */
 
-import type { PanelDataCalendarEntry, PanelDataSystem, PanelDataMemory, PanelDataTasks } from "@/types";
+import type { PanelDataCalendarEntry, PanelDataSystem, PanelDataMemory, PanelDataTasks, PanelDataSystemPersonas } from "@/types";
 
 export interface CompassCalendarEntry {
   time: string;          // "14:30"
@@ -36,6 +36,7 @@ export interface CompassSystem {
   model: string;
   contextUsed: number;   // K tokens
   contextMax: number;    // K tokens
+  personas?: PanelDataSystemPersonas;
 }
 
 export interface CompassNotif {
@@ -87,7 +88,7 @@ export function mapSystem(
   const sec = s % 60;
   const uptime = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 
-  return {
+  const result: CompassSystem = {
     uptime,
     load: system?.load?.toFixed(2) ?? "—",
     tokens: system ? `${system.tokensPerMin.toLocaleString()} tok/m` : "—",
@@ -95,6 +96,8 @@ export function mapSystem(
     contextUsed: memory ? Math.round(memory.contextUsed / 1000) : 0,
     contextMax: memory ? Math.round(memory.contextMax / 1000) : 200,
   };
+  if (system?.personas) result.personas = system.personas;
+  return result;
 }
 
 export function mapTasks(

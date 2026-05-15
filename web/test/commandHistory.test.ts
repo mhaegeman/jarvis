@@ -30,9 +30,8 @@ describe("CommandHistory.push()", () => {
 
   it("persists across module calls (simulating page reload via fresh read)", () => {
     CommandHistory.push("persistent command");
-    const raw = localStorage.getItem("jarvis_recent_commands");
-    const parsed: string[] = raw ? JSON.parse(raw) : [];
-    expect(parsed).toContain("persistent command");
+    // Storage format is now CommandEntry[]; verify round-trip via the public API.
+    expect(CommandHistory.recent()).toContain("persistent command");
   });
 
   it("ignores blank strings", () => {
