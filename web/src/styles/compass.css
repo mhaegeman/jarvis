@@ -34,6 +34,38 @@
   color: var(--ink-3);
   text-transform: uppercase;
 }
+
+/* Persona chips — dual Jarvis / Pepper selector in the topbar */
+.topbar .persona-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.persona-chip {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  background: none;
+  border: 1.5px solid;
+  border-radius: 999px;
+  padding: 2px 14px 3px;
+  cursor: pointer;
+  color: var(--ink-3);
+  opacity: 0.45;
+  transition: opacity 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+.persona-chip:hover { opacity: 0.7; }
+.persona-chip.active {
+  color: var(--ink);
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 15%, transparent);
+  animation: chipPulse 2.4s ease-in-out infinite;
+}
+@keyframes chipPulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 10%, transparent); }
+  50%       { box-shadow: 0 0 0 6px color-mix(in srgb, currentColor 18%, transparent); }
+}
 .topbar .meta {
   display: flex;
   align-items: center;

@@ -229,7 +229,7 @@ export function createCompassApp(): Surface {
     const s = store.get();
     const uptime = Date.now() - start;
 
-    topbar.render({ convState: s.state });
+    topbar.render({ convState: s.state, currentSpeaker: s.currentSpeaker });
     bottombar.render({
       tokensPerMin: s.panelData.system?.tokensPerMin ?? 0,
       load: s.panelData.system?.load ?? 0,
