@@ -22,6 +22,7 @@ from .protocol import ServerMessage
 from .tasks import tasks_queue
 
 if TYPE_CHECKING:
+    from .dialog.profile_refresher import ProfileRefresher
     from .session import Session
 
 log = logging.getLogger(__name__)
@@ -43,14 +44,18 @@ def build_snapshot(
     send_queue_depth: int,
     send_queue_max: int,
     tasks: dict[str, int],
+    personas: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    system: dict[str, Any] = {
+        "load": load,
+        "tokensPerMin": tokens_per_min,
+        "sessionId": session_id,
+        "modelName": model_name,
+    }
+    if personas is not None:
+        system["personas"] = personas
     return ServerMessage.state_snapshot(
-        system={
-            "load": load,
-            "tokensPerMin": tokens_per_min,
-            "sessionId": session_id,
-            "modelName": model_name,
-        },
+        system=system,
         memory={"contextUsed": context_used, "contextMax": context_max},
         network={
             "endpoint": endpoint,
@@ -64,12 +69,19 @@ def build_snapshot(
 
 
 class StateEmitter:
-    def __init__(self, session: Session, *, interval_s: float = 1.0) -> None:
+    def __init__(
+        self,
+        session: Session,
+        *,
+        interval_s: float = 1.0,
+        persona_refresher: ProfileRefresher | None = None,
+    ) -> None:
         self._session = session
         self._interval_s = interval_s
         self._token_times: deque[float] = deque()
         self._packets = 0
         self._context_used = 0
+        self._persona_refresher = persona_refresher
 
     def record_token(self) -> None:
         now = time.monotonic()
@@ -104,6 +116,25 @@ class StateEmitter:
         except ImportError:
             return 0.0
 
+    def _personas_snapshot(self) -> dict[str, Any] | None:
+        """Build the personas sub-dict for state.snapshot.system.personas.
+
+        Returns None when the feature is not active (no refresher wired).
+        Returns a dict with lastRefreshTs + refreshCount when the refresher
+        is present — even if no refresh has happened yet (values default to
+        None / 0 in that case).
+        """
+        if self._persona_refresher is None:
+            return None
+        r = self._persona_refresher
+        # Aggregate across all personas: use the most recent ts + total count.
+        ts_values = list(r._last_refresh_ts.values())  # noqa: SLF001
+        count_values = list(r._refresh_count.values())  # noqa: SLF001
+        return {
+            "lastRefreshTs": max(ts_values) if ts_values else None,
+            "refreshCount": sum(count_values) if count_values else 0,
+        }
+
     async def run(self) -> None:
         while True:
             await asyncio.sleep(self._interval_s)
@@ -121,6 +152,7 @@ class StateEmitter:
                     send_queue_depth=getattr(self._session, "send_queue_depth", 0),
                     send_queue_max=getattr(self._session, "send_queue_max", 256),
                     tasks=tasks_queue.snapshot(),
+                    personas=self._personas_snapshot(),
                 )
                 await self._session._enqueue_json(snap)  # noqa: SLF001
             except asyncio.CancelledError:

@@ -286,6 +286,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         # ── Phase 2: build persona infra once at startup ────────────────
         # All imports inside this block so dormancy regression guard passes.
         from .dialog.dispatcher import LLMBackedDispatcher  # noqa: PLC0415
+        from .dialog.feedback import FeedbackLogger  # noqa: PLC0415
         from .personas.registry import build_registry_from_settings  # noqa: PLC0415
         from .pipelines.multi_voice_tts import MultiVoiceTTS  # noqa: PLC0415
 
@@ -356,6 +357,23 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
         _llm_factory = _build_llm_factory(_anthropic_client, _openai_client)
         log.info("personas: dispatcher + multi-voice TTS + llm_factory ready")
+
+        # ── Phase 5: learning loop ──────────────────────────────────────
+        # FeedbackLogger + ProfileRefresher use the memory DB; they're only
+        # constructed when learning_enabled is set (default True).
+        if settings.learning_enabled and settings.memory_enabled:
+            from .dialog.profile_refresher import ProfileRefresher  # noqa: PLC0415
+
+            _feedback_logger = FeedbackLogger(settings.memory_db_path)
+            _profile_refresher = ProfileRefresher(
+                registry=_persona_registry,
+                feedback=_feedback_logger,
+                client=_anthropic_client,
+                db_path=settings.memory_db_path,
+                model=settings.dispatcher_model,
+                warmth=settings.persona_warmth,
+            )
+            log.info("personas: FeedbackLogger + ProfileRefresher ready")
 
         # ── Phase 3: Codex agent ────────────────────────────────────────
         # Lazy import inside personas_enabled block so the dormancy
@@ -638,6 +656,9 @@ async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) ->
             llm_factory=_llm_factory,
             tts=_multi_voice_tts,
             codex_agent=_codex_agent,
+            feedback=_feedback_logger,
+            refresher=_profile_refresher,
+            refresh_every=settings.persona_refresh_turns,
         )
     session = Session(
         ws=_StarletteWSAdapter(ws),
@@ -652,6 +673,7 @@ async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) ->
         facts_cap=settings.memory_facts_cap,
         dialog_manager=dialog_manager,
         codex_agent=_codex_agent,
+        refresher=_profile_refresher,
     )
     try:
         await session.run()

@@ -12,7 +12,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
@@ -100,7 +99,6 @@ def _build_mock_registry() -> Any:
 def test_personas_endpoint_200_with_registry() -> None:
     """Returns 200 with expected JSON shape when registry is present (auth disabled)."""
     import server.main as main_mod
-    import server.config as cfg
 
     mock_registry = _build_mock_registry()
 

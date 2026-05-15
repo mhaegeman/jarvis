@@ -10,10 +10,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
-
 
 # ── Minimal stubs ────────────────────────────────────────────────────────────
 
@@ -138,7 +136,6 @@ async def test_reset_personas_strips_whitespace() -> None:
 @pytest.mark.asyncio
 async def test_reset_personas_emits_tts_sentence() -> None:
     """A tts.sentence event is emitted as the spoken confirmation."""
-    import asyncio
     import json
 
     refresher = _FakeRefresher()
@@ -152,10 +149,9 @@ async def test_reset_personas_emits_tts_sentence() -> None:
         await asyncio.sleep(0)
     finally:
         sender_task.cancel()
-        try:
+        import contextlib
+        with contextlib.suppress(asyncio.CancelledError):
             await sender_task
-        except asyncio.CancelledError:
-            pass
 
     tts_sentences = [
         json.loads(t)
