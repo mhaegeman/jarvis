@@ -19,6 +19,7 @@ import { WestTasks } from "./zones/WestTasks";
 import { buildCodeFocus } from "./overlays/CodeFocus";
 import { buildCalendarTakeover } from "./overlays/CalendarTakeover";
 import { buildGenericFocus } from "./overlays/GenericFocus";
+import { mountDispatchRibbon } from "./DispatchRibbon";
 
 let micHeld = false;
 let micReady = false;
@@ -29,12 +30,17 @@ export function createCompassApp(): Surface {
   // Build DOM scaffold
   app.innerHTML = `
     <div id="compass-topbar"></div>
+    <div id="dispatch-ribbon-host"></div>
     <div class="stage">
       <div class="compass" id="compass-disc"></div>
     </div>
     <div id="compass-bottombar"></div>`;
 
   const disc = document.getElementById("compass-disc")!;
+
+  // Mount dispatch ribbon (subscribes to store, auto-hides when no plan)
+  const ribbonHost = document.getElementById("dispatch-ribbon-host")!;
+  const unsubRibbon = mountDispatchRibbon(ribbonHost, store);
 
   // Mount sub-components
   const topbar = new Topbar(document.getElementById("compass-topbar")!);
@@ -283,6 +289,7 @@ export function createCompassApp(): Surface {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
+      unsubRibbon();
       topbar.destroy();
       bottombar.destroy();
       rim.destroy();

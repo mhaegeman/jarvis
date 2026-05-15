@@ -206,6 +206,29 @@
 .core.listening .r,
 .core.listening .center-dot { stroke: var(--accent); fill: var(--accent); }
 
+/* ============== DISPATCH RIBBON ============== */
+#dispatch-ribbon-host {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.dispatch-ribbon {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: var(--paper);
+  border: 1px solid var(--ink-faint);
+  border-radius: 3px;
+  padding: 3px 10px 4px;
+  display: inline-block;
+}
+
 /* ============== UNDER-CORE RIBBON ============== */
 .under-core {
   position: absolute;
