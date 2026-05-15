@@ -1,6 +1,11 @@
 import { Waveform } from "./Waveform";
 import { Transcript } from "./Transcript";
-import type { ConvState } from "@/types";
+import type { ConvState, Speaker } from "@/types";
+
+export const SPEAKER_TINT: Record<Speaker, string> = {
+  jarvis: "#0bc5ea",
+  pepper: "#ffb86b",
+};
 
 export class Centerpiece {
   private root: HTMLElement;
@@ -48,6 +53,19 @@ export class Centerpiece {
   setStateClass(state: ConvState): void {
     this.root.dataset.state = state;
     this.scan.dataset.state = state;
+  }
+
+  /**
+   * Set the centerpiece tint colour based on the currently-speaking persona.
+   * Passes `null` to clear the tint (revert to the default ink colour).
+   * The CSS transition on `--centerpiece-tint` handles the 120ms crossfade.
+   */
+  setTint(speaker: Speaker | null): void {
+    if (speaker === null) {
+      this.root.style.removeProperty("--centerpiece-tint");
+    } else {
+      this.root.style.setProperty("--centerpiece-tint", SPEAKER_TINT[speaker]);
+    }
   }
 
   renderFrame(amplitude: number, modeHint: ConvState): void {

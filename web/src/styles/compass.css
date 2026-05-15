@@ -142,10 +142,19 @@
 .core .r4 { stroke-width: 0.5; opacity: 0.30; stroke-dasharray: 0.8 5; }
 .core .center-dot { fill: var(--ink); }
 
+/* --centerpiece-tint is set by JS (OrreryCore.setTint) to the active speaker's
+   colour. Falls back to --accent when unset. 120ms crossfade via transition. */
+.core { transition: --centerpiece-tint 120ms ease; }
+
 .core.warm .r,
-.core.warm .center-dot { stroke: var(--accent); fill: var(--accent); }
+.core.warm .center-dot {
+  stroke: var(--centerpiece-tint, var(--accent));
+  fill:   var(--centerpiece-tint, var(--accent));
+}
 .core.warm .r1 { stroke-width: 1.6; }
-.core.warm .center-dot { filter: drop-shadow(0 0 8px var(--accent-soft)); }
+.core.warm .center-dot {
+  filter: drop-shadow(0 0 8px var(--centerpiece-tint, var(--accent-soft)));
+}
 
 @keyframes orbit1 { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.012) rotate(0.5deg); } }
 @keyframes orbit2 { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.025) rotate(-0.7deg); } }

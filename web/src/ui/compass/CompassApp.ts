@@ -239,6 +239,7 @@ export function createCompassApp(): Surface {
     ring.render(s.state);
     hourLabels.render();
     orrery.render(s.state);
+    orrery.setTint(s.currentSpeaker);
 
     if (s.state === "listening") rim.show();
     else rim.hide();
