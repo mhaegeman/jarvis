@@ -11,7 +11,6 @@ import pytest
 from server.dialog.types import Outcome, Plan, Segment
 from server.memory.store import MemoryStore
 
-
 # ── helpers ──────────────────────────────────────────────────────────────
 
 def _make_plan(speaker: str = "jarvis") -> Plan:
@@ -236,7 +235,8 @@ async def test_recent_row_shape(tmp_path: Path) -> None:
         rows = await logger.recent(limit=1)
         assert len(rows) == 1
         r = rows[0]
-        assert set(r.keys()) == {"turn_id", "ts", "utterance", "explicit", "plan", "rationale", "outcome"}
+        expected_keys = {"turn_id", "ts", "utterance", "explicit", "plan", "rationale", "outcome"}
+        assert set(r.keys()) == expected_keys
         assert r["turn_id"] == "shape-test"
         assert r["explicit"] == "jarvis"
         assert isinstance(r["plan"], dict)
