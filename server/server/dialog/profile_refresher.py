@@ -141,6 +141,10 @@ class ProfileRefresher:
         self._max_tokens = max_tokens
         self._threshold = bounded_change_threshold
         self._warmth: Warmth = warmth
+        # In-memory tracking for the GET /personas endpoint and state.snapshot.
+        # Keyed by persona id ("jarvis", "pepper").
+        self._last_refresh_ts: dict[str, float] = {}
+        self._refresh_count: dict[str, int] = {}
 
     async def refresh(self) -> dict[str, Any]:
         """Run one refresh cycle. Returns a status dict."""
@@ -223,6 +227,7 @@ class ProfileRefresher:
 
     async def _persist(self, persona_id: str, profile: str) -> None:
         """Upsert a row in the personas table, incrementing refresh_count."""
+        ts = time.time()
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute(
                 "INSERT INTO personas (id, profile, last_refresh, refresh_count) "
@@ -231,9 +236,12 @@ class ProfileRefresher:
                 "  profile = excluded.profile, "
                 "  last_refresh = excluded.last_refresh, "
                 "  refresh_count = personas.refresh_count + 1",
-                (persona_id, profile, time.time()),
+                (persona_id, profile, ts),
             )
             await db.commit()
+        # Update in-memory tracking for GET /personas + state.snapshot.
+        self._last_refresh_ts[persona_id] = ts
+        self._refresh_count[persona_id] = self._refresh_count.get(persona_id, 0) + 1
 
 
 class _RefreshOutputError(Exception):

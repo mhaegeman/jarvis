@@ -37,7 +37,9 @@ from .session import Session
 
 if TYPE_CHECKING:
     from .dialog.dispatcher import LLMBackedDispatcher
+    from .dialog.feedback import FeedbackLogger
     from .dialog.manager import DialogManager
+    from .dialog.profile_refresher import ProfileRefresher
     from .personas.models import Persona
     from .personas.registry import PersonaRegistry
     from .pipelines.multi_voice_tts import MultiVoiceTTS
@@ -55,6 +57,9 @@ _multi_voice_tts: MultiVoiceTTS | None = None
 _llm_factory: Callable[[Persona, str], LLM] | None = None
 # ── Phase 3: Codex agent (only non-None when binary resolves at startup) ──
 _codex_agent: Any = None
+# ── Phase 5: learning loop ────────────────────────────────────────────────
+_feedback_logger: FeedbackLogger | None = None
+_profile_refresher: ProfileRefresher | None = None
 
 
 def _build_llm() -> LLM:
@@ -267,6 +272,7 @@ def _build_llm_factory(
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global _memory_store, _summarizer
     global _persona_registry, _dispatcher, _multi_voice_tts, _llm_factory, _codex_agent
+    global _feedback_logger, _profile_refresher
     log.info("lifespan: Phase 1 mock pipelines (no model loading)")
     if settings.memory_enabled:
         Path(settings.memory_db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -457,6 +463,41 @@ class _GitDiffLine(_BaseModel):
 
 class _GitDiffResponse(_BaseModel):
     lines: list[_GitDiffLine]
+
+
+@app.get("/personas")
+async def personas_endpoint(_: None = Depends(require_token)) -> dict[str, Any]:
+    """Return current persona profiles + last-refresh metadata.
+
+    Returns:
+        200: dict keyed by persona id with displayName, provider, voice,
+             specialtyProfile, lastRefreshTs, refreshCount.
+        401: when auth is enabled and the token is missing / invalid.
+        503: when the persona registry is not configured
+             (``JARVIS_PERSONAS_ENABLED=false``).
+    """
+    if _persona_registry is None:
+        raise HTTPException(status_code=503, detail="personas not enabled")
+    out: dict[str, Any] = {}
+    for pid in _persona_registry.available_ids():
+        p = _persona_registry.get(pid)
+        out[pid] = {
+            "displayName": p.display_name,
+            "provider": p.provider,
+            "voice": p.voice,
+            "specialtyProfile": p.specialty_profile,
+            "lastRefreshTs": (
+                _profile_refresher._last_refresh_ts.get(pid)
+                if _profile_refresher is not None
+                else None
+            ),
+            "refreshCount": (
+                _profile_refresher._refresh_count.get(pid, 0)
+                if _profile_refresher is not None
+                else 0
+            ),
+        }
+    return out
 
 
 @app.get("/git/status", response_model=_GitStatusResponse)

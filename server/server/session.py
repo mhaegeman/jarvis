@@ -40,6 +40,7 @@ from .state import StateEmitter
 
 if TYPE_CHECKING:
     from .dialog.manager import DialogManager
+    from .dialog.profile_refresher import ProfileRefresher
     from .pipelines.codex_agent import CodexAgent
 
 log = logging.getLogger(__name__)
@@ -84,6 +85,7 @@ class Session:
         facts_cap: int = 50,
         dialog_manager: DialogManager | None = None,
         codex_agent: CodexAgent | None = None,
+        refresher: ProfileRefresher | None = None,
     ) -> None:
         self._ws = ws
         self._stt = stt
@@ -122,6 +124,7 @@ class Session:
         self._consolidated = False
         self._dialog_manager = dialog_manager
         self._codex_agent = codex_agent
+        self._refresher = refresher
 
     # ─── public lifecycle ─────────────────────────────────────────────
 
@@ -334,6 +337,17 @@ class Session:
         return final
 
     async def _do_llm_and_tts(self, user_text: str) -> None:
+        # Phase 5: /reset personas voice command — intercept BEFORE dispatch.
+        if self._refresher is not None and user_text.strip().lower() == "/reset personas":
+            await self._refresher.reset()
+            confirmation = "Personas reset to seed."
+            aid = _audio_id(0)
+            await self._enqueue_json(ServerMessage.tts_sentence(text=confirmation, audio_id=aid))
+            async for pcm in self._tts.synthesize(confirmation, aid):
+                await self._enqueue_bytes(encode_tts_chunk(aid, pcm))
+            await self._enqueue_json(ServerMessage.tts_end(aid))
+            return
+
         # Phase 2 path: delegate to the DialogManager when personas are enabled.
         if self._dialog_manager is not None:
             # Append the user turn FIRST so the manager sees up-to-date
