@@ -1,3 +1,5 @@
+import type { Speaker } from "@/types";
+
 export interface PlaybackQueueOptions {
   sampleRate?: number;
 }
@@ -7,6 +9,8 @@ export class PlaybackQueue {
   private nextStart = 0;
   private active: AudioBufferSourceNode[] = [];
   private readonly inputRate: number;
+  private speakerMap = new Map<string, Speaker>();
+  private _currentSpeaker: Speaker | null = null;
 
   constructor(
     private ctx: AudioContext,
@@ -16,6 +20,24 @@ export class PlaybackQueue {
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 2048;
     this.analyser.connect(ctx.destination);
+  }
+
+  /** Register the speaker for a given audioId before chunks arrive. */
+  enqueueSentence(audioId: string, speaker: Speaker): void {
+    this.speakerMap.set(audioId, speaker);
+  }
+
+  /** Called when chunks for a given audioId start playing; updates currentSpeaker. */
+  markChunkPlaying(audioId: string): void {
+    const speaker = this.speakerMap.get(audioId);
+    if (speaker !== undefined) {
+      this._currentSpeaker = speaker;
+    }
+  }
+
+  /** Returns the speaker of the currently-playing chunk, or null when idle. */
+  currentSpeaker(): Speaker | null {
+    return this._currentSpeaker;
   }
 
   enqueue(_audioId: string, int16: Int16Array): number {
@@ -51,6 +73,8 @@ export class PlaybackQueue {
     }
     this.active = [];
     this.nextStart = this.ctx.currentTime;
+    this.speakerMap.clear();
+    this._currentSpeaker = null;
   }
 
   destroy(): void {

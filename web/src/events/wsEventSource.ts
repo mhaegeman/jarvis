@@ -290,6 +290,10 @@ export class WSEventSource implements IEventSource {
           audioId: String(msg.audioId ?? ""),
         };
         if (msg.speaker !== undefined) sentPayload.speaker = msg.speaker as Speaker;
+        // Register speaker for the playback queue so currentSpeaker() tracks audio.
+        if (sentPayload.speaker !== undefined && this.playback) {
+          this.playback.enqueueSentence(sentPayload.audioId, sentPayload.speaker);
+        }
         this.emit("tts.sentence", sentPayload);
         return;
       }
@@ -393,6 +397,7 @@ export class WSEventSource implements IEventSource {
     for (let i = 0; i < frame.samples.length; i++)
       f32[i] = frame.samples[i] / 32768;
     this.emit("tts.audioChunk", { audioId: frame.audioId, samples: f32 });
+    this.playback?.markChunkPlaying(frame.audioId);
     const scheduledEnd = this.playback?.enqueue(frame.audioId, frame.samples);
     if (scheduledEnd !== undefined) {
       this.sentenceEndTimes.set(frame.audioId, scheduledEnd);
