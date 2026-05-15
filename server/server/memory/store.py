@@ -53,6 +53,23 @@ CREATE TABLE IF NOT EXISTS recent_summary (
     refreshed_at    TEXT NOT NULL,
     last_turn_id    INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS dispatch_log (
+    turn_id      TEXT PRIMARY KEY,
+    ts           REAL NOT NULL,
+    utterance    TEXT NOT NULL,
+    explicit     TEXT,
+    plan_json    TEXT NOT NULL,
+    rationale    TEXT,
+    outcome_json TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS personas (
+    id            TEXT PRIMARY KEY,
+    profile       TEXT NOT NULL,
+    last_refresh  REAL NOT NULL,
+    refresh_count INTEGER NOT NULL DEFAULT 0
+);
 """
 
 

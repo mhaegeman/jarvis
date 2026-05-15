@@ -37,7 +37,9 @@ from .session import Session
 
 if TYPE_CHECKING:
     from .dialog.dispatcher import LLMBackedDispatcher
+    from .dialog.feedback import FeedbackLogger
     from .dialog.manager import DialogManager
+    from .dialog.profile_refresher import ProfileRefresher
     from .personas.models import Persona
     from .personas.registry import PersonaRegistry
     from .pipelines.multi_voice_tts import MultiVoiceTTS
@@ -55,6 +57,9 @@ _multi_voice_tts: MultiVoiceTTS | None = None
 _llm_factory: Callable[[Persona, str], LLM] | None = None
 # ── Phase 3: Codex agent (only non-None when binary resolves at startup) ──
 _codex_agent: Any = None
+# ── Phase 5: learning loop ────────────────────────────────────────────────
+_feedback_logger: FeedbackLogger | None = None
+_profile_refresher: ProfileRefresher | None = None
 
 
 def _build_llm() -> LLM:
@@ -267,6 +272,7 @@ def _build_llm_factory(
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global _memory_store, _summarizer
     global _persona_registry, _dispatcher, _multi_voice_tts, _llm_factory, _codex_agent
+    global _feedback_logger, _profile_refresher
     log.info("lifespan: Phase 1 mock pipelines (no model loading)")
     if settings.memory_enabled:
         Path(settings.memory_db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -280,6 +286,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         # ── Phase 2: build persona infra once at startup ────────────────
         # All imports inside this block so dormancy regression guard passes.
         from .dialog.dispatcher import LLMBackedDispatcher  # noqa: PLC0415
+        from .dialog.feedback import FeedbackLogger  # noqa: PLC0415
         from .personas.registry import build_registry_from_settings  # noqa: PLC0415
         from .pipelines.multi_voice_tts import MultiVoiceTTS  # noqa: PLC0415
 
@@ -350,6 +357,23 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
         _llm_factory = _build_llm_factory(_anthropic_client, _openai_client)
         log.info("personas: dispatcher + multi-voice TTS + llm_factory ready")
+
+        # ── Phase 5: learning loop ──────────────────────────────────────
+        # FeedbackLogger + ProfileRefresher use the memory DB; they're only
+        # constructed when learning_enabled is set (default True).
+        if settings.learning_enabled and settings.memory_enabled:
+            from .dialog.profile_refresher import ProfileRefresher  # noqa: PLC0415
+
+            _feedback_logger = FeedbackLogger(settings.memory_db_path)
+            _profile_refresher = ProfileRefresher(
+                registry=_persona_registry,
+                feedback=_feedback_logger,
+                client=_anthropic_client,
+                db_path=settings.memory_db_path,
+                model=settings.dispatcher_model,
+                warmth=settings.persona_warmth,
+            )
+            log.info("personas: FeedbackLogger + ProfileRefresher ready")
 
         # ── Phase 3: Codex agent ────────────────────────────────────────
         # Lazy import inside personas_enabled block so the dormancy
@@ -457,6 +481,43 @@ class _GitDiffLine(_BaseModel):
 
 class _GitDiffResponse(_BaseModel):
     lines: list[_GitDiffLine]
+
+
+@app.get("/personas")
+async def personas_endpoint(_: None = Depends(require_token)) -> dict[str, Any]:
+    """Return current persona profiles + last-refresh metadata.
+
+    Returns:
+        200: dict keyed by persona id with displayName, provider, voice,
+             specialtyProfile, lastRefreshTs, refreshCount.
+        401: when auth is enabled and the token is missing / invalid.
+        503: when the persona registry is not configured
+             (``JARVIS_PERSONAS_ENABLED=false``).
+    """
+    if _persona_registry is None:
+        raise HTTPException(status_code=503, detail="personas not enabled")
+    out: dict[str, Any] = {}
+    for pid in _persona_registry.available_ids():
+        p = _persona_registry.get(pid)
+        # Read refresh metadata from the persisted personas table when a
+        # refresher is configured — in-memory dicts reset on every server
+        # restart, so /personas would otherwise report null/0 across
+        # process lifecycles even when SQLite has the real values.
+        last_refresh_ts: float | None = None
+        refresh_count = 0
+        if _profile_refresher is not None:
+            last_refresh_ts, refresh_count = (
+                await _profile_refresher.get_persisted_metadata(pid)
+            )
+        out[pid] = {
+            "displayName": p.display_name,
+            "provider": p.provider,
+            "voice": p.voice,
+            "specialtyProfile": p.specialty_profile,
+            "lastRefreshTs": last_refresh_ts,
+            "refreshCount": refresh_count,
+        }
+    return out
 
 
 @app.get("/git/status", response_model=_GitStatusResponse)
@@ -597,6 +658,9 @@ async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) ->
             llm_factory=_llm_factory,
             tts=_multi_voice_tts,
             codex_agent=_codex_agent,
+            feedback=_feedback_logger,
+            refresher=_profile_refresher,
+            refresh_every=settings.persona_refresh_turns,
         )
     session = Session(
         ws=_StarletteWSAdapter(ws),
@@ -611,6 +675,7 @@ async def ws_endpoint(ws: WebSocket, token: str | None = Query(default=None)) ->
         facts_cap=settings.memory_facts_cap,
         dialog_manager=dialog_manager,
         codex_agent=_codex_agent,
+        refresher=_profile_refresher,
     )
     try:
         await session.run()

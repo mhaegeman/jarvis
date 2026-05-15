@@ -36,7 +36,7 @@ import logging
 import time
 import uuid
 from collections.abc import AsyncIterator, Callable
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from server.dialog.types import (
     DialogState,
@@ -49,6 +49,10 @@ from server.personas.models import Persona
 from server.personas.registry import PersonaRegistry
 from server.pipelines.sentence_split import split_sentences_stream
 from server.protocol import ServerMessage, encode_server
+
+if TYPE_CHECKING:
+    from server.dialog.feedback import FeedbackLogger
+    from server.dialog.profile_refresher import ProfileRefresher
 
 logger = logging.getLogger(__name__)
 
@@ -115,12 +119,19 @@ class DialogManager:
         llm_factory: LLMFactory,
         tts: _MultiVoiceTTSLike,
         codex_agent: _CodexAgentLike | None = None,
+        feedback: FeedbackLogger | None = None,
+        refresher: ProfileRefresher | None = None,
+        refresh_every: int = 20,
     ) -> None:
         self._registry = registry
         self._dispatcher = dispatcher
         self._llm_factory = llm_factory
         self._tts = tts
         self._codex_agent = codex_agent
+        self._feedback = feedback
+        self._refresher = refresher
+        self._refresh_every = refresh_every
+        self._turn_count = 0
         self._state = DialogState()
         self._outcomes: list[Outcome] = []
         # Concatenated text of every segment that produced tokens in the
@@ -193,6 +204,27 @@ class DialogManager:
                 "latency_ms": (time.monotonic() - start) * 1000.0,
             })
             self._outcomes.append(outcome)
+
+        # ── Phase 5: learning loop wiring ──────────────────────────────
+        # Record this turn in dispatch_log after llm.end.
+        if self._feedback is not None:
+            try:
+                await self._feedback.record_turn(
+                    turn_id=turn_id,
+                    utterance=text,
+                    explicit=None,  # name-at-start detection is out of scope for now
+                    plan=plan,
+                    outcome=outcome,
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception("FeedbackLogger.record_turn failed")
+
+        # Increment turn counter; schedule a refresh when threshold is reached.
+        if self._refresher is not None:
+            self._turn_count += 1
+            if self._turn_count >= self._refresh_every:
+                self._turn_count = 0
+                asyncio.create_task(self._refresher.refresh())
 
     async def _run_segment(
         self,
