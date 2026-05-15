@@ -113,7 +113,7 @@ python -m server.cli_test  # in another; type messages, observe deltas
 
 Verify in [Anthropic's usage dashboard](https://console.anthropic.com/) that `/sonnet` and `/opus` prefixes route to the right model IDs.
 
-## Multi-model support (Phase 2 — dialog manager + chat, behind a flag)
+## Multi-model support (Phase 3 — Codex CLI agent escalation, behind a flag)
 
 Phase 1 of the multi-model build adds Pepper-flavoured plumbing without
 changing any user-visible behaviour. The new code is dormant unless
@@ -184,6 +184,40 @@ python -m server.cli_test --text "Design and then implement a CSV exporter"
 
 Phase 2 ships chat-only — `mode=codex_agent` segments degrade to chat
 with a warning. The Codex CLI agent lands in Phase 3.
+
+### Phase 3 — Codex CLI agent escalation
+
+When Pepper is available AND the `codex` CLI is resolvable on `$PATH`
+(or `JARVIS_CODEX_CLI_PATH`), `mode=codex_agent` segments dispatch to
+the local CLI instead of running a chat stream. Pepper narrates
+summary sentences in parallel (debounced ≥4s) so the user isn't
+listening to silence while the agent grinds.
+
+Quick manual check (real codex installed):
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... \
+OPENAI_API_KEY=sk-... \
+JARVIS_PERSONAS_ENABLED=true \
+JARVIS_TTS_ENGINE=edge \
+JARVIS_CODEX_CLI_PATH=/usr/local/bin/codex \
+JARVIS_CODEX_WORKDIR=$(pwd) \
+uvicorn server.main:app --port 8000
+
+python -m server.cli_test --text "/codex add a test for parse_prefix"
+# Expect: dispatch.plan with mode=codex_agent;
+#         agent.start, agent.step events stream;
+#         tts.sentence events with speaker=pepper carry the narration;
+#         agent.end status=ok on completion.
+```
+
+Without the `codex` binary, the segment degrades to chat with a logged
+warning — the rest of Phase 2 behaviour is unchanged.
+
+Sandbox: defaults to `workspace-write` (Codex can read anywhere, write
+only inside `JARVIS_CODEX_WORKDIR`). Approval mode: `auto-low` (low-
+risk shell ops auto-approve; higher-risk ones surface as `agent.approval`
+WS events the HUD will render in Phase 4).
 
 ## Configuration
 
