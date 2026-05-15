@@ -6,6 +6,7 @@ import type {
   TelemetryEvent,
   StateSnapshot,
   CalendarUpdate,
+  Speaker,
 } from "@/types";
 import {
   decodeAudioFrame,
@@ -172,6 +173,14 @@ export class WSEventSource implements IEventSource {
     }
   }
 
+  sendAgentApprove(runId: string, choice: "approve" | "deny" | "approve_session"): void {
+    this.ws?.send(JSON.stringify({ type: "agent.approve", runId, choice }));
+  }
+
+  sendAgentCancel(runId: string): void {
+    this.ws?.send(JSON.stringify({ type: "agent.cancel", runId }));
+  }
+
   private openSocket(): void {
     const ws = new WebSocket(this.opts.url);
     ws.binaryType = "arraybuffer";
@@ -259,17 +268,48 @@ export class WSEventSource implements IEventSource {
       case "stt.final":
         this.emit("stt.final", { text: String(msg.text ?? "") });
         return;
-      case "llm.token":
-        this.emit("llm.token", { delta: String(msg.delta ?? "") });
+      case "llm.token": {
+        const tokenPayload: EventMap["llm.token"] = { delta: String(msg.delta ?? "") };
+        if (msg.speaker !== undefined) tokenPayload.speaker = msg.speaker as Speaker;
+        if (msg.segmentIdx !== undefined) tokenPayload.segmentIdx = Number(msg.segmentIdx);
+        this.emit("llm.token", tokenPayload);
+        return;
+      }
+      case "llm.segment_end":
+        this.emit("llm.segment_end", {
+          speaker: msg.speaker as Speaker,
+          segmentIdx: Number(msg.segmentIdx),
+        });
         return;
       case "llm.end":
         this.emit("llm.end", undefined);
         return;
-      case "tts.sentence":
-        this.emit("tts.sentence", {
+      case "tts.sentence": {
+        const sentPayload: EventMap["tts.sentence"] = {
           text: String(msg.text ?? ""),
           audioId: String(msg.audioId ?? ""),
-        });
+        };
+        if (msg.speaker !== undefined) sentPayload.speaker = msg.speaker as Speaker;
+        this.emit("tts.sentence", sentPayload);
+        return;
+      }
+      case "dispatch.plan":
+        this.emit("dispatch.plan", msg as unknown as EventMap["dispatch.plan"]);
+        return;
+      case "agent.start":
+        this.emit("agent.start", msg as unknown as EventMap["agent.start"]);
+        return;
+      case "agent.step":
+        this.emit("agent.step", msg as unknown as EventMap["agent.step"]);
+        return;
+      case "agent.approval":
+        this.emit("agent.approval", msg as unknown as EventMap["agent.approval"]);
+        return;
+      case "agent.progress":
+        this.emit("agent.progress", msg as unknown as EventMap["agent.progress"]);
+        return;
+      case "agent.end":
+        this.emit("agent.end", msg as unknown as EventMap["agent.end"]);
         return;
       case "tts.end": {
         const audioId = String(msg.audioId ?? "");
