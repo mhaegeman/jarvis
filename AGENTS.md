@@ -1,27 +1,27 @@
 # AGENTS.md — jarvis
 
-Vendor-neutral instructions for any AI coding agent working in this repo (Codex, Cursor, Aider, Claude Code, Jules, etc.). Read this file at the start of every session.
+Vendor-neutral instructions for any AI coding agent in this repo (Codex, Cursor, Aider, Claude Code, Jules, etc.). Read at session start.
 
-Claude Code users: also read `CLAUDE.md` for Claude-specific skill-loading mechanics. The rules in this file apply regardless.
+Claude Code: also read `CLAUDE.md` for skill-loading mechanics. Rules here apply regardless.
 
 ---
 
 ## Project Overview
 
-This repository is Maxime Haegeman's personal AI tooling workspace. It contains:
+Maxime Haegeman's personal AI tooling workspace:
 
 - `server/` — Python 3.12+ FastAPI backend (LLM, STT, TTS, memory, calendar)
-- `web/` — Vite + TypeScript frontend (the HUD)
-- `second-brain/` — A persistent LLM-maintained wiki with its own rules (see `second-brain/AGENTS.md`)
-- `prototypes/`, `docs/`, root scripts — experiments and tooling
+- `web/` — Vite + TypeScript frontend (HUD)
+- `second-brain/` — persistent LLM-maintained wiki w/ own rules (see `second-brain/AGENTS.md`)
+- `prototypes/`, `docs/`, root scripts — experiments + tooling
 
-Full setup, env vars, and deployment are documented in `SETUP.md`.
+Full setup, env vars, deployment → `SETUP.md`.
 
 ---
 
 ## Build, Test, Run
 
-Both the backend and frontend have their own toolchains. Run from repo root.
+Backend + frontend have separate toolchains. Run from repo root.
 
 ```bash
 # Backend (Python 3.12+, venv at server/.venv)
@@ -37,48 +37,48 @@ npm run test                             # run tests
 npm run dev                              # run dev server (http://localhost:5173)
 ```
 
-There is no top-level lint command — per-subproject tooling is the source of truth. See `SETUP.md` for the full environment matrix, env vars, and end-to-end smoke test.
+No top-level lint — per-subproject tooling is source of truth. See `SETUP.md` for env matrix, env vars, e2e smoke test.
 
 ---
 
 ## Exception: Second-Brain Operations
 
-When performing ingestion, query, lint, or update operations inside `second-brain/`, follow `second-brain/AGENTS.md` exclusively. The development workflow below does NOT apply to those operations:
+For ingest/query/lint/update inside `second-brain/`, follow `second-brain/AGENTS.md` exclusively. Workflow below does NOT apply:
 
-- No brainstorming or spec phase
+- No brainstorming/spec phase
 - No plan document
 - No TDD cycle
 
-All other work in this repository — new tools, features, scripts, experiments — follows the workflow below.
+All other work (tools, features, scripts, experiments) → workflow below.
 
 ---
 
 ## Instruction Priority
 
-1. **User's explicit instructions** (this file, direct requests) — highest priority
-2. **Vendor-specific overrides** (e.g. `CLAUDE.md` for Claude Code) — agent-specific mechanics layered on top
-3. **Default agent behavior** — lowest priority
+1. **User's explicit instructions** (this file, direct requests) — highest
+2. **Vendor-specific overrides** (e.g. `CLAUDE.md` for Claude Code) — agent mechanics on top
+3. **Default agent behavior** — lowest
 
 ---
 
 ## Development Workflow
 
-This repo uses a skills-based workflow inspired by Superpowers. The intent applies to any agent, regardless of how it loads guidance:
+Skills-based workflow inspired by Superpowers. Intent applies to any agent:
 
-1. **Brainstorm** before any feature, component, or behavior modification.
-2. **Write a plan** after spec approval, before touching code (file under `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`).
+1. **Brainstorm** before any feature/component/behavior change.
+2. **Write plan** after spec approval, before code (`docs/superpowers/plans/YYYY-MM-DD-<feature>.md`).
 3. **TDD** during implementation — RED → GREEN → REFACTOR.
-4. **Systematic debugging** before proposing any fix for a bug or failure (read the error, form a hypothesis, prove it, then fix).
-5. **Verify** before claiming work is complete (run the tests, exercise the feature, check for regressions).
-6. **Request review** after completing a task or feature.
+4. **Systematic debugging** before any bug/failure fix (read error, form hypothesis, prove it, fix).
+5. **Verify** before claiming complete (run tests, exercise feature, check regressions).
+6. **Request review** after completing task/feature.
 
-Agents with structured skill-loading (Claude Code via `.claude/skills/`) should consult those skill files directly — they encode the same intent in more detail. Other agents should follow the spirit of the above and ask the user when unsure which step to apply.
+Agents w/ structured skill-loading (Claude Code via `.claude/skills/`) → consult those skill files; they encode same intent in detail. Other agents → follow spirit above, ask user when unsure.
 
 ---
 
 ## Git Worktrees
 
-Feature work should use isolated git worktrees. Worktrees directory: `.worktrees/` (project-local, gitignored).
+Feature work uses isolated git worktrees. Dir: `.worktrees/` (project-local, gitignored).
 
 ---
 
@@ -91,10 +91,10 @@ Feature work should use isolated git worktrees. Worktrees directory: `.worktrees
 
 ## Commit & Branch Conventions
 
-- Develop on a feature branch — never commit straight to `main`.
-- One logical change per commit; descriptive subject lines.
-- Push only the branch you were asked to push to.
-- Don't open a pull request unless the user explicitly asks.
+- Develop on feature branch — never commit straight to `main`.
+- One logical change per commit; descriptive subjects.
+- Push only the branch asked to push.
+- No PR unless user explicitly asks.
 
 ---
 
@@ -102,10 +102,10 @@ Feature work should use isolated git worktrees. Worktrees directory: `.worktrees
 
 | Thought | Reality |
 |---------|---------|
-| "This is just a simple question" | Questions are tasks. Apply the process. |
-| "I need more context first" | Process check comes BEFORE clarifying questions. |
-| "Let me explore the codebase first" | The process tells you HOW to explore. Check first. |
-| "This is too simple for a design" | Every project needs a design, however short. |
-| "This doesn't count as a task" | Action = task. Apply the process. |
-| "The workflow is overkill" | Simple things become complex. Use it. |
-| "This is a second-brain operation" | Is it really? Verify before skipping the workflow. |
+| "Just a simple question" | Questions are tasks. Apply process. |
+| "I need more context first" | Process check BEFORE clarifying questions. |
+| "Let me explore codebase first" | Process tells you HOW to explore. Check first. |
+| "Too simple for a design" | Every project needs a design, however short. |
+| "Doesn't count as a task" | Action = task. Apply process. |
+| "Workflow is overkill" | Simple things become complex. Use it. |
+| "This is a second-brain operation" | Is it really? Verify before skipping. |

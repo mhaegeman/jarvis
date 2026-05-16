@@ -7,11 +7,11 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 ## Overview
 
-Random fixes waste time and create new bugs. Quick patches mask underlying issues.
+Random fixes waste time, create new bugs. Quick patches mask underlying issues.
 
-**Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
+**Core principle:** ALWAYS find root cause before fixes. Symptom fixes = failure.
 
-**Violating the letter of this process is violating the spirit of debugging.**
+**Violating the letter = violating the spirit.**
 
 ## The Iron Law
 
@@ -19,53 +19,42 @@ Random fixes waste time and create new bugs. Quick patches mask underlying issue
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
-If you haven't completed Phase 1, you cannot propose fixes.
+No Phase 1 → no fixes.
 
 ## When to Use
 
-Use for ANY technical issue:
-- Test failures
-- Bugs in production
-- Unexpected behavior
-- Performance problems
-- Build failures
-- Integration issues
+ANY technical issue: test failures, prod bugs, unexpected behavior, perf problems, build failures, integration issues.
 
-**Use this ESPECIALLY when:**
+**ESPECIALLY when:**
 - Under time pressure (emergencies make guessing tempting)
 - "Just one quick fix" seems obvious
-- You've already tried multiple fixes
+- Already tried multiple fixes
 - Previous fix didn't work
-- You don't fully understand the issue
+- Don't fully understand the issue
 
 ## The Four Phases
 
-You MUST complete each phase before proceeding to the next.
+MUST complete each before next.
 
 ### Phase 1: Root Cause Investigation
 
-**BEFORE attempting ANY fix:**
+**BEFORE ANY fix:**
 
 1. **Read Error Messages Carefully**
-   - Don't skip past errors or warnings
-   - They often contain the exact solution
+   - Don't skip errors/warnings — often contain exact solution
    - Read stack traces completely
    - Note line numbers, file paths, error codes
 
 2. **Reproduce Consistently**
-   - Can you trigger it reliably?
-   - What are the exact steps?
-   - Does it happen every time?
-   - If not reproducible → gather more data, don't guess
+   - Trigger reliably? Exact steps? Every time?
+   - Not reproducible → gather more data, don't guess
 
 3. **Check Recent Changes**
-   - What changed that could cause this?
-   - Git diff, recent commits
-   - New dependencies, config changes
+   - What changed? Git diff, recent commits, new deps, config changes
 
 4. **Gather Evidence in Multi-Component Systems**
 
-   **WHEN system has multiple components:**
+   **WHEN multiple components:**
 
    **BEFORE proposing fixes, add diagnostic instrumentation:**
    ```
@@ -81,54 +70,52 @@ You MUST complete each phase before proceeding to the next.
    ```
 
 5. **Trace Data Flow**
-
    - Where does bad value originate?
-   - What called this with bad value?
-   - Keep tracing up until you find the source
-   - Fix at source, not at symptom
+   - What called this w/ bad value?
+   - Trace up until source. Fix at source, not symptom.
 
-   See `.claude/skills/systematic-debugging/root-cause-tracing.md` for the complete backward tracing technique.
+   See `.claude/skills/systematic-debugging/root-cause-tracing.md` for backward tracing technique.
 
 ### Phase 2: Pattern Analysis
 
-**Find the pattern before fixing:**
+**Find pattern before fixing:**
 
-1. **Find Working Examples** — Locate similar working code in same codebase
-2. **Compare Against References** — Read reference implementation COMPLETELY, don't skim
-3. **Identify Differences** — What's different between working and broken? List every difference.
-4. **Understand Dependencies** — What other components does this need?
+1. **Find Working Examples** — similar working code in same codebase
+2. **Compare Against References** — read reference COMPLETELY, don't skim
+3. **Identify Differences** — list every difference between working/broken
+4. **Understand Dependencies** — what other components needed?
 
 ### Phase 3: Hypothesis and Testing
 
 **Scientific method:**
 
-1. **Form Single Hypothesis** — State clearly: "I think X is the root cause because Y"
-2. **Test Minimally** — Make the SMALLEST possible change to test hypothesis. One variable at a time.
-3. **Verify Before Continuing** — Did it work? Yes → Phase 4. No → Form NEW hypothesis.
-4. **When You Don't Know** — Say "I don't understand X". Don't pretend to know.
+1. **Form Single Hypothesis** — "I think X is root cause because Y"
+2. **Test Minimally** — SMALLEST change to test. One variable at a time.
+3. **Verify Before Continuing** — Worked? Yes → Phase 4. No → NEW hypothesis.
+4. **When You Don't Know** — Say "I don't understand X". Don't pretend.
 
 ### Phase 4: Implementation
 
-**Fix the root cause, not the symptom:**
+**Fix root cause, not symptom:**
 
-1. **Create Failing Test Case** — Simplest possible reproduction. Automated test if possible.
-2. **Implement Single Fix** — Address the root cause. ONE change at a time. No "while I'm here" improvements.
-3. **Verify Fix** — Test passes now? No other tests broken? Issue actually resolved?
+1. **Create Failing Test Case** — simplest reproduction, automated if possible
+2. **Implement Single Fix** — root cause, ONE change, no "while I'm here" improvements
+3. **Verify Fix** — test passes? Other tests OK? Issue resolved?
 
 4. **If Fix Doesn't Work**
    - STOP
-   - Count: How many fixes have you tried?
-   - If < 3: Return to Phase 1, re-analyze with new information
-   - **If ≥ 3: STOP and question the architecture (step 5 below)**
+   - Count fixes tried
+   - < 3: Return Phase 1, re-analyze w/ new info
+   - **≥ 3: STOP and question architecture (step 5)**
 
 5. **If 3+ Fixes Failed: Question Architecture**
 
-   **STOP and question fundamentals:**
-   - Is this pattern fundamentally sound?
-   - Are we "sticking with it through sheer inertia"?
-   - Should we refactor architecture vs. continue fixing symptoms?
+   **STOP, question fundamentals:**
+   - Pattern fundamentally sound?
+   - "Sticking with it through sheer inertia"?
+   - Refactor architecture vs. continue fixing symptoms?
 
-   **Discuss with the user before attempting more fixes**
+   **Discuss w/ user before more fixes**
 
 ## Red Flags - STOP and Follow Process
 
@@ -142,7 +129,7 @@ If you catch yourself thinking:
 - "Here are the main problems: [lists fixes without investigation]"
 - **"One more fix attempt" (when already tried 2+)**
 
-**ALL of these mean: STOP. Return to Phase 1.**
+**ALL mean: STOP. Return Phase 1.**
 
 ## Common Rationalizations
 
@@ -165,11 +152,11 @@ If you catch yourself thinking:
 
 ## Supporting Techniques
 
-Available in `.claude/skills/systematic-debugging/`:
-- **`root-cause-tracing.md`** - Trace bugs backward through call stack
-- **`defense-in-depth.md`** - Add validation at multiple layers after finding root cause
-- **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
+In `.claude/skills/systematic-debugging/`:
+- **`root-cause-tracing.md`** — trace bugs backward through call stack
+- **`defense-in-depth.md`** — add validation at multiple layers after root cause
+- **`condition-based-waiting.md`** — replace arbitrary timeouts w/ condition polling
 
 **Related skills:**
-- **test-driven-development** - For creating failing test case (Phase 4, Step 1)
-- **verification-before-completion** - Verify fix worked before claiming success
+- **test-driven-development** — failing test case (Phase 4, Step 1)
+- **verification-before-completion** — verify fix before claiming success

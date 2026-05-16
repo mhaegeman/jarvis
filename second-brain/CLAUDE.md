@@ -1,5 +1,5 @@
 # CLAUDE.md — Second Brain (pointer)
 
-The full wiki schema and operation rules live in `AGENTS.md` in this directory. Read `second-brain/AGENTS.md` at the start of every session — it is vendor-neutral and applies to Claude Code the same as any other agent.
+Full wiki schema + operation rules: `AGENTS.md` in this dir. Read `second-brain/AGENTS.md` at session start — vendor-neutral, applies to Claude Code same as any agent.
 
-This file exists only so Claude Code's automatic `CLAUDE.md` discovery still finds the second-brain rules. There are no Claude-specific overrides for second-brain operations.
+No Claude-specific overrides for second-brain ops. This file exists only so Claude Code's auto `CLAUDE.md` discovery finds second-brain rules.

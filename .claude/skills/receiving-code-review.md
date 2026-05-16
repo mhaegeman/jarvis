@@ -7,9 +7,9 @@ description: Use when receiving code review feedback, before implementing sugges
 
 ## Overview
 
-Code review requires technical evaluation, not emotional performance.
+Code review = technical evaluation, not emotional performance.
 
-**Core principle:** Verify before implementing. Ask before assuming. Technical correctness over social comfort.
+**Core principle:** Verify before implementing. Ask before assuming. Technical correctness > social comfort.
 
 ## The Response Pattern
 
@@ -27,14 +27,14 @@ WHEN receiving code review feedback:
 ## Forbidden Responses
 
 **NEVER:**
-- "You're absolutely right!" (performative agreement)
-- "Great point!" / "Excellent feedback!" (performative)
+- "You're absolutely right!" (performative)
+- "Great point!" / "Excellent feedback!"
 - "Let me implement that now" (before verification)
 
 **INSTEAD:**
-- Restate the technical requirement
+- Restate technical requirement
 - Ask clarifying questions
-- Push back with technical reasoning if wrong
+- Push back w/ technical reasoning if wrong
 - Just start working (actions > words)
 
 ## Handling Unclear Feedback
@@ -59,7 +59,7 @@ You understand 1,2,3,6. Unclear on 4,5.
 ## Source-Specific Handling
 
 ### From the user
-- **Trusted** - implement after understanding
+- **Trusted** — implement after understanding
 - **Still ask** if scope unclear
 - **No performative agreement**
 - **Skip to action** or technical acknowledgment
@@ -105,20 +105,15 @@ FOR multi-item feedback:
 
 ## When To Push Back
 
-Push back when:
 - Suggestion breaks existing functionality
 - Reviewer lacks full context
 - Violates YAGNI (unused feature)
 - Technically incorrect for this stack
 
-**How to push back:**
-- Use technical reasoning, not defensiveness
-- Ask specific questions
-- Reference working tests/code
+**How:** technical reasoning not defensiveness; specific questions; reference working tests/code.
 
 ## Acknowledging Correct Feedback
 
-When feedback IS correct:
 ```
 ✅ "Fixed. [Brief description of what changed]"
 ✅ "Good catch - [specific issue]. Fixed in [location]."

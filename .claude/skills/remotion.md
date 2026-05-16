@@ -7,17 +7,17 @@ description: Use when building, rendering, or compositing programmatic videos us
 
 ## Overview
 
-Remotion is a framework for creating videos programmatically using React. Leverage CSS, Canvas, SVG, WebGL, and the full React ecosystem to build video compositions in code.
+React framework for programmatic video. Use CSS, Canvas, SVG, WebGL + React ecosystem.
 
 Source: [remotion-dev/remotion](https://github.com/remotion-dev/remotion)
 
 ## When to Use
 
-- Building video compositions with React components
-- Rendering MP4/WebM videos or PNG/JPEG stills programmatically
-- Creating data-driven or templated videos
-- Animating content with frame-based timing
-- **Not for:** real-time streaming, live video editing, non-React stacks
+- Video compositions w/ React components
+- Render MP4/WebM or PNG/JPEG stills programmatically
+- Data-driven/templated videos
+- Frame-based animation
+- **Not for:** real-time streaming, live editing, non-React stacks
 
 ## Core Concepts
 

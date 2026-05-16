@@ -33,31 +33,31 @@ git diff {BASE_SHA}..{HEAD_SHA}
 - Clean separation of concerns?
 - Proper error handling?
 - Type safety (if applicable)?
-- DRY principle followed?
+- DRY?
 - Edge cases handled?
 
 **Architecture:**
-- Sound design decisions?
-- Scalability considerations?
-- Performance implications?
-- Security concerns?
+- Sound design?
+- Scalability?
+- Performance?
+- Security?
 
 **Testing:**
-- Tests actually test logic (not mocks)?
+- Tests test logic (not mocks)?
 - Edge cases covered?
 - Integration tests where needed?
-- All tests passing?
+- All passing?
 
 **Requirements:**
 - All plan requirements met?
-- Implementation matches spec?
+- Matches spec?
 - No scope creep?
 - Breaking changes documented?
 
 **Production Readiness:**
 - Migration strategy (if schema changes)?
-- Backward compatibility considered?
-- Documentation complete?
+- Backward compatibility?
+- Docs complete?
 - No obvious bugs?
 
 ## Output Format
@@ -68,22 +68,22 @@ git diff {BASE_SHA}..{HEAD_SHA}
 ### Issues
 
 #### Critical (Must Fix)
-[Bugs, security issues, data loss risks, broken functionality]
+[Bugs, security, data loss risks, broken functionality]
 
 #### Important (Should Fix)
 [Architecture problems, missing features, poor error handling, test gaps]
 
 #### Minor (Nice to Have)
-[Code style, optimization opportunities, documentation improvements]
+[Code style, optimization, docs improvements]
 
-**For each issue:**
+**Per issue:**
 - File:line reference
 - What's wrong
 - Why it matters
 - How to fix (if not obvious)
 
 ### Recommendations
-[Improvements for code quality, architecture, or process]
+[Improvements for code quality, architecture, process]
 
 ### Assessment
 
@@ -94,15 +94,15 @@ git diff {BASE_SHA}..{HEAD_SHA}
 ## Critical Rules
 
 **DO:**
-- Categorize by actual severity (not everything is Critical)
+- Categorize by actual severity (not everything Critical)
 - Be specific (file:line, not vague)
-- Explain WHY issues matter
+- Explain WHY
 - Acknowledge strengths
 - Give clear verdict
 
 **DON'T:**
-- Say "looks good" without checking
+- Say "looks good" w/o checking
 - Mark nitpicks as Critical
-- Give feedback on code you didn't review
+- Feedback on code you didn't review
 - Be vague ("improve error handling")
-- Avoid giving a clear verdict
+- Avoid giving clear verdict

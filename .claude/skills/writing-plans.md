@@ -7,32 +7,32 @@ description: Use when you have a spec or requirements for a multi-step task, bef
 
 ## Overview
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+Write comprehensive plans assuming engineer has zero context for codebase + questionable taste. Document everything: which files per task, code, testing, docs to check, how to test. Whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+Assume skilled developer but knows almost nothing about toolset/problem domain. Assume weak test design.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+**Context:** Run in dedicated worktree (created by brainstorming skill).
 
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 
 ## Scope Check
 
-If the spec covers multiple independent subsystems, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
+Spec covers multiple independent subsystems → suggest breaking into separate plans, one per subsystem. Each plan produces working, testable software on its own.
 
 ## File Structure
 
-Before defining tasks, map out which files will be created or modified and what each one is responsible for.
+Before tasks, map which files created/modified + each one's responsibility.
 
-- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
-- Prefer smaller, focused files over large ones that do too much.
-- Files that change together should live together.
-- In existing codebases, follow established patterns.
+- Clear boundaries, well-defined interfaces. One responsibility per file.
+- Prefer smaller focused files over large ones.
+- Files that change together live together.
+- Existing codebases → follow established patterns.
 
 ## Bite-Sized Task Granularity
 
-**Each step is one action (2-5 minutes):**
+**Each step = one action (2-5 min):**
 - "Write the failing test" - step
 - "Run it to make sure it fails" - step
 - "Implement the minimal code to make the test pass" - step
@@ -41,7 +41,7 @@ Before defining tasks, map out which files will be created or modified and what 
 
 ## Plan Document Header
 
-**Every plan MUST start with this header:**
+**Every plan MUST start w/ this header:**
 
 ```markdown
 # [Feature Name] Implementation Plan
@@ -102,34 +102,34 @@ git commit -m "feat: add specific feature"
 
 ## No Placeholders
 
-Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
+Every step contains actual content engineer needs. **Plan failures** — never write:
 - "TBD", "TODO", "implement later", "fill in details"
 - "Add appropriate error handling" / "add validation" / "handle edge cases"
-- "Write tests for the above" (without actual test code)
-- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
-- Steps that describe what to do without showing how (code blocks required for code steps)
+- "Write tests for the above" (w/o actual test code)
+- "Similar to Task N" (repeat code — engineer may read out of order)
+- Steps describing what w/o showing how (code blocks required for code steps)
 
 ## Remember
 - Exact file paths always
-- Complete code in every step — if a step changes code, show the code
-- Exact commands with expected output
+- Complete code in every step — step changes code → show code
+- Exact commands w/ expected output
 - DRY, YAGNI, TDD, frequent commits
 
 ## Self-Review
 
-After writing the complete plan, look at the spec with fresh eyes and check the plan against it.
+After writing complete plan, look at spec w/ fresh eyes, check plan against it.
 
-**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps.
+**1. Spec coverage:** Skim each section/requirement. Point to task that implements it. List gaps.
 
-**2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
+**2. Placeholder scan:** Search plan for red flags from "No Placeholders" above. Fix.
 
-**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks?
+**3. Type consistency:** Types, method signatures, property names in later tasks match earlier?
 
-If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
+Fix inline. No re-review. Spec requirement w/ no task → add task.
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After saving, offer execution choice:
 
 **"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
 
@@ -139,8 +139,6 @@ After saving the plan, offer execution choice:
 
 **Which approach?"**
 
-**If Subagent-Driven chosen:**
-- Read `.claude/skills/subagent-driven-development.md`
+**Subagent-Driven chosen:** Read `.claude/skills/subagent-driven-development.md`
 
-**If Inline Execution chosen:**
-- Read `.claude/skills/executing-plans.md`
+**Inline Execution chosen:** Read `.claude/skills/executing-plans.md`

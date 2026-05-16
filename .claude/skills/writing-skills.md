@@ -11,17 +11,16 @@ description: Use when creating new skills, editing existing skills, or verifying
 
 **Skills for this repo live in `.claude/skills/`**
 
-You write test cases (pressure scenarios with subagents), watch them fail (baseline behavior), write the skill (documentation), watch tests pass (agents comply), and refactor (close loopholes).
+Write test cases (pressure scenarios w/ subagents) → watch fail (baseline) → write skill (docs) → watch pass (agents comply) → refactor (close loopholes).
 
-**Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.
+**Core principle:** If you didn't watch an agent fail w/o the skill, you don't know if skill teaches the right thing.
 
 ## What is a Skill?
 
-A **skill** is a reference guide for proven techniques, patterns, or tools. Skills help future Claude instances find and apply effective approaches.
+**Skill** = reference guide for proven techniques, patterns, tools. Helps future Claude find + apply effective approaches.
 
-**Skills are:** Reusable techniques, patterns, tools, reference guides
-
-**Skills are NOT:** Narratives about how you solved a problem once
+**Skills are:** reusable techniques, patterns, tools, reference guides
+**Skills are NOT:** narratives about how you solved a problem once
 
 ## TDD Mapping for Skills
 
@@ -36,8 +35,8 @@ A **skill** is a reference guide for proven techniques, patterns, or tools. Skil
 ## When to Create a Skill
 
 **Create when:**
-- Technique wasn't intuitively obvious to you
-- You'd reference this again across projects
+- Technique not intuitively obvious
+- You'd reference again across projects
 - Pattern applies broadly (not project-specific)
 
 **Don't create for:**
@@ -58,12 +57,12 @@ A **skill** is a reference guide for proven techniques, patterns, or tools. Skil
 ## SKILL.md Structure
 
 **Frontmatter (YAML):**
-- Two required fields: `name` and `description`
-- `name`: Use letters, numbers, and hyphens only
-- `description`: Third-person, describes ONLY when to use (NOT what it does)
-  - Start with "Use when..." to focus on triggering conditions
+- Required: `name`, `description`
+- `name`: letters, numbers, hyphens only
+- `description`: third-person, describes ONLY when to use (NOT what it does)
+  - Start w/ "Use when..." → focus on triggers
   - **NEVER summarize the skill's process or workflow**
-  - Keep under 500 characters if possible
+  - Keep under 500 chars if possible
 
 ```markdown
 ---
@@ -93,9 +92,9 @@ What goes wrong + fixes
 
 ## Claude Search Optimization (CSO)
 
-**Critical for discovery:** Future Claude needs to FIND your skill.
+**Critical for discovery:** future Claude needs to FIND your skill.
 
-**The trap:** Descriptions that summarize workflow create a shortcut Claude will take. The skill body becomes documentation Claude skips.
+**The trap:** descriptions summarizing workflow create a shortcut Claude takes. Skill body becomes documentation Claude skips.
 
 ```yaml
 # ❌ BAD: Summarizes workflow
@@ -106,8 +105,8 @@ description: Use when executing implementation plans with independent tasks in t
 ```
 
 **Content:**
-- Use concrete triggers, symptoms, and situations
-- Write in third person
+- Concrete triggers, symptoms, situations
+- Third person
 - **NEVER summarize the skill's process or workflow**
 
 ## Red Flags in Skill Design

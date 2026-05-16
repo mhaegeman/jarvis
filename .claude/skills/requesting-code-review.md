@@ -5,20 +5,20 @@ description: Use when completing tasks, implementing major features, or before m
 
 # Requesting Code Review
 
-Dispatch a code-reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process.
+Dispatch code-reviewer subagent → catch issues before cascade. Reviewer gets crafted context, not your session history → stays focused on work product.
 
 **Core principle:** Review early, review often.
 
 ## When to Request Review
 
 **Mandatory:**
-- After each task in subagent-driven development
-- After completing major feature
+- After each task in subagent-driven dev
+- After major feature
 - Before merge to main
 
 **Optional but valuable:**
-- When stuck (fresh perspective)
-- Before refactoring (baseline check)
+- Stuck (fresh perspective)
+- Before refactoring (baseline)
 - After fixing complex bug
 
 ## How to Request
@@ -31,45 +31,41 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **2. Dispatch code-reviewer subagent:**
 
-Use the Agent tool (general-purpose), fill template at `.claude/skills/requesting-code-review/code-reviewer.md`
+Use Agent tool (general-purpose), fill template at `.claude/skills/requesting-code-review/code-reviewer.md`
 
 **Placeholders:**
-- `{WHAT_WAS_IMPLEMENTED}` - What you just built
-- `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
-- `{DESCRIPTION}` - Brief summary
+- `{WHAT_WAS_IMPLEMENTED}` — what you built
+- `{PLAN_OR_REQUIREMENTS}` — what it should do
+- `{BASE_SHA}` — starting commit
+- `{HEAD_SHA}` — ending commit
+- `{DESCRIPTION}` — brief summary
 
 **3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
-- Push back if reviewer is wrong (with reasoning)
+- Critical → fix immediately
+- Important → fix before proceeding
+- Minor → note for later
+- Push back if reviewer wrong (w/ reasoning)
 
 ## Integration with Workflows
 
 **Subagent-Driven Development:**
-- Review after EACH task
-- Catch issues before they compound
-- Fix before moving to next task
+- Review after EACH task → catch before compound → fix before next task
 
 **Executing Plans:**
-- Review after each batch (3 tasks)
-- Get feedback, apply, continue
+- Review after each batch (3 tasks) → feedback → apply → continue
 
 **Ad-Hoc Development:**
-- Review before merge
-- Review when stuck
+- Review before merge / when stuck
 
 ## Red Flags
 
 **Never:**
-- Skip review because "it's simple"
-- Ignore Critical issues
-- Proceed with unfixed Important issues
+- Skip review b/c "it's simple"
+- Ignore Critical
+- Proceed w/ unfixed Important
 
 **If reviewer wrong:**
-- Push back with technical reasoning
-- Show code/tests that prove it works
+- Push back w/ technical reasoning
+- Show code/tests proving it works
 
 See template at: `.claude/skills/requesting-code-review/code-reviewer.md`

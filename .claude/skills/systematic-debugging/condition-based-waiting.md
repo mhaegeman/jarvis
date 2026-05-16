@@ -2,20 +2,20 @@
 
 ## Overview
 
-Flaky tests often guess at timing with arbitrary delays. This creates race conditions where tests pass on fast machines but fail under load or in CI.
+Flaky tests guess timing w/ arbitrary delays → race conditions: pass fast machines, fail under load/CI.
 
-**Core principle:** Wait for the actual condition you care about, not a guess about how long it takes.
+**Core principle:** Wait for actual condition, not a guess.
 
 ## When to Use
 
 **Use when:**
-- Tests have arbitrary delays (`setTimeout`, `sleep`, `time.sleep()`)
-- Tests are flaky (pass sometimes, fail under load)
-- Tests timeout when run in parallel
-- Waiting for async operations to complete
+- Arbitrary delays (`setTimeout`, `sleep`, `time.sleep()`)
+- Flaky tests (pass sometimes, fail under load)
+- Tests timeout in parallel
+- Waiting for async ops
 
 **Don't use when:**
-- Testing actual timing behavior (debounce, throttle intervals)
+- Testing actual timing behavior (debounce, throttle)
 - Always document WHY if using arbitrary timeout
 
 ## Core Pattern
@@ -83,14 +83,9 @@ def wait_for(condition, description, timeout_ms=5000):
 
 ## Common Mistakes
 
-**❌ Polling too fast:** `setTimeout(check, 1)` - wastes CPU
-**✅ Fix:** Poll every 10ms
-
-**❌ No timeout:** Loop forever if condition never met
-**✅ Fix:** Always include timeout with clear error
-
-**❌ Stale data:** Cache state before loop
-**✅ Fix:** Call getter inside loop for fresh data
+**❌ Polling too fast:** `setTimeout(check, 1)` — wastes CPU. **✅ Fix:** poll every 10ms
+**❌ No timeout:** loops forever. **✅ Fix:** always include timeout w/ clear error
+**❌ Stale data:** cache state before loop. **✅ Fix:** call getter inside loop for fresh data
 
 ## When Arbitrary Timeout IS Correct
 
@@ -101,7 +96,7 @@ await new Promise(r => setTimeout(r, 200));   // Then: wait for timed behavior (
 // 200ms = documented and justified
 ```
 
-**Requirements when using arbitrary timeout:**
+**Requirements for arbitrary timeout:**
 1. First wait for triggering condition
 2. Based on known timing (not guessing)
 3. Comment explaining WHY

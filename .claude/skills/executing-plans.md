@@ -7,63 +7,63 @@ description: Use when you have a written implementation plan to execute in a sep
 
 ## Overview
 
-Load plan, review critically, execute all tasks, report when complete.
+Load plan, review critically, execute tasks, report when done.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
-**Note:** This skill works best with subagent support. If subagents are available, use subagent-driven-development instead — it provides higher quality through fresh context per task and two-stage review.
+If subagents available → use subagent-driven-development instead (higher quality via fresh context + two-stage review).
 
 ## The Process
 
 ### Step 1: Load and Review Plan
 1. Read plan file
-2. Review critically - identify any questions or concerns about the plan
-3. If concerns: Raise them with the user before starting
-4. If no concerns: Create TodoWrite and proceed
+2. Review critically; identify questions/concerns
+3. Concerns → raise w/ user before starting
+4. No concerns → TodoWrite + proceed
 
 ### Step 2: Execute Tasks
 
-For each task:
-1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
+Per task:
+1. Mark in_progress
+2. Follow steps exactly
 3. Run verifications as specified
-4. Mark as completed
+4. Mark completed
 
 ### Step 3: Complete Development
 
-After all tasks complete and verified:
+After all tasks done + verified:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
 - Read `.claude/skills/finishing-a-development-branch.md`
-- Follow that skill to verify tests, present options, execute choice
+- Follow it → verify tests, present options, execute choice
 
 ## When to Stop and Ask for Help
 
-**STOP executing immediately when:**
-- Hit a blocker (missing dependency, test fails, instruction unclear)
-- Plan has critical gaps preventing starting
-- You don't understand an instruction
+**STOP immediately when:**
+- Blocker (missing dep, test fails, unclear instruction)
+- Plan has critical gaps
+- Don't understand an instruction
 - Verification fails repeatedly
 
-**Ask for clarification rather than guessing.**
+**Ask rather than guess.**
 
 ## When to Revisit Earlier Steps
 
 **Return to Review (Step 1) when:**
-- User updates the plan based on your feedback
-- Fundamental approach needs rethinking
+- User updates plan based on feedback
+- Approach needs rethinking
 
-**Don't force through blockers** - stop and ask.
+**Don't force through blockers** — stop and ask.
 
 ## Remember
 - Review plan critically first
-- Follow plan steps exactly
+- Follow steps exactly
 - Don't skip verifications
 - Stop when blocked, don't guess
-- Never start implementation on main/master branch without explicit user consent
+- Never start on main/master w/o explicit user consent
 
 ## Integration
 
 **Required workflow skills:**
-- **using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
-- **writing-plans** - Creates the plan this skill executes
-- **finishing-a-development-branch** - Complete development after all tasks
+- **using-git-worktrees** — REQUIRED: isolated workspace before start
+- **writing-plans** — creates the plan
+- **finishing-a-development-branch** — complete after all tasks

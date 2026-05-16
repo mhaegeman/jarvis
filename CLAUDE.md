@@ -1,57 +1,55 @@
-# CLAUDE.md — Claude Code-Specific Instructions
+# CLAUDE.md — Claude Code Instructions
 
-**Read `AGENTS.md` at the repo root first.** It defines the project overview, workflow, build/test commands, and conventions that apply to every agent. This file only adds Claude-Code-specific mechanics (skill loading) layered on top.
+**Read `AGENTS.md` at repo root first.** Defines project overview, workflow, build/test, conventions for every agent. This file adds Claude-Code-specific mechanics (skill loading) on top.
 
-For second-brain operations, `AGENTS.md` directs you to `second-brain/AGENTS.md` — follow that file exclusively when ingesting, querying, linting, or updating the wiki.
+Second-brain ops → follow `second-brain/AGENTS.md` exclusively (ingest/query/lint/update wiki).
 
 ---
 
 ## Superpowers Skills
 
-This repository uses the Superpowers skills-based development workflow. Skills are defined in `.claude/skills/`. Read a skill by using `Read` on `.claude/skills/<skill-name>.md`.
+Skills defined in `.claude/skills/`. Read via `Read` on `.claude/skills/<skill-name>.md`.
 
 <EXTREMELY-IMPORTANT>
-If you think there is even a 1% chance a skill might apply to what you are doing (outside of second-brain operations), you ABSOLUTELY MUST read and follow the skill.
+If even 1% chance a skill applies (outside second-brain ops), you ABSOLUTELY MUST read + follow it.
 
-IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
-
-This is not negotiable. This is not optional. You cannot rationalize your way out of this.
+IF A SKILL APPLIES, YOU MUST USE IT. Not negotiable. Not optional. Cannot rationalize out.
 </EXTREMELY-IMPORTANT>
 
 ---
 
 ## Available Skills
 
-- `brainstorming` — Before any feature, component, or behavior modification
-- `writing-plans` — After spec approval, before touching code
-- `executing-plans` — Execute a written plan in batch with checkpoints
-- `subagent-driven-development` — Execute plan tasks with fresh subagents + two-stage review
-- `test-driven-development` — During implementation (RED-GREEN-REFACTOR)
-- `systematic-debugging` — Before proposing any fix for a bug or failure
-- `verification-before-completion` — Before claiming work is complete
-- `requesting-code-review` — After completing a task or feature
-- `receiving-code-review` — When receiving review feedback
-- `using-git-worktrees` — Before starting feature implementation
-- `finishing-a-development-branch` — When implementation is complete
-- `dispatching-parallel-agents` — When 2+ independent tasks can be parallelised
-- `writing-skills` — When creating or modifying skills
-- `stop-slop` — When writing, editing, or reviewing prose for AI writing tells
-- `ui-ux-pro-max` — When designing UI components, color palettes, typography, or UX patterns
-- `context-engineering` — When structuring context or reasoning protocols for LLM tasks
-- `remotion` — When building programmatic videos with React and Remotion
-- `grill-with-docs` — When stress-testing a coding plan against the domain model, sharpening terminology, and updating CONTEXT.md / ADRs inline
+- `brainstorming` — before any feature/component/behavior change
+- `writing-plans` — after spec approval, before code
+- `executing-plans` — execute written plan in batch w/ checkpoints
+- `subagent-driven-development` — plan tasks w/ fresh subagents + two-stage review
+- `test-driven-development` — RED-GREEN-REFACTOR during implementation
+- `systematic-debugging` — before proposing any bug/failure fix
+- `verification-before-completion` — before claiming work complete
+- `requesting-code-review` — after completing task/feature
+- `receiving-code-review` — when receiving review feedback
+- `using-git-worktrees` — before starting feature implementation
+- `finishing-a-development-branch` — when implementation complete
+- `dispatching-parallel-agents` — when 2+ independent tasks parallelisable
+- `writing-skills` — when creating/modifying skills
+- `stop-slop` — when writing/editing/reviewing prose for AI tells
+- `ui-ux-pro-max` — UI components, color, typography, UX patterns
+- `context-engineering` — structuring context/reasoning protocols for LLM tasks
+- `remotion` — programmatic videos w/ React + Remotion
+- `grill-with-docs` — stress-test plan vs domain model, sharpen terms, update CONTEXT.md/ADRs inline
 
 ---
 
 ## The Rule
 
-**Read the relevant skill BEFORE any response or action.**
+**Read relevant skill BEFORE any response or action.**
 
 ```
 User message received
-  → Is this a second-brain operation?  → Yes → Follow second-brain/AGENTS.md only
-  → Might any skill apply? (even 1%)   → Yes → Read skill → Follow it exactly
-  → Definitely not applicable          → Respond normally
+  → Second-brain op?           → Yes → Follow second-brain/AGENTS.md only
+  → Any skill apply? (even 1%) → Yes → Read skill → Follow exactly
+  → Definitely not applicable  → Respond normally
 ```
 
 ---

@@ -1,8 +1,8 @@
 # AGENTS.md — Second Brain Wiki Schema
 
-You are the LLM Wiki Agent for this second brain. This file defines everything you need to know to operate it. Read this file at the start of every session.
+You are the LLM Wiki Agent. This file defines everything needed to operate this second brain. Read at session start.
 
-This file is vendor-neutral — any AI coding agent (Codex, Cursor, Claude Code, Aider, etc.) should read it to operate the wiki. Claude Code users: `CLAUDE.md` in this directory is a thin pointer to this file.
+Vendor-neutral — any AI coding agent (Codex, Cursor, Claude Code, Aider, etc.) reads this to operate the wiki. Claude Code: `CLAUDE.md` in this dir is a thin pointer here.
 
 ---
 
@@ -27,9 +27,9 @@ brain/
 ```
 
 **Rules:**
-- `raw/` is read-only. Never create or modify files there — **except** when running the GitHub Repo Ingest operation (Section 6), which writes the repomix output file into `raw/` via shell command.
-- `wiki/` is fully LLM-owned. You create, update, and delete pages there.
-- Never modify `AGENTS.md` (or `CLAUDE.md`) unless the user explicitly asks you to.
+- `raw/` read-only. Never create/modify files there — **except** GitHub Repo Ingest (Section 6), which writes repomix output into `raw/` via shell.
+- `wiki/` fully LLM-owned. Create, update, delete pages there.
+- Never modify `AGENTS.md` (or `CLAUDE.md`) unless user explicitly asks.
 
 ---
 
@@ -158,7 +158,7 @@ Links to wiki pages and raw sources consulted.
 
 ## 3. Slugs
 
-File slugs use lowercase kebab-case. Strip punctuation, replace spaces with hyphens. Examples:
+Lowercase kebab-case. Strip punctuation, replace spaces w/ hyphens. Examples:
 - "Peter Thiel" → `peter-thiel`
 - "Zero to One" → `zero-to-one`
 - "Network Effects" → `network-effects`
@@ -167,7 +167,7 @@ File slugs use lowercase kebab-case. Strip punctuation, replace spaces with hyph
 
 ## 4. index.md Format
 
-`wiki/index.md` is a catalog of every wiki page. Structure:
+`wiki/index.md` catalogs every wiki page. Structure:
 
 ```markdown
 # Wiki Index
@@ -199,13 +199,13 @@ _Last updated: YYYY-MM-DD — N pages total_
 | [Title](analyses/slug.md) | YYYY-MM-DD | one-line |
 ```
 
-Update `index.md` every time you create or significantly update a page.
+Update `index.md` on every page create or significant update.
 
 ---
 
 ## 5. log.md Format
 
-`wiki/log.md` is append-only. Add a new entry at the **top** (newest first) for every operation.
+`wiki/log.md` is append-only. Add new entry at **top** (newest first) for every operation.
 
 ```markdown
 ## [YYYY-MM-DD] <operation> | <title>
@@ -222,54 +222,54 @@ Never delete or modify past log entries.
 ## 6. Operations
 
 ### Ingest
-Triggered when the user drops a new file in `raw/` and says "ingest" or similar.
+Triggered when user drops new file in `raw/` and says "ingest" or similar.
 
 Steps:
-1. Read the raw source file.
-2. Discuss key takeaways with the user (brief — 3–5 bullets). Ask if they want to emphasize anything before writing.
+1. Read raw source file.
+2. Discuss key takeaways w/ user (3–5 bullets). Ask if anything to emphasize before writing.
 3. Create `wiki/sources/<slug>.md`.
-4. Identify entities and concepts mentioned. For each:
-   - If the page exists: update it with new information from this source.
-   - If it doesn't exist: create it.
-5. Update `wiki/overview.md` if the source materially changes the big picture.
-6. Update `wiki/hot.md` — rewrite to reflect the latest ingested content. Keep ≤500 words. **Use ultra-compact keyword style** — no full sentences, no prose, just key terms, names, numbers, and arrows. Maximize information density. Prioritize the most recent 2–3 ingestions, then briefly note still-warm older topics.
+4. Identify entities + concepts mentioned. For each:
+   - Page exists → update w/ new info from this source.
+   - Doesn't exist → create.
+5. Update `wiki/overview.md` if source materially changes big picture.
+6. Update `wiki/hot.md` — rewrite to reflect latest ingested content. ≤500 words. **Ultra-compact keyword style** — no full sentences, no prose, just key terms, names, numbers, arrows. Max info density. Prioritize most recent 2–3 ingestions, then briefly note still-warm older topics.
 7. Update `wiki/index.md` (add rows for new pages, update count).
 8. Append entry to `wiki/log.md`.
-9. Report what was done: pages created, pages updated, anything notable.
+9. Report: pages created, updated, anything notable.
 
 ### Ingest GitHub Repo
-Triggered when the user provides a GitHub URL (`https://github.com/owner/repo`) and asks to ingest it.
+Triggered when user provides GitHub URL (`https://github.com/owner/repo`) and asks to ingest.
 
 Steps:
 
-1. **Parse the URL.** Extract `owner` and `repo`. Derive the output slug: `<owner>-<repo>` in kebab-case (e.g., `anthropics-claude-code`). Output path: `brain/raw/<slug>.md`.
+1. **Parse URL.** Extract `owner` + `repo`. Derive output slug: `<owner>-<repo>` kebab-case (e.g. `anthropics-claude-code`). Output path: `brain/raw/<slug>.md`.
 
-2. **Run repomix.** Execute the following shell command:
+2. **Run repomix:**
    ```bash
    repomix --remote https://github.com/owner/repo \
      --output brain/raw/<slug>.md \
      --style markdown \
      --include "**/*.md,**/*.rst,**/*.txt,docs/**,README*,CHANGELOG*,LICENSE*"
    ```
-   - This captures all documentation, changelogs, and prose files while excluding source code by default.
-   - If the user explicitly asks for full source code ingestion, drop the `--include` flag.
+   - Captures docs, changelogs, prose; excludes source code by default.
+   - If user explicitly asks for full source code → drop `--include`.
 
 3. **Verify output.**
-   - If repomix exits with an error or the output file is empty: report the error. If repomix is not installed, tell the user to run `npm install -g repomix` and stop.
-   - If the output file is large (>200 KB / ~50K tokens): warn the user, show the file size, and ask whether to proceed or re-run with a tighter `--include` filter before continuing.
+   - Repomix errors or empty output → report error. If repomix not installed → tell user `npm install -g repomix` and stop.
+   - Output >200 KB (~50K tokens) → warn user, show file size, ask whether to proceed or re-run w/ tighter `--include`.
 
-4. **Continue with standard Ingest** (steps 1–8 of the Ingest operation above). Read the repomix output file as the source.
+4. **Continue standard Ingest** (steps 1–8 above). Read repomix output file as source.
 
-5. **Frontmatter for the source page:**
+5. **Frontmatter for source page:**
    ```yaml
    source_file: raw/<slug>.md
    source_url: https://github.com/owner/repo
    ```
-   Always set both fields for GitHub ingests.
+   Always set both for GitHub ingests.
 
-6. **Tags must include** `github`, `open-source`, and the repo's primary language or domain (infer from content). Apply all standard tagging rules (Section 12).
+6. **Tags MUST include** `github`, `open-source`, and repo's primary language/domain (infer from content). Apply all standard tagging rules (Section 12).
 
-7. **GitHub repo source pages MUST include the following two extra sections** (insert between Summary and Key Points):
+7. **GitHub repo source pages MUST include these two extra sections** (insert between Summary and Key Points):
 
    ```markdown
    ## Tech Stack
@@ -279,43 +279,43 @@ Steps:
    One paragraph: what problem does this repo solve, who is it for, and what is the primary user action?
    ```
 
-   These two sections are required for all GitHub repo ingests because tech stack and purpose are the most-searched fields when deciding whether to adopt or reference a repo.
+   Required b/c tech stack + purpose are most-searched fields when deciding adoption/reference.
 
 ---
 
 ### Ingest YouTube
-Triggered when the user provides a YouTube URL (`https://www.youtube.com/watch?v=<id>`, `https://youtu.be/<id>`, or `https://www.youtube.com/live/<id>`) and asks to ingest it.
+Triggered when user provides YouTube URL (`https://www.youtube.com/watch?v=<id>`, `https://youtu.be/<id>`, or `https://www.youtube.com/live/<id>`) and asks to ingest.
 
 Steps:
 
-1. **Check required tools.** Verify both `yt-dlp` and `whisper` are installed:
+1. **Check required tools.** Verify `yt-dlp` + `whisper` installed:
    ```bash
    which yt-dlp && which whisper
    ```
-   If either is missing, report it and stop:
-   - `yt-dlp` missing → "yt-dlp is required. Install with `pip install yt-dlp`."
-   - `whisper` missing → "whisper is required. Install with `pip install openai-whisper`."
+   Missing → report + stop:
+   - `yt-dlp` → "yt-dlp is required. Install with `pip install yt-dlp`."
+   - `whisper` → "whisper is required. Install with `pip install openai-whisper`."
 
-2. **Fetch metadata.** Run:
+2. **Fetch metadata:**
    ```bash
    yt-dlp --dump-json "<url>"
    ```
-   Extract: `title`, `channel`, `upload_date`, `duration_string`, `description`, `chapters` (if present). Note: `upload_date` is returned by yt-dlp as `YYYYMMDD` (e.g. `20240315`) — reformat it to `YYYY-MM-DD` (e.g. `2024-03-15`) before using it anywhere.
-   Derive the output slug from the title in lowercase kebab-case (e.g., "The Bitter Lesson" → `the-bitter-lesson`). Fall back to the video ID if the title is longer than 60 characters or contains non-ASCII characters.
+   Extract: `title`, `channel`, `upload_date`, `duration_string`, `description`, `chapters` (if present). `upload_date` returns as `YYYYMMDD` (e.g. `20240315`) — reformat to `YYYY-MM-DD` (e.g. `2024-03-15`) before use.
+   Derive output slug from title in lowercase kebab-case (e.g. "The Bitter Lesson" → `the-bitter-lesson`). Fall back to video ID if title >60 chars or non-ASCII.
 
-3. **Download audio.** Run:
+3. **Download audio:**
    ```bash
    yt-dlp -x --audio-format mp3 -o "brain/raw/<slug>.mp3" "<url>"
    ```
-   If yt-dlp exits with an error (private video, unavailable, etc.), report the error and stop.
+   yt-dlp error (private, unavailable, etc.) → report + stop.
 
-4. **Transcribe.** Run this command from the repository root (the directory containing `brain/`):
+4. **Transcribe.** Run from repo root (dir containing `brain/`):
    ```bash
    whisper "brain/raw/<slug>.mp3" --output_dir /tmp/ --output_format txt
    ```
-   This produces `/tmp/<slug>.txt`. If the output file is empty, warn the user and offer to proceed with metadata only or abort.
+   Produces `/tmp/<slug>.txt`. Empty output → warn user, offer metadata-only or abort.
 
-5. **Write raw file.** Read `/tmp/<slug>.txt` and use its contents as the transcript. Then create `brain/raw/<slug>.md` with the following structure:
+5. **Write raw file.** Read `/tmp/<slug>.txt` as transcript. Create `brain/raw/<slug>.md`:
    ```markdown
    ---
    title: <title>
@@ -335,22 +335,22 @@ Steps:
    <full contents of /tmp/<slug>.txt>
    ```
 
-6. **Clean up intermediates.** Delete `brain/raw/<slug>.mp3` and `/tmp/<slug>.txt`.
+6. **Clean up intermediates.** Delete `brain/raw/<slug>.mp3` + `/tmp/<slug>.txt`.
 
-7. **Size check.** If `brain/raw/<slug>.md` is larger than 200 KB, warn the user and show the file size. Ask whether to proceed before continuing.
+7. **Size check.** `brain/raw/<slug>.md` >200 KB → warn user, show size, ask to proceed.
 
-8. **Continue with standard Ingest** (steps 1–8 of the Ingest operation above). Read `brain/raw/<slug>.md` as the source.
+8. **Continue standard Ingest** (steps 1–8 above). Read `brain/raw/<slug>.md` as source.
 
-9. **Frontmatter for the source page:**
+9. **Frontmatter for source page:**
    ```yaml
    source_file: raw/<slug>.md
    source_url: <youtube-url>
    ```
-   Always set both fields for YouTube ingests.
+   Always set both for YouTube ingests.
 
-10. **Tags must include** `youtube`, the channel name in lowercase kebab-case (e.g., `lex-fridman`), and a content-type tag inferred from the video: one of `talk`, `lecture`, `interview`, `tutorial`. Apply all standard tagging rules (Section 12).
+10. **Tags MUST include** `youtube`, channel name in lowercase kebab-case (e.g. `lex-fridman`), and content-type tag inferred from video: one of `talk`, `lecture`, `interview`, `tutorial`. Apply standard tagging rules (Section 12).
 
-11. **YouTube source pages MUST include the following two extra sections** (insert between Summary and Key Points):
+11. **YouTube source pages MUST include these two extra sections** (insert between Summary and Key Points):
 
     ```markdown
     ## Speaker / Channel
@@ -362,98 +362,98 @@ Steps:
     - **Chapters:** bulleted list if present, otherwise "none"
     ```
 
-    These two sections are required for all YouTube ingests because speaker identity and video context are the most-searched fields when looking up a video source.
+    Required b/c speaker identity + video context are most-searched fields when looking up a video source.
 
 ---
 
 ### Query
-Triggered when the user asks a question.
+Triggered when user asks a question.
 
 Steps:
 1. Read `wiki/index.md` to find relevant pages.
 2. Read those pages.
-3. Synthesize an answer with citations (link to wiki pages, not raw sources directly unless quoting).
-4. Ask the user if the answer should be filed as an analysis page. If yes, create `wiki/analyses/<slug>.md`.
+3. Synthesize answer w/ citations (link to wiki pages, not raw sources unless quoting).
+4. Ask user if answer should be filed as analysis. If yes → create `wiki/analyses/<slug>.md`.
 5. Append entry to `wiki/log.md`.
 
 ### Lint
-Triggered when the user says "lint" or "health check".
+Triggered when user says "lint" or "health check".
 
 Check for:
-- Pages mentioned in other pages but not yet created (broken links or missing pages).
-- Contradictions between pages (flag them, don't resolve without asking).
+- Pages mentioned but not yet created (broken links / missing pages).
+- Contradictions between pages (flag, don't resolve without asking).
 - Orphan pages (no inbound links from any other wiki page).
-- Stale claims (a page says X but a newer source says not-X).
+- Stale claims (page says X, newer source says not-X).
 - Missing cross-references (two pages clearly related but not linked).
-- Data gaps that a web search could fill.
+- Data gaps web search could fill.
 
-Report findings as a numbered list. Ask the user which items to act on.
+Report as numbered list. Ask user which items to act on.
 
 ### Update
-Triggered when the user says "update [page]" or when ingest touches an existing page.
+Triggered when user says "update [page]" or ingest touches existing page.
 
 Steps:
-1. Read the existing page.
-2. Integrate new information, preserving old content that's still accurate.
-3. Mark superseded claims with a note (e.g., ~~old claim~~ → new claim (updated YYYY-MM-DD)).
-4. Update `index.md` summary if the one-liner changed.
+1. Read existing page.
+2. Integrate new info, preserving old content still accurate.
+3. Mark superseded claims w/ note (e.g. ~~old claim~~ → new claim (updated YYYY-MM-DD)).
+4. Update `index.md` summary if one-liner changed.
 5. Append entry to `wiki/log.md`.
 
 ---
 
 ## 7. Cross-Reference Rules
 
-- Every entity or concept first mentioned in a page should be linked: `[[entity-or-concept-name]]` or `[Name](../entities/slug.md)`.
+- Every entity/concept first mentioned in a page → link: `[[entity-or-concept-name]]` or `[Name](../entities/slug.md)`.
 - Source pages link to all entities/concepts they introduce or significantly discuss.
-- Entity and concept pages link back to all source pages that mention them.
-- Don't create a page for an entity/concept mentioned only once in passing — use a link to the source page instead.
+- Entity/concept pages link back to all source pages mentioning them.
+- Don't create page for entity/concept mentioned only once in passing — link to source page instead.
 
 ---
 
 ## 8. overview.md
 
-`wiki/overview.md` is the evolving synthesis of everything in the wiki. It should:
-- State the main thesis or purpose of this wiki (1 paragraph).
-- Summarize the key themes and how they connect (bullet points or short paragraphs).
-- Note major open questions or tensions.
-- Link to key entity, concept, and analysis pages.
+`wiki/overview.md` is evolving synthesis of everything in wiki. Should:
+- State main thesis/purpose of wiki (1 paragraph).
+- Summarize key themes + how they connect (bullets or short paragraphs).
+- Note major open questions/tensions.
+- Link to key entity, concept, analysis pages.
 
-Update it when a new source significantly changes the big picture. It's not a page-by-page summary — it's an evolving essay.
+Update when new source significantly changes big picture. Not page-by-page summary — evolving essay.
 
 ---
 
 ## 9. Tone and Style
 
-- Write all wiki pages in clear, declarative prose. No hedging ("it seems", "perhaps") unless genuinely uncertain — flag uncertainty explicitly instead.
-- Be specific. Vague summaries degrade the wiki. Prefer precise claims with sources over fluffy generalizations.
-- Prefer short paragraphs and bullets over walls of text.
-- Never hallucinate. If the source doesn't say it, don't write it. Mark inferences explicitly.
+- Clear, declarative prose. No hedging ("it seems", "perhaps") unless genuinely uncertain — flag uncertainty explicitly.
+- Be specific. Vague summaries degrade wiki. Precise claims w/ sources > fluffy generalizations.
+- Short paragraphs + bullets > walls of text.
+- Never hallucinate. Source doesn't say it → don't write it. Mark inferences explicitly.
 
 ---
 
 ## 10. Session Start
 
-At the start of every session:
+At session start:
 1. Read this file (`AGENTS.md`).
-2. Read `wiki/hot.md` — the ≤500-word briefing on the latest ingested content. This is your short-term memory primer: it tells you what topics are freshest and most likely to be relevant to the current session.
-3. Read `wiki/log.md` (last 5 entries) to understand recent context.
-4. Read `wiki/index.md` to understand the current state of the wiki.
-5. Greet the user with a brief status: how many pages, when the last ingest was, and what the wiki is currently about.
+2. Read `wiki/hot.md` — ≤500-word briefing on latest ingested content. Short-term memory primer: freshest topics most likely relevant.
+3. Read `wiki/log.md` (last 5 entries) for recent context.
+4. Read `wiki/index.md` for current wiki state.
+5. Greet user w/ brief status: page count, last ingest date, what wiki is currently about.
 
 ---
 
 ## 11. Web Search
 
-You may use web search during ingest or query operations to fill gaps, verify facts, or find additional context. Always:
-- Clearly label web-sourced information as such.
-- Prefer the raw source file as authoritative; web search supplements, not replaces.
-- If web-sourced information is significant, note it in the relevant wiki page.
+May use web search during ingest/query to fill gaps, verify facts, or find context. Always:
+- Clearly label web-sourced info as such.
+- Raw source file is authoritative; web search supplements, not replaces.
+- Significant web-sourced info → note in relevant wiki page.
 
 ---
 
 ## 12. Tagging
 
-Tags are the primary axis for cross-cutting search and filtering. Be thorough — a source page should have **10–20 tags** that span every relevant dimension. Thin tagging degrades discoverability.
+Tags are primary axis for cross-cutting search/filtering. Be thorough — source page should have **10–20 tags** spanning every relevant dimension. Thin tagging degrades discoverability.
 
 ### Tag categories to draw from
 
@@ -469,8 +469,8 @@ Tags are the primary axis for cross-cutting search and filtering. Be thorough �
 
 ### Rules
 
-- All tags use **lowercase kebab-case**: `ai-safety`, not `AI Safety` or `aiSafety`.
-- Multi-line YAML list format for source pages (easier to read and edit):
+- All tags **lowercase kebab-case**: `ai-safety`, not `AI Safety` or `aiSafety`.
+- Multi-line YAML list format for source pages (easier to read + edit):
   ```yaml
   tags: [
     domain-tag1, domain-tag2,
@@ -479,9 +479,9 @@ Tags are the primary axis for cross-cutting search and filtering. Be thorough �
   ]
   ```
 - Entity/concept/person pages have simpler tag sets (3–6 tags); full tagging effort concentrates on **source pages**.
-- Do not repeat information already in the title or frontmatter type as a tag (e.g., don't tag a `type: source` page with `source`).
-- Prefer **specific** over generic: `adversarial-misalignment` beats `alignment`; `us-china` beats `geopolitics`.
-- When ingesting a new source: spend deliberate time on tags — ask "what would I type into a search bar in 6 months to want this source to surface?"
+- Don't repeat info already in title or frontmatter type as tag (e.g. don't tag `type: source` page w/ `source`).
+- Prefer **specific** over generic: `adversarial-misalignment` > `alignment`; `us-china` > `geopolitics`.
+- Ingesting new source → spend deliberate time on tags. Ask: "what would I type into a search bar in 6 months to want this source to surface?"
 
 ---
 

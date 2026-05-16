@@ -7,44 +7,44 @@ description: Use when structuring context for LLM tasks, designing multi-step ag
 
 ## Overview
 
-Context engineering is the discipline of optimizing everything a language model sees beyond the initial prompt. As Andrej Karpathy defines it: *"the delicate art and science of filling the context window with just the right information for the next step."*
+Discipline of optimizing everything LLM sees beyond initial prompt. Karpathy: *"delicate art and science of filling the context window with just the right information for the next step."*
 
-This skill covers reasoning protocols, workflow patterns, and structured schemas for getting the best output from LLMs.
+Covers reasoning protocols, workflow patterns, structured schemas.
 
 Source: [davidkimai/Context-Engineering](https://github.com/davidkimai/Context-Engineering)
 
 ## When to Use
 
-- Designing multi-step agent or LLM workflows
-- When an LLM task requires systematic, traceable reasoning
-- Structuring what context to provide for complex coding or analysis tasks
-- When outputs are inconsistent and you need to constrain the reasoning process
-- **Not for:** simple one-shot prompts, well-defined tasks with clear specs
+- Multi-step agent/LLM workflows
+- LLM task needs systematic, traceable reasoning
+- Structuring context for complex coding/analysis
+- Inconsistent outputs → constrain reasoning
+- **Not for:** simple one-shot prompts, well-defined tasks w/ clear specs
 
 ## Core Reasoning Protocols
 
 ### Systematic Reasoning
-For complex problems requiring traceable logic:
-1. **Understand** — Restate the problem and clarify goals
-2. **Analyze** — Break down into components
-3. **Plan** — Design a step-by-step approach
-4. **Execute** — Implement methodically
-5. **Verify** — Validate against requirements
-6. **Refine** — Improve based on verification
+Complex problems needing traceable logic:
+1. **Understand** — restate problem, clarify goals
+2. **Analyze** — break into components
+3. **Plan** — step-by-step approach
+4. **Execute** — implement methodically
+5. **Verify** — validate vs requirements
+6. **Refine** — improve from verification
 
 ### Extended Thinking
-For problems requiring deep consideration:
-1. **Explore** — Consider multiple perspectives and approaches
-2. **Evaluate** — Assess trade-offs of each approach
-3. **Simulate** — Test mental models against edge cases
-4. **Synthesize** — Integrate insights into coherent solution
-5. **Articulate** — Express reasoning clearly
+Problems needing deep consideration:
+1. **Explore** — multiple perspectives/approaches
+2. **Evaluate** — trade-offs of each
+3. **Simulate** — test mental models vs edge cases
+4. **Synthesize** — integrate into coherent solution
+5. **Articulate** — express reasoning clearly
 
 ### Self-Reflection
-For improving outputs iteratively:
+Iterative output improvement:
 1. **Assess** — completeness, correctness, clarity, effectiveness
 2. **Identify** — strengths, weaknesses, implicit assumptions
-3. **Improve** — plan and apply specific improvements
+3. **Improve** — plan + apply specific improvements
 
 ## Workflow Patterns
 
@@ -68,18 +68,16 @@ For improving outputs iteratively:
 ## Context Schemas
 
 ### Code Understanding
-When analyzing a codebase, structure your understanding as:
-- **Structure** — key files/directories and their purposes
-- **Architecture** — overall architectural pattern
-- **Technologies** — frameworks and libraries
-- **Entry points** — main application flows
-- **Data flow** — how data moves through the system
-- **Quality** — strengths, concerns, recurring patterns
+- **Structure** — key files/dirs + purposes
+- **Architecture** — overall pattern
+- **Technologies** — frameworks/libs
+- **Entry points** — main flows
+- **Data flow** — how data moves
+- **Quality** — strengths, concerns, patterns
 
 ### Troubleshooting
-When diagnosing issues, structure as:
 - **Problem** — symptoms, context, impact
-- **Diagnosis** — potential causes, evidence, verification steps
+- **Diagnosis** — causes, evidence, verification steps
 - **Solution** — approach, steps, verification, prevention
 
 ## Quick Reference
@@ -97,7 +95,7 @@ When diagnosing issues, structure as:
 
 | Problem | Fix |
 |---------|-----|
-| Jumping straight to implementation | Always explore and plan first |
-| Vague context provided to LLM | Use structured schemas to organize inputs |
-| Single-pass generation | Apply self-reflection protocol after first output |
-| Ignoring edge cases | Explicitly simulate edge cases in planning phase |
+| Jumping to implementation | Explore + plan first |
+| Vague context to LLM | Use structured schemas |
+| Single-pass generation | Apply self-reflection after first output |
+| Ignoring edge cases | Simulate edge cases in planning |

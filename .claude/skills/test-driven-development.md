@@ -7,26 +7,19 @@ description: Use when implementing any feature or bugfix, before writing impleme
 
 ## Overview
 
-Write the test first. Watch it fail. Write minimal code to pass.
+Write test first. Watch it fail. Write minimal code to pass.
 
-**Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
+**Core principle:** Didn't watch test fail → don't know if it tests right thing.
 
-**Violating the letter of the rules is violating the spirit of the rules.**
+**Violating the letter = violating the spirit.**
 
 ## When to Use
 
-**Always:**
-- New features
-- Bug fixes
-- Refactoring
-- Behavior changes
+**Always:** new features, bug fixes, refactoring, behavior changes.
 
-**Exceptions (ask the user):**
-- Throwaway prototypes
-- Generated code
-- Configuration files
+**Exceptions (ask user):** throwaway prototypes, generated code, config files.
 
-Thinking "skip TDD just this once"? Stop. That's rationalization.
+Thinking "skip TDD just this once"? Stop. Rationalization.
 
 ## The Iron Law
 
@@ -34,11 +27,11 @@ Thinking "skip TDD just this once"? Stop. That's rationalization.
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
 
-Write code before the test? Delete it. Start over.
+Wrote code before test? Delete it. Start over.
 
 **No exceptions:**
-- Don't keep it as "reference"
-- Don't "adapt" it while writing tests
+- Don't keep as "reference"
+- Don't "adapt" while writing tests
 - Don't look at it
 - Delete means delete
 
@@ -68,53 +61,39 @@ digraph tdd_cycle {
 
 ### RED - Write Failing Test
 
-Write one minimal test showing what should happen.
+One minimal test showing what should happen.
 
-**Requirements:**
-- One behavior
-- Clear name
-- Real code (no mocks unless unavoidable)
+**Requirements:** one behavior, clear name, real code (no mocks unless unavoidable).
 
 ### Verify RED - Watch It Fail
 
 **MANDATORY. Never skip.**
 
-Confirm:
-- Test fails (not errors)
-- Failure message is expected
-- Fails because feature missing (not typos)
+Confirm: test fails (not errors), failure message expected, fails b/c feature missing (not typos).
 
-**Test passes?** You're testing existing behavior. Fix test.
+**Passes?** Testing existing behavior. Fix test.
 
-**Test errors?** Fix error, re-run until it fails correctly.
+**Errors?** Fix error, re-run until fails correctly.
 
 ### GREEN - Minimal Code
 
-Write simplest code to pass the test.
-
-Don't add features, refactor other code, or "improve" beyond the test.
+Simplest code to pass. No features, refactors, "improvements" beyond test.
 
 ### Verify GREEN - Watch It Pass
 
 **MANDATORY.**
 
-Confirm:
-- Test passes
-- Other tests still pass
-- Output pristine (no errors, warnings)
+Confirm: test passes, others still pass, output pristine (no errors/warnings).
 
-**Test fails?** Fix code, not test.
+**Fails?** Fix code, not test.
 
-**Other tests fail?** Fix now.
+**Others fail?** Fix now.
 
 ### REFACTOR - Clean Up
 
-After green only:
-- Remove duplication
-- Improve names
-- Extract helpers
+After green only: remove duplication, improve names, extract helpers.
 
-Keep tests green. Don't add behavior.
+Keep tests green. No new behavior.
 
 ### Repeat
 
@@ -153,11 +132,11 @@ Next failing test for next feature.
 - "TDD is dogmatic, I'm being pragmatic"
 - "This is different because..."
 
-**All of these mean: Delete code. Start over with TDD.**
+**All mean: Delete code. Start over w/ TDD.**
 
 ## Verification Checklist
 
-Before marking work complete:
+Before marking complete:
 
 - [ ] Every new function/method has a test
 - [ ] Watched each test fail before implementing
@@ -168,7 +147,7 @@ Before marking work complete:
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
 
-Can't check all boxes? You skipped TDD. Start over.
+Can't check all? Skipped TDD. Start over.
 
 ## When Stuck
 
@@ -186,4 +165,4 @@ Production code → test exists and failed first
 Otherwise → not TDD
 ```
 
-No exceptions without the user's permission.
+No exceptions w/o user permission.

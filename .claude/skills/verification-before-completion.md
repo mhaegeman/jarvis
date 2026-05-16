@@ -7,11 +7,11 @@ description: Use when about to claim work is complete, fixed, or passing, before
 
 ## Overview
 
-Claiming work is complete without verification is dishonesty, not efficiency.
+Claiming work complete w/o verification = dishonesty, not efficiency.
 
 **Core principle:** Evidence before claims, always.
 
-**Violating the letter of this rule is violating the spirit of this rule.**
+**Violating letter of rule = violating spirit of rule.**
 
 ## The Iron Law
 
@@ -19,7 +19,7 @@ Claiming work is complete without verification is dishonesty, not efficiency.
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-If you haven't run the verification command in this message, you cannot claim it passes.
+If you haven't run verification command in this message, you cannot claim it passes.
 
 ## The Gate Function
 
@@ -51,13 +51,13 @@ Skip any step = lying, not verifying
 
 ## Red Flags - STOP
 
-- Using "should", "probably", "seems to"
-- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
-- About to commit/push/PR without verification
+- "should", "probably", "seems to"
+- Satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
+- About to commit/push/PR w/o verification
 - Trusting agent success reports
-- Relying on partial verification
-- Thinking "just this once"
-- **ANY wording implying success without having run verification**
+- Partial verification
+- "Just this once"
+- **ANY wording implying success w/o running verification**
 
 ## Rationalization Prevention
 
@@ -106,8 +106,8 @@ Skip any step = lying, not verifying
 ## When To Apply
 
 **ALWAYS before:**
-- ANY variation of success/completion claims
-- ANY expression of satisfaction
+- ANY success/completion claim variation
+- ANY satisfaction expression
 - ANY positive statement about work state
 - Committing, PR creation, task completion
 - Moving to next task
@@ -119,4 +119,4 @@ Skip any step = lying, not verifying
 
 Run the command. Read the output. THEN claim the result.
 
-This is non-negotiable.
+Non-negotiable.
