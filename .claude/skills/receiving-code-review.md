@@ -137,10 +137,3 @@ FOR multi-item feedback:
 | Avoiding pushback | Technical correctness > comfort |
 | Partial implementation | Clarify all items first |
 
-## The Bottom Line
-
-**External feedback = suggestions to evaluate, not orders to follow.**
-
-Verify. Question. Then implement.
-
-No performative agreement. Technical rigor always.

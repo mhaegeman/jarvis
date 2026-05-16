@@ -101,11 +101,3 @@ ROOT CAUSE: Unhandled API response wrapper
 - Data mysteriously becoming wrong
 - Values that "shouldn't be" a certain way
 
-## Quick Reference
-
-1. Note exact error + location
-2. Who called this?
-3. What value passed?
-4. Where did value come from?
-5. Repeat until origin
-6. Fix at origin, not symptom

@@ -109,12 +109,6 @@ Every step contains actual content engineer needs. **Plan failures** — never w
 - "Similar to Task N" (repeat code — engineer may read out of order)
 - Steps describing what w/o showing how (code blocks required for code steps)
 
-## Remember
-- Exact file paths always
-- Complete code in every step — step changes code → show code
-- Exact commands w/ expected output
-- DRY, YAGNI, TDD, frequent commits
-
 ## Self-Review
 
 After writing complete plan, look at spec w/ fresh eyes, check plan against it.

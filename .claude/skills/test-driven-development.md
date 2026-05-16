@@ -37,28 +37,6 @@ Wrote code before test? Delete it. Start over.
 
 ## Red-Green-Refactor
 
-```dot
-digraph tdd_cycle {
-    rankdir=LR;
-    red [label="RED\nWrite failing test", shape=box, style=filled, fillcolor="#ffcccc"];
-    verify_red [label="Verify fails\ncorrectly", shape=diamond];
-    green [label="GREEN\nMinimal code", shape=box, style=filled, fillcolor="#ccffcc"];
-    verify_green [label="Verify passes\nAll green", shape=diamond];
-    refactor [label="REFACTOR\nClean up", shape=box, style=filled, fillcolor="#ccccff"];
-    next [label="Next", shape=ellipse];
-
-    red -> verify_red;
-    verify_red -> green [label="yes"];
-    verify_red -> red [label="wrong\nfailure"];
-    green -> verify_green;
-    verify_green -> refactor [label="yes"];
-    verify_green -> green [label="no"];
-    refactor -> verify_green [label="stay\ngreen"];
-    verify_green -> next;
-    next -> red;
-}
-```
-
 ### RED - Write Failing Test
 
 One minimal test showing what should happen.
@@ -107,30 +85,18 @@ Next failing test for next feature.
 | **Clear** | Name describes behavior | `test('test1')` |
 | **Shows intent** | Demonstrates desired API | Obscures what code should do |
 
-## Common Rationalizations
+## Red Flags / Rationalizations — STOP and Start Over
 
-| Excuse | Reality |
-|--------|---------|
+| Thought / Excuse | Reality |
+|------------------|---------|
 | "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
-| "I'll test after" | Tests passing immediately prove nothing. |
-| "Tests after achieve same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
+| "I'll test after" / "Tests added later" / "Code before test" | Tests-after = "what does this do?" Tests-first = "what should this do?" Tests passing immediately prove nothing. |
 | "Already manually tested" | Ad-hoc ≠ systematic. No record, can't re-run. |
-| "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
-| "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
+| "Deleting X hours is wasteful" / "Keep as reference, write tests first" | Sunk cost fallacy. You'll adapt it — that's testing after. Delete means delete. |
 | "Need to explore first" | Fine. Throw away exploration, start with TDD. |
-| "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
-
-## Red Flags - STOP and Start Over
-
-- Code before test
-- Test after implementation
-- Test passes immediately
-- Can't explain why test failed
-- Tests added "later"
-- Rationalizing "just this once"
-- "I already manually tested it"
-- "TDD is dogmatic, I'm being pragmatic"
-- "This is different because..."
+| "TDD will slow me down" / "TDD is dogmatic, I'm being pragmatic" | TDD faster than debugging. Pragmatic = test-first. |
+| "Just this once" / "This is different because..." | Rationalization. No exceptions w/o user permission. |
+| Test passes immediately / Can't explain why test failed | Wrong test or wrong failure. Fix test, watch it fail correctly. |
 
 **All mean: Delete code. Start over w/ TDD.**
 

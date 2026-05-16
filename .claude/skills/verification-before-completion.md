@@ -49,27 +49,18 @@ Skip any step = lying, not verifying
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
 
-## Red Flags - STOP
+## Red Flags / Rationalizations — STOP
 
-- "should", "probably", "seems to"
-- Satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
-- About to commit/push/PR w/o verification
-- Trusting agent success reports
-- Partial verification
-- "Just this once"
-- **ANY wording implying success w/o running verification**
-
-## Rationalization Prevention
-
-| Excuse | Reality |
-|--------|---------|
-| "Should work now" | RUN the verification |
-| "I'm confident" | Confidence ≠ evidence |
-| "Just this once" | No exceptions |
-| "Linter passed" | Linter ≠ compiler |
-| "Agent said success" | Verify independently |
-| "Partial check is enough" | Partial proves nothing |
-| "Different words so rule doesn't apply" | Spirit over letter |
+| Thought / Excuse | Reality |
+|------------------|---------|
+| "should", "probably", "seems to" / "Should work now" | RUN the verification. Hedging = no evidence. |
+| "I'm confident" / Satisfaction before verification ("Great!", "Perfect!", "Done!") | Confidence ≠ evidence. |
+| "Just this once" | No exceptions. |
+| "Linter passed" | Linter ≠ compiler. |
+| "Agent said success" / Trusting agent success reports | Verify independently (check VCS diff). |
+| "Partial check is enough" / Partial verification | Partial proves nothing. |
+| "Different words so rule doesn't apply" / **ANY wording implying success w/o running verification** | Spirit over letter. |
+| About to commit/push/PR w/o verification | STOP. Run command first. |
 
 ## Key Patterns
 
@@ -113,10 +104,3 @@ Skip any step = lying, not verifying
 - Moving to next task
 - Delegating to agents
 
-## The Bottom Line
-
-**No shortcuts for verification.**
-
-Run the command. Read the output. THEN claim the result.
-
-Non-negotiable.

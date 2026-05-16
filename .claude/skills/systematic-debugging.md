@@ -117,38 +117,19 @@ MUST complete each before next.
 
    **Discuss w/ user before more fixes**
 
-## Red Flags - STOP and Follow Process
+## Red Flags / Rationalizations — STOP and Return to Phase 1
 
-If you catch yourself thinking:
-- "Quick fix for now, investigate later"
-- "Just try changing X and see if it works"
-- "Add multiple changes, run tests"
-- "Skip the test, I'll manually verify"
-- "It's probably X, let me fix that"
-- "I don't fully understand but this might work"
-- "Here are the main problems: [lists fixes without investigation]"
-- **"One more fix attempt" (when already tried 2+)**
-
-**ALL mean: STOP. Return Phase 1.**
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
+| Thought / Excuse | Reality |
+|------------------|---------|
+| "Quick fix for now, investigate later" / "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
+| "Just try changing X and see if it works" | Guessing without hypothesis. Form one, test minimally. |
+| "Add multiple changes, run tests" / "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
+| "Skip the test, I'll manually verify" / "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
+| "It's probably X, let me fix that" / "Here are the main problems: [lists fixes without investigation]" | No investigation = symptom fix. Phase 1 first. |
+| "I don't fully understand but this might work" | Say "I don't understand X". Don't pretend. |
 | "Issue is simple, don't need process" | Simple issues have root causes too. Process is fast for simple bugs. |
 | "Emergency, no time for process" | Systematic debugging is FASTER than guess-and-check thrashing. |
-| "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
-| "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
-| "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
-
-## Quick Reference
-
-| Phase | Key Activities | Success Criteria |
-|-------|---------------|------------------|
-| **1. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
-| **2. Pattern** | Find working examples, compare | Identify differences |
-| **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **4. Implementation** | Create test, fix, verify | Bug resolved, tests pass |
+| **"One more fix attempt" (when already tried 2+)** | STOP. Question architecture (Phase 4, step 5). |
 
 ## Supporting Techniques
 
