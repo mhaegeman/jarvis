@@ -15,29 +15,25 @@ Maxime Haegeman's personal AI tooling workspace:
 - `second-brain/` — persistent LLM-maintained wiki w/ own rules (see `second-brain/AGENTS.md`)
 - `prototypes/`, `docs/`, root scripts — experiments + tooling
 
-Full setup, env vars, deployment → `SETUP.md`.
-
 ---
 
 ## Build, Test, Run
 
-Backend + frontend have separate toolchains. Run from repo root.
+Setup, env vars, e2e smoke test → `SETUP.md`. Daily commands:
 
 ```bash
 # Backend (Python 3.12+, venv at server/.venv)
 cd server && source .venv/bin/activate
-pip install -e ".[dev]"                 # first time only
-pytest -q                                # run tests (~54 tests, all mocked by default)
-uvicorn server.main:app --port 8000      # run dev server
+pytest -q                                # tests (~54, mocked by default)
+uvicorn server.main:app --port 8000      # dev server
 
 # Frontend (Node 20+)
 cd web
-npm install                              # first time only
-npm run test                             # run tests
-npm run dev                              # run dev server (http://localhost:5173)
+npm run test                             # tests
+npm run dev                              # dev server (http://localhost:5173)
 ```
 
-No top-level lint — per-subproject tooling is source of truth. See `SETUP.md` for env matrix, env vars, e2e smoke test.
+No top-level lint — per-subproject tooling is source of truth.
 
 ---
 

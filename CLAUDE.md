@@ -41,19 +41,6 @@ IF A SKILL APPLIES, YOU MUST USE IT. Not negotiable. Not optional. Cannot ration
 
 ---
 
-## The Rule
-
-**Read relevant skill BEFORE any response or action.**
-
-```
-User message received
-  → Second-brain op?           → Yes → Follow second-brain/AGENTS.md only
-  → Any skill apply? (even 1%) → Yes → Read skill → Follow exactly
-  → Definitely not applicable  → Respond normally
-```
-
----
-
 ## Skill Priority When Multiple Apply
 
 1. **Process skills first** (brainstorming, debugging) — determine HOW to approach
