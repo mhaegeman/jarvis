@@ -2,24 +2,24 @@
 
 ## Overview
 
-After finding a root cause, add validation at multiple layers to prevent similar bugs from propagating silently in the future.
+After finding root cause, add validation at multiple layers → prevent similar bugs propagating silently.
 
-**Core principle:** Don't just fix the one place — make the system harder to break at every boundary.
+**Core principle:** Don't just fix one place — make system harder to break at every boundary.
 
 ## When to Use
 
-After completing Phase 4 (Implementation) in systematic-debugging:
-- Bug was caused by invalid data reaching a layer that assumed valid data
-- Root cause was a missing check at a system boundary
-- Fix was at the symptom level and you want to add deeper protection
+After Phase 4 (Implementation) in systematic-debugging:
+- Bug caused by invalid data reaching layer that assumed valid data
+- Root cause = missing check at system boundary
+- Fix at symptom level → want deeper protection
 
 ## The Pattern
 
-For each significant boundary in a multi-layer system, ask:
+Per significant boundary in multi-layer system, ask:
 1. What data enters this layer?
-2. What assumptions does this layer make about that data?
-3. What happens if those assumptions are violated?
-4. Should I add a check here?
+2. What assumptions does layer make about data?
+3. What if assumptions violated?
+4. Add a check?
 
 ## Layer Validation Examples
 
@@ -62,16 +62,16 @@ function transformApiResponse(raw: unknown): ProcessedData {
 
 ## Calibration: When NOT to Add Defense
 
-Don't add defensive checks everywhere:
-- Internal functions called only by other internal functions with known-good data
-- Hot paths where validation cost is significant
-- When TypeScript/type system already enforces the invariant
+Don't defend everywhere:
+- Internal functions called only by other internal functions w/ known-good data
+- Hot paths where validation cost significant
+- Type system already enforces invariant
 
 Add defense at:
 - External inputs (HTTP, file, env vars)
 - Cross-service/cross-module boundaries
 - After deserialization/parsing
-- Where bugs have historically occurred
+- Where bugs historically occurred
 
 ## Quick Reference
 

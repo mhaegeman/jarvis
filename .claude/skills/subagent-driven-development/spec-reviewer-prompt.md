@@ -1,6 +1,6 @@
 # Spec Compliance Reviewer Prompt Template
 
-Use this template when dispatching a spec compliance reviewer subagent.
+Use when dispatching a spec compliance reviewer subagent.
 
 **Purpose:** Verify implementer built what was requested (nothing more, nothing less)
 
@@ -8,7 +8,7 @@ Use this template when dispatching a spec compliance reviewer subagent.
 Agent tool (general-purpose):
   description: "Review spec compliance for Task N"
   prompt: |
-    You are reviewing whether an implementation matches its specification.
+    You are reviewing whether implementation matches its specification.
 
     ## What Was Requested
 
@@ -20,37 +20,37 @@ Agent tool (general-purpose):
 
     ## CRITICAL: Do Not Trust the Report
 
-    The implementer finished suspiciously quickly. Their report may be incomplete,
+    Implementer finished suspiciously quickly. Report may be incomplete,
     inaccurate, or optimistic. You MUST verify everything independently.
 
     **DO NOT:**
     - Take their word for what they implemented
-    - Trust their claims about completeness
+    - Trust claims about completeness
     - Accept their interpretation of requirements
 
     **DO:**
-    - Read the actual code they wrote
+    - Read actual code they wrote
     - Compare actual implementation to requirements line by line
     - Check for missing pieces they claimed to implement
     - Look for extra features they didn't mention
 
     ## Your Job
 
-    Read the implementation code and verify:
+    Read implementation code, verify:
 
     **Missing requirements:**
-    - Did they implement everything that was requested?
-    - Are there requirements they skipped or missed?
-    - Did they claim something works but didn't actually implement it?
+    - Implemented everything requested?
+    - Requirements they skipped or missed?
+    - Claimed something works but didn't implement?
 
     **Extra/unneeded work:**
-    - Did they build things that weren't requested?
-    - Did they over-engineer or add unnecessary features?
-    - Did they add "nice to haves" that weren't in spec?
+    - Built things not requested?
+    - Over-engineered or added unnecessary features?
+    - Added "nice to haves" not in spec?
 
     **Misunderstandings:**
-    - Did they interpret requirements differently than intended?
-    - Did they solve the wrong problem?
+    - Interpreted requirements differently than intended?
+    - Solved wrong problem?
 
     **Verify by reading code, not by trusting report.**
 

@@ -1,79 +1,45 @@
-# jarvis — Project Instructions
+# CLAUDE.md — Claude Code Instructions
 
-## Project Overview
+**Read `AGENTS.md` at repo root first.** Defines project overview, workflow, build/test, conventions for every agent. This file adds Claude-Code-specific mechanics (skill loading) on top.
 
-This repository is Maxime Haegeman's personal AI tooling workspace. It contains:
-- `second-brain/` — A persistent LLM-maintained wiki (has its own `second-brain/CLAUDE.md`)
-- Development of new AI-powered tools and experiments
+Second-brain ops → follow `second-brain/AGENTS.md` exclusively (ingest/query/lint/update wiki).
 
 ---
 
-## Exception: Second-Brain Ingestions
+## Superpowers Skills
 
-**When performing ingestion or wiki operations inside `second-brain/`, Superpowers workflow does NOT apply.**
-
-The second-brain has its own defined processes in `second-brain/CLAUDE.md` that take full precedence:
-- No brainstorming or spec phase needed for ingestion operations
-- No plan document required for ingestion operations
-- No TDD cycle for ingestion operations
-- Follow `second-brain/CLAUDE.md` exclusively for all ingest, query, lint, and update operations
-
-**All other development work** (new tools, features, scripts, experiments) in this repository MUST follow the Superpowers workflow below.
-
----
-
-## Superpowers Workflow
-
-This repository uses the Superpowers skills-based development workflow. Skills are defined in `.claude/skills/`. Read a skill by using `Read` on `.claude/skills/<skill-name>.md`.
+Skills defined in `.claude/skills/`. Read via `Read` on `.claude/skills/<skill-name>.md`.
 
 <EXTREMELY-IMPORTANT>
-If you think there is even a 1% chance a skill might apply to what you are doing (outside of second-brain ingestion), you ABSOLUTELY MUST read and follow the skill.
+If even 1% chance a skill applies (outside second-brain ops), you ABSOLUTELY MUST read + follow it.
 
-IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
-
-This is not negotiable. This is not optional. You cannot rationalize your way out of this.
+IF A SKILL APPLIES, YOU MUST USE IT. Not negotiable. Not optional. Cannot rationalize out.
 </EXTREMELY-IMPORTANT>
 
-## Instruction Priority
+---
 
-1. **User's explicit instructions** (this file, direct requests) — highest priority
-2. **Superpowers skills** (`.claude/skills/`) — override default behavior where they conflict
-3. **Default system prompt** — lowest priority
+## Available Skills
 
-## How to Access Skills
+- `brainstorming` — before any feature/component/behavior change
+- `writing-plans` — after spec approval, before code
+- `executing-plans` — execute written plan in batch w/ checkpoints
+- `subagent-driven-development` — plan tasks w/ fresh subagents + two-stage review
+- `test-driven-development` — RED-GREEN-REFACTOR during implementation
+- `systematic-debugging` — before proposing any bug/failure fix
+- `verification-before-completion` — before claiming work complete
+- `requesting-code-review` — after completing task/feature
+- `receiving-code-review` — when receiving review feedback
+- `using-git-worktrees` — before starting feature implementation
+- `finishing-a-development-branch` — when implementation complete
+- `dispatching-parallel-agents` — when 2+ independent tasks parallelisable
+- `writing-skills` — when creating/modifying skills
+- `stop-slop` — when writing/editing/reviewing prose for AI tells
+- `ui-ux-pro-max` — UI components, color, typography, UX patterns
+- `context-engineering` — structuring context/reasoning protocols for LLM tasks
+- `remotion` — programmatic videos w/ React + Remotion
+- `grill-with-docs` — stress-test plan vs domain model, sharpen terms, update CONTEXT.md/ADRs inline
 
-**In this repo:** Use the `Read` tool to read `.claude/skills/<skill-name>.md`. Follow the skill content directly once read.
-
-Available skills:
-- `brainstorming` — Before any feature, component, or behavior modification
-- `writing-plans` — After spec approval, before touching code
-- `executing-plans` — Execute a written plan in batch with checkpoints
-- `subagent-driven-development` — Execute plan tasks with fresh subagents + two-stage review
-- `test-driven-development` — During implementation (RED-GREEN-REFACTOR)
-- `systematic-debugging` — Before proposing any fix for a bug or failure
-- `verification-before-completion` — Before claiming work is complete
-- `requesting-code-review` — After completing a task or feature
-- `receiving-code-review` — When receiving review feedback
-- `using-git-worktrees` — Before starting feature implementation
-- `finishing-a-development-branch` — When implementation is complete
-- `dispatching-parallel-agents` — When 2+ independent tasks can be parallelised
-- `writing-skills` — When creating or modifying skills
-- `stop-slop` — When writing, editing, or reviewing prose for AI writing tells
-- `ui-ux-pro-max` — When designing UI components, color palettes, typography, or UX patterns
-- `context-engineering` — When structuring context or reasoning protocols for LLM tasks
-- `remotion` — When building programmatic videos with React and Remotion
-- `grill-with-docs` — When stress-testing a coding plan against the domain model, sharpening terminology, and updating CONTEXT.md / ADRs inline
-
-## The Rule
-
-**Read the relevant skill BEFORE any response or action.**
-
-```
-User message received
-  → Is this a second-brain ingestion? → Yes → Follow second-brain/CLAUDE.md only
-  → Might any skill apply? (even 1%)  → Yes → Read skill → Follow it exactly
-  → Definitely not applicable         → Respond normally
-```
+---
 
 ## Skill Priority When Multiple Apply
 
@@ -82,29 +48,3 @@ User message received
 
 "Let's build X" → brainstorming first.
 "Fix this bug" → systematic-debugging first.
-
-## Red Flags — You Are Rationalizing
-
-| Thought | Reality |
-|---------|---------|
-| "This is just a simple question" | Questions are tasks. Check for skills. |
-| "I need more context first" | Skill check comes BEFORE clarifying questions. |
-| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
-| "This is too simple for a design" | Every project needs a design, however short. |
-| "I already know the skill" | Skills evolve. Read current version. |
-| "This doesn't count as a task" | Action = task. Check for skills. |
-| "The skill is overkill" | Simple things become complex. Use it. |
-| "This is a second-brain ingestion" | Is it really? Verify before skipping workflow. |
-
----
-
-## Git Worktrees
-
-Feature work should use isolated git worktrees. See `.claude/skills/using-git-worktrees.md`.
-
-Worktrees directory: `.worktrees/` (project-local, gitignored)
-
-## Docs Structure
-
-- Specs: `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
-- Plans: `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`

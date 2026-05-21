@@ -5,9 +5,9 @@ description: Use when executing implementation plans with independent tasks in t
 
 # Subagent-Driven Development
 
-Execute plan by dispatching fresh subagent per task, with two-stage review after each: spec compliance review first, then code quality review.
+Execute plan by dispatching fresh subagent per task w/ two-stage review after each: spec compliance first, then code quality.
 
-**Why subagents:** You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
+**Why subagents:** Delegate to specialized agents w/ isolated context. Craft instructions/context precisely → they stay focused, succeed. Never inherit your session context — construct exactly what they need. Preserves your context for coordination.
 
 **Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
 
@@ -80,71 +80,69 @@ digraph process {
 
 ## Model Selection
 
-Use the least powerful model that can handle each role to conserve cost and increase speed.
+Use least powerful model that handles role → conserve cost, increase speed.
 
-**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use a fast, cheap model.
+- **Mechanical impl** (isolated fns, clear specs, 1-2 files): fast/cheap model
+- **Integration/judgment** (multi-file, pattern matching, debugging): standard model
+- **Architecture/design/review**: most capable model
 
-**Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use a standard model.
-
-**Architecture, design, and review tasks**: use the most capable available model.
-
-**Task complexity signals:**
-- Touches 1-2 files with a complete spec → cheap model
-- Touches multiple files with integration concerns → standard model
-- Requires design judgment or broad codebase understanding → most capable model
+**Complexity signals:**
+- 1-2 files w/ complete spec → cheap
+- Multi-file w/ integration → standard
+- Design judgment / broad codebase understanding → most capable
 
 ## Handling Implementer Status
 
-Implementer subagents report one of four statuses:
+Four statuses:
 
 **DONE:** Proceed to spec compliance review.
 
-**DONE_WITH_CONCERNS:** Read the concerns before proceeding. If the concerns are about correctness or scope, address them before review. If they're observations (e.g., "this file is getting large"), note them and proceed to review.
+**DONE_WITH_CONCERNS:** Read concerns. Correctness/scope → address before review. Observations (e.g., "file getting large") → note, proceed.
 
-**NEEDS_CONTEXT:** Provide the missing context and re-dispatch.
+**NEEDS_CONTEXT:** Provide missing context, re-dispatch.
 
-**BLOCKED:** Assess the blocker:
-1. If it's a context problem, provide more context and re-dispatch with the same model
-2. If the task requires more reasoning, re-dispatch with a more capable model
-3. If the task is too large, break it into smaller pieces
-4. If the plan itself is wrong, escalate to the user
+**BLOCKED:** Assess:
+1. Context problem → more context, re-dispatch same model
+2. Needs more reasoning → re-dispatch w/ more capable model
+3. Task too large → break into smaller pieces
+4. Plan wrong → escalate to user
 
-**Never** ignore an escalation or force the same model to retry without changes.
+**Never** ignore escalation or force same model to retry w/o changes.
 
 ## Prompt Templates
 
-Use the templates in `.claude/skills/subagent-driven-development/`:
-- `implementer-prompt.md` — Dispatch implementer subagent
-- `spec-reviewer-prompt.md` — Dispatch spec compliance reviewer subagent
-- `code-quality-reviewer-prompt.md` — Dispatch code quality reviewer subagent
+In `.claude/skills/subagent-driven-development/`:
+- `implementer-prompt.md`
+- `spec-reviewer-prompt.md`
+- `code-quality-reviewer-prompt.md`
 
 ## Red Flags
 
 **Never:**
-- Start implementation on main/master branch without explicit user consent
-- Skip reviews (spec compliance OR code quality)
-- Proceed with unfixed issues
+- Start impl on main/master w/o explicit user consent
+- Skip reviews (spec OR quality)
+- Proceed w/ unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)
-- Make subagent read plan file (provide full text instead)
-- Skip scene-setting context (subagent needs to understand where task fits)
-- Ignore subagent questions (answer before letting them proceed)
-- Accept "close enough" on spec compliance (spec reviewer found issues = not done)
-- **Start code quality review before spec compliance is ✅** (wrong order)
+- Make subagent read plan file (provide full text)
+- Skip scene-setting context (subagent needs to know where task fits)
+- Ignore subagent questions (answer before proceeding)
+- Accept "close enough" on spec compliance
+- **Start code quality review before spec compliance ✅** (wrong order)
 - Move to next task while either review has open issues
 
 **If reviewer finds issues:**
-- Implementer (same subagent) fixes them
-- Reviewer reviews again
+- Same implementer subagent fixes
+- Reviewer re-reviews
 - Repeat until approved
-- Don't skip the re-review
+- Don't skip re-review
 
 ## Integration
 
 **Required workflow skills:**
-- **using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
-- **writing-plans** - Creates the plan this skill executes
-- **requesting-code-review** - Code review template for reviewer subagents
-- **finishing-a-development-branch** - Complete development after all tasks
+- **using-git-worktrees** — REQUIRED: isolated workspace before starting
+- **writing-plans** — creates plan this skill executes
+- **requesting-code-review** — template for reviewer subagents
+- **finishing-a-development-branch** — complete after all tasks
 
-**Subagents should use:**
-- **test-driven-development** - Subagents follow TDD for each task
+**Subagents use:**
+- **test-driven-development** — subagents follow TDD per task

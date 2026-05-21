@@ -7,11 +7,11 @@ description: Use when about to claim work is complete, fixed, or passing, before
 
 ## Overview
 
-Claiming work is complete without verification is dishonesty, not efficiency.
+Claiming work complete w/o verification = dishonesty, not efficiency.
 
 **Core principle:** Evidence before claims, always.
 
-**Violating the letter of this rule is violating the spirit of this rule.**
+**Violating letter of rule = violating spirit of rule.**
 
 ## The Iron Law
 
@@ -19,7 +19,7 @@ Claiming work is complete without verification is dishonesty, not efficiency.
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-If you haven't run the verification command in this message, you cannot claim it passes.
+If you haven't run verification command in this message, you cannot claim it passes.
 
 ## The Gate Function
 
@@ -49,27 +49,18 @@ Skip any step = lying, not verifying
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
 
-## Red Flags - STOP
+## Red Flags / Rationalizations — STOP
 
-- Using "should", "probably", "seems to"
-- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
-- About to commit/push/PR without verification
-- Trusting agent success reports
-- Relying on partial verification
-- Thinking "just this once"
-- **ANY wording implying success without having run verification**
-
-## Rationalization Prevention
-
-| Excuse | Reality |
-|--------|---------|
-| "Should work now" | RUN the verification |
-| "I'm confident" | Confidence ≠ evidence |
-| "Just this once" | No exceptions |
-| "Linter passed" | Linter ≠ compiler |
-| "Agent said success" | Verify independently |
-| "Partial check is enough" | Partial proves nothing |
-| "Different words so rule doesn't apply" | Spirit over letter |
+| Thought / Excuse | Reality |
+|------------------|---------|
+| "should", "probably", "seems to" / "Should work now" | RUN the verification. Hedging = no evidence. |
+| "I'm confident" / Satisfaction before verification ("Great!", "Perfect!", "Done!") | Confidence ≠ evidence. |
+| "Just this once" | No exceptions. |
+| "Linter passed" | Linter ≠ compiler. |
+| "Agent said success" / Trusting agent success reports | Verify independently (check VCS diff). |
+| "Partial check is enough" / Partial verification | Partial proves nothing. |
+| "Different words so rule doesn't apply" / **ANY wording implying success w/o running verification** | Spirit over letter. |
+| About to commit/push/PR w/o verification | STOP. Run command first. |
 
 ## Key Patterns
 
@@ -106,17 +97,10 @@ Skip any step = lying, not verifying
 ## When To Apply
 
 **ALWAYS before:**
-- ANY variation of success/completion claims
-- ANY expression of satisfaction
+- ANY success/completion claim variation
+- ANY satisfaction expression
 - ANY positive statement about work state
 - Committing, PR creation, task completion
 - Moving to next task
 - Delegating to agents
 
-## The Bottom Line
-
-**No shortcuts for verification.**
-
-Run the command. Read the output. THEN claim the result.
-
-This is non-negotiable.

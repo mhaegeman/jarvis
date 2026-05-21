@@ -7,24 +7,24 @@ description: Use when facing 2+ independent tasks that can be worked on without 
 
 ## Overview
 
-You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need.
+Delegate tasks to specialized agents w/ isolated context. Craft instructions + context precisely → agents stay focused, succeed. They never inherit your session — construct exactly what they need.
 
-When you have multiple unrelated failures (different test files, different subsystems, different bugs), investigating them sequentially wastes time. Each investigation is independent and can happen in parallel.
+Multiple unrelated failures (different test files, subsystems, bugs) → sequential investigation wastes time. Independent investigations run in parallel.
 
-**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently.
+**Core principle:** One agent per independent problem domain. Concurrent work.
 
 ## When to Use
 
 **Use when:**
-- 3+ test files failing with different root causes
+- 3+ test files failing w/ different root causes
 - Multiple subsystems broken independently
-- Each problem can be understood without context from others
+- Each problem understandable w/o context from others
 - No shared state between investigations
 
 **Don't use when:**
-- Failures are related (fix one might fix others)
-- Need to understand full system state
-- Agents would interfere with each other
+- Failures related (one fix might fix others)
+- Need full system state
+- Agents would interfere
 
 ## The Pattern
 
@@ -35,19 +35,19 @@ Group failures by what's broken:
 - File B tests: Batch completion behavior
 - File C tests: Abort functionality
 
-Each domain is independent.
+Each domain independent.
 
 ### 2. Create Focused Agent Tasks
 
 Each agent gets:
-- **Specific scope:** One test file or subsystem
-- **Clear goal:** Make these tests pass
-- **Constraints:** Don't change other code
-- **Expected output:** Summary of what you found and fixed
+- **Specific scope:** one test file/subsystem
+- **Clear goal:** make these tests pass
+- **Constraints:** don't change other code
+- **Expected output:** summary of findings/fixes
 
 ### 3. Dispatch in Parallel
 
-Use the Agent tool multiple times in the same message (parallel dispatch):
+Agent tool multiple times in same message (parallel dispatch):
 ```
 Agent 1 → Fix test-file-a.test.ts failures
 Agent 2 → Fix test-file-b.test.ts failures  
@@ -64,10 +64,10 @@ When agents return:
 
 ## Agent Prompt Structure
 
-Good agent prompts are:
-1. **Focused** - One clear problem domain
-2. **Self-contained** - All context needed to understand the problem
-3. **Specific about output** - What should the agent return?
+Good prompts are:
+1. **Focused** — one clear problem domain
+2. **Self-contained** — all context needed
+3. **Specific output** — what should agent return?
 
 ```markdown
 Fix the 3 failing tests in src/agents/tool-abort.test.ts:
@@ -91,29 +91,29 @@ Return: Summary of what you found and what you fixed.
 
 ## Common Mistakes
 
-**❌ Too broad:** "Fix all the tests" - agent gets lost
-**✅ Specific:** "Fix tool-abort.test.ts" - focused scope
+**❌ Too broad:** "Fix all the tests" — agent lost
+**✅ Specific:** "Fix tool-abort.test.ts" — focused scope
 
-**❌ No context:** "Fix the race condition" - agent doesn't know where
-**✅ Context:** Paste the error messages and test names
+**❌ No context:** "Fix the race condition" — agent doesn't know where
+**✅ Context:** paste error messages + test names
 
-**❌ No constraints:** Agent might refactor everything
-**✅ Constraints:** "Do NOT change production code" or "Fix tests only"
+**❌ No constraints:** agent might refactor everything
+**✅ Constraints:** "Do NOT change production code" / "Fix tests only"
 
-**❌ Vague output:** "Fix it" - you don't know what changed
-**✅ Specific:** "Return summary of root cause and changes"
+**❌ Vague output:** "Fix it" — you don't know what changed
+**✅ Specific:** "Return summary of root cause + changes"
 
 ## When NOT to Use
 
-**Related failures:** Fixing one might fix others - investigate together first
-**Need full context:** Understanding requires seeing entire system
-**Exploratory debugging:** You don't know what's broken yet
-**Shared state:** Agents would interfere (editing same files, using same resources)
+- **Related failures:** investigate together first
+- **Need full context:** understanding requires whole system
+- **Exploratory debugging:** you don't know what's broken
+- **Shared state:** agents would interfere (same files/resources)
 
 ## Verification
 
 After agents return:
-1. **Review each summary** - Understand what changed
-2. **Check for conflicts** - Did agents edit same code?
-3. **Run full suite** - Verify all fixes work together
-4. **Spot check** - Agents can make systematic errors
+1. **Review each summary** — understand changes
+2. **Check conflicts** — same code edited?
+3. **Run full suite** — fixes work together
+4. **Spot check** — agents make systematic errors

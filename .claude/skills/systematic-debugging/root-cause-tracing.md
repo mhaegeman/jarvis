@@ -2,29 +2,29 @@
 
 ## Overview
 
-Trace bugs backward through the call stack to find the original trigger.
+Trace bugs backward through call stack → find original trigger.
 
 **Core principle:** Never fix where you see the problem — trace to where it starts.
 
 ## The Backward Tracing Technique
 
-When you see an error deep in the call stack:
+Error appears deep in call stack:
 
 ### Step 1: Start at the Error
 
 Note exactly what failed:
-- What value was unexpected?
-- What function threw?
-- What line?
+- Unexpected value?
+- Function that threw?
+- Line?
 
 ### Step 2: Trace Backwards
 
-For each level of the call stack, ask:
+Per call stack level, ask:
 - Who called this function?
 - What value did they pass?
 - Where did they get that value?
 
-Keep tracing up until you find where the bad value ORIGINATES.
+Trace up until you find where bad value ORIGINATES.
 
 ```
 Error: Cannot read property 'x' of undefined
@@ -41,7 +41,7 @@ Error: Cannot read property 'x' of undefined
 
 ### Step 3: Fix at Source
 
-Fix the root cause, not the symptom.
+Fix root cause, not symptom.
 
 ```
 ❌ Symptom fix: Add null check in processResult
@@ -50,7 +50,7 @@ Fix the root cause, not the symptom.
 
 ## Adding Diagnostic Instrumentation
 
-When root cause isn't obvious, add logging at each layer:
+Root cause not obvious → add logging per layer:
 
 ```typescript
 // Layer 1: Entry point
@@ -67,13 +67,13 @@ console.log('[handleResponse] received result:', result);
 console.log('[processResult] input:', result);
 ```
 
-Run once with instrumentation → see exactly where bad value enters.
+Run once w/ instrumentation → see exactly where bad value enters.
 
 ## Common Patterns
 
 ### Undefined/null propagation
 ```
-Function A returns undefined when it should return a value
+Function A returns undefined when should return value
 → Function B receives undefined, doesn't check
 → Function C fails on undefined
 ROOT CAUSE: Fix Function A's return value
@@ -82,8 +82,8 @@ ROOT CAUSE: Fix Function A's return value
 ### Silent failure
 ```
 Operation fails but doesn't throw
-→ Returns empty/default value
-→ Downstream code behaves unexpectedly
+→ Returns empty/default
+→ Downstream behaves unexpectedly
 ROOT CAUSE: Missing error propagation
 ```
 
@@ -96,16 +96,8 @@ ROOT CAUSE: Unhandled API response wrapper
 
 ## When to Use This Technique
 
-- Stack traces with multiple levels
+- Stack traces w/ multiple levels
 - "undefined is not a function" errors
 - Data mysteriously becoming wrong
 - Values that "shouldn't be" a certain way
 
-## Quick Reference
-
-1. Note exact error + location
-2. Ask: who called this?
-3. Ask: what value was passed?
-4. Ask: where did that value come from?
-5. Repeat until you reach the origin
-6. Fix at origin, not at symptom

@@ -7,7 +7,7 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 ## Overview
 
-Guide completion of development work by presenting clear options and handling chosen workflow.
+Guide completion by presenting clear options + handling chosen workflow.
 
 **Core principle:** Verify tests → Present options → Execute choice → Clean up.
 
@@ -17,14 +17,14 @@ Guide completion of development work by presenting clear options and handling ch
 
 ### Step 1: Verify Tests
 
-**Before presenting options, verify tests pass:**
+**Before options, verify tests pass:**
 
 ```bash
 # Run project's test suite
 npm test / cargo test / pytest / go test ./...
 ```
 
-**If tests fail:**
+**Tests fail:**
 ```
 Tests failing (<N> failures). Must fix before completing:
 
@@ -33,9 +33,9 @@ Tests failing (<N> failures). Must fix before completing:
 Cannot proceed with merge/PR until tests pass.
 ```
 
-Stop. Don't proceed to Step 2.
+Stop. Don't go to Step 2.
 
-**If tests pass:** Continue to Step 2.
+**Tests pass:** continue to Step 2.
 
 ### Step 2: Determine Base Branch
 
@@ -47,7 +47,7 @@ Or ask: "This branch split from main - is that correct?"
 
 ### Step 3: Present Options
 
-Present exactly these 4 options:
+Exactly these 4 options:
 
 ```
 Implementation complete. What would you like to do?
@@ -60,7 +60,7 @@ Implementation complete. What would you like to do?
 Which option?
 ```
 
-**Don't add explanation** - keep options concise.
+**Don't add explanation** — keep concise.
 
 ### Step 4: Execute Choice
 
@@ -136,7 +136,7 @@ If yes:
 git worktree remove <worktree-path>
 ```
 
-**For Option 3:** Keep worktree.
+**For Option 3:** keep worktree.
 
 ## Quick Reference
 
@@ -150,9 +150,9 @@ git worktree remove <worktree-path>
 ## Common Mistakes
 
 **Skipping test verification**
-- **Problem:** Merge broken code, create failing PR
-- **Fix:** Always verify tests before offering options
+- **Problem:** merge broken code, create failing PR
+- **Fix:** always verify tests before offering options
 
 **Proceeding without tests passing**
-- **Problem:** Broken code gets merged
-- **Fix:** Tests MUST pass before Step 2. Non-negotiable.
+- **Problem:** broken code gets merged
+- **Fix:** tests MUST pass before Step 2. Non-negotiable.
